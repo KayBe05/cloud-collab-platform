@@ -23,5 +23,5 @@ This project uses **GitHub Actions** to automate:
 ## Screenshots
 ![CI/CD Run Example](URL-to-your-screenshot)
 
-## 📜 License
+## License
 Apache License 2.0

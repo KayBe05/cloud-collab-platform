@@ -18,7 +18,7 @@ This project uses **GitHub Actions** to automate:
 
 ## How to Use
 - Push any changes to the `main` branch → CI/CD pipeline runs automatically.
-- View pipeline results in the [GitHub Actions tab](https://github.com/YOUR-USERNAME/YOUR-REPO/actions).
+- View pipeline results in the [GitHub Actions tab](https://github.com/KayBe05/cloud-collab-platform/actions).
 
 ## Screenshots
 ![CI/CD Run Example](URL-to-your-screenshot)

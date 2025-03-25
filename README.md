@@ -1,4 +1,4 @@
-# cloud-collab-platform
+# Cloud-Collab-Platform
  "A cloud-based collaborative software development platform with integrated CI/CD pipelines for seamless development, testing, and deployment."
 
 The Project provides a cloud-based development environment integrated with CI/CD pipelines.

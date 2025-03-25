@@ -1,13 +1,34 @@
-# Ignore Python cache and virtual environment
-__pycache__/
+# Python
 venv/
-env/
-
-# Ignore logs
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
 *.log
 
-# Ignore environment variables
-.env
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
 
-# Ignore deployment artifacts
-*.pyc
+# Frontend npm
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env

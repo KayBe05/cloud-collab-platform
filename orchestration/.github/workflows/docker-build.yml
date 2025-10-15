@@ -1,0 +1,93 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r app/requirements.txt
+
+    - name: Run tests
+      run: |
+        cd app
+        python -m pytest test_app.py -v
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      run: |
+        docker build -t cloudx-prototype:latest .
+
+    - name: Test Docker image
+      run: |
+        # Start the container
+        docker run -d --name test-container -p 5000:5000 cloudx-prototype:latest
+        
+        # Wait for container to start
+        sleep 10
+        
+        # Test health endpoint
+        curl -f http://localhost:5000/health || exit 1
+        
+        # Cleanup
+        docker stop test-container
+        docker rm test-container
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create test .env file
+      run: |
+        echo "POSTGRES_DB=cloudx_test" >> .env
+        echo "POSTGRES_USER=test_user" >> .env
+        echo "POSTGRES_PASSWORD=test_password" >> .env
+        echo "CODESERVER_PASSWORD=test123" >> .env
+
+    - name: Run integration tests
+      run: |
+        # Start all services
+        docker-compose up -d
+        
+        # Wait for services to be ready
+        sleep 30
+        
+        # Test Flask app
+        curl -f http://localhost:5000/ || exit 1
+        curl -f http://localhost:5000/health || exit 1
+        
+        # Test database connectivity
+        curl -f http://localhost:5000/dbtest || exit 1
+        
+        # Cleanup
+        docker-compose down -v

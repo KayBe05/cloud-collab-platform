@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Flask Web Application
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Mount app directory for development (hot reload)
+      - ./app:/app
+    networks:
+      - cloudx-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persist database data
+      - postgres_data:/var/lib/postgresql/data
+      # Custom initialization scripts can go here
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - cloudx-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Code-Server (VS Code in browser)
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - PASSWORD=${CODESERVER_PASSWORD}
+      - SUDO_PASSWORD=${CODESERVER_PASSWORD}
+    ports:
+      - "8080:8443"
+    volumes:
+      # Mount the entire project for editing
+      - ./:/config/workspace
+      # Persist VS Code settings and extensions
+      - codeserver_data:/config
+    networks:
+      - cloudx-network
+    restart: unless-stopped
+
+# Networks
+networks:
+  cloudx-network:
+    driver: bridge
+
+# Volumes for data persistence
+volumes:
+  postgres_data:
+    driver: local
+  codeserver_data:
+    driver: local

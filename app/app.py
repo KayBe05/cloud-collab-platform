@@ -5,11 +5,12 @@ and serves as the main application for our development environment.
 """
 
 from flask import Flask, jsonify
-import git 
+import git
 import os
 from datetime import datetime
+import psycopg
 
-# Initialize Flask app
+# Initializing
 app = Flask(__name__)
 
 # Database configuration from environment variables
@@ -67,7 +68,7 @@ def test_database():
     """Test the PostgreSQL database connection"""
     try:
         # Attempt to connect to the database
-        connection = psycopg2.connect(**DB_CONFIG)
+        connection = psycopg.connect(**DB_CONFIG)
         cursor = connection.cursor()
         
         # Create a simple test table if it doesn't exist

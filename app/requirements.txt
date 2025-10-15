@@ -1,11 +1,22 @@
+# app/requirements.txt
+
 # Flask web framework
 Flask==2.3.3
 
-# PostgreSQL adapter for Python
-psycopg2-binary==2.9.9
+# PostgreSQL adapter for Python (newer version)
+psycopg==3.1.18
+
+# Python interface for Git
+GitPython==3.1.41
 
 # Testing framework
 pytest==7.4.2
+
+# Production WSGI server
+gunicorn==20.1.0
+
+# Code linter
+flake8==6.1.0
 
 # Additional useful packages
 python-dotenv==1.0.0

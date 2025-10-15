@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Database Test - Error{% endblock %}
+
+{% block content %}
+<h2>❌ Database Connection Failed</h2>
+<div class="status-box error">
+  <strong>Error:</strong> Could not connect to database.
+  <br><strong>Details:</strong> {{ error }}
+</div>
+<p>Make sure the PostgreSQL container is running and properly configured.</p>
+<div class="links">
+  <a href="/">← Back to Home</a>
+</div>
+{% endblock %}

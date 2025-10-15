@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - CloudX Prototype{% endblock %}
+
+{% block content %}
+<div class="status-box success">
+  <strong>Status:</strong> Flask application is running successfully!
+</div>
+
+<p>This is a cloud-based collaborative development environment prototype featuring:</p>
+<ul>
+  <li>Flask web application (this page)</li>
+  <li>PostgreSQL database</li>
+  <li>VS Code in the browser (Code-Server)</li>
+  <li>Docker containerization</li>
+</ul>
+
+<div class="links">
+  <a href="/dbtest">Test Database Connection</a>
+  <a href="http://localhost:8080" target="_blank">Open VS Code Editor</a>
+</div>
+{% endblock %}

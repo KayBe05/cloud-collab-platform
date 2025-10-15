@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Database Test - Success{% endblock %}
+
+{% block content %}
+<h2>✅ Database Connection Test</h2>
+<div class="status-box success">
+  <strong>Success!</strong> Connected to PostgreSQL database successfully.
+  <br>New record created with ID: <strong>{{ record_id }}</strong>
+</div>
+
+<h3>Recent Database Records:</h3>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Message</th>
+      <th>Created At</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for record in records %}
+    <tr>
+      <td>{{ record[0] }}</td>
+      <td>{{ record[1] }}</td>
+      <td>{{ record[2] }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="links">
+  <a href="/">← Back to Home</a>
+</div>
+{% endblock %}

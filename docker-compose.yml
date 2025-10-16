@@ -1,77 +1,101 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  # Flask Web Application
-  web:
-    build: .
-    ports:
-      - "5000:5000"
-    environment:
-      - POSTGRES_HOST=db
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      # Mount app directory for development (hot reload)
-      - ./app:/app
-    networks:
-      - cloudx-network
-    restart: unless-stopped
-
   # PostgreSQL Database
   db:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
+    container_name: cloudx-postgres
     environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-cloudx}
+      POSTGRES_USER: ${POSTGRES_USER:-cloudx_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudx_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
     ports:
       - "5432:5432"
     volumes:
-      # Persist database data
       - postgres_data:/var/lib/postgresql/data
-      # Custom initialization scripts can go here
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    networks:
-      - cloudx-network
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloudx_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
-
-  # Code-Server (VS Code in browser)
-  code-server:
-    image: lscr.io/linuxserver/code-server:latest
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=UTC
-      - PASSWORD=${CODESERVER_PASSWORD}
-      - SUDO_PASSWORD=${CODESERVER_PASSWORD}
-    ports:
-      - "8080:8443"
-    volumes:
-      # Mount the entire project for editing
-      - ./:/config/workspace
-      # Persist VS Code settings and extensions
-      - codeserver_data:/config
     networks:
       - cloudx-network
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
 
-# Networks
-networks:
-  cloudx-network:
-    driver: bridge
+  # Flask Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudx-app
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: ${FLASK_ENV:-production}
+      FLASK_DEBUG: ${FLASK_DEBUG:-0}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-cloudx}
+      POSTGRES_USER: ${POSTGRES_USER:-cloudx_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudx_password}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app.py:/app/app.py:ro
+      - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
+      - app_logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - cloudx-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
-# Volumes for data persistence
+  # Redis Cache (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: cloudx-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloudx-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   postgres_data:
     driver: local
-  codeserver_data:
+  redis_data:
     driver: local
+  app_logs:
+    driver: local
+
+networks:
+  cloudx-network:
+    driver: bridge

@@ -3,23 +3,331 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}CloudX Prototype{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="CloudX Platform - Enterprise-grade cloud development environment">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <title>{% block title %}CloudX Platform v2.1{% endblock %}</title>
+
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    integrity="sha512-DTOQO9RWCH3H5NxgLDoGDbVt+6+ZN+hQZLr84PkKFfA8QbYrC7a2Ysw8Py3ysQbLdvx88K5D7hxp2jZ3qx9Lg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer">
+
+  <!-- WebSocket & Chart Libraries -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"
+    integrity="sha512-FBgHy/gvlKQCjvjLpYxJYT6ZZ5OPe/m0l0Y71ygSzVZ1nh8kVHWpIzlKy8G7NzQVxDzqb+jfkSz6pbkAhKe8A=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+
+  {% block extra_head %}{% endblock %}
 </head>
 
 <body>
-  <div class="container">
-    <header>
-      <h1><span class="logo">CloudX</span> Platform</h1>
+  <!-- Navigation Sidebar -->
+  <aside class="sidebar" role="navigation" aria-label="Main Navigation">
+    <div class="sidebar-header">
+      <div class="logo">
+        <i class="fas fa-cloud" aria-hidden="true"></i>
+        <span>CloudX</span>
+      </div>
+      <div class="version-badge">v2.1</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}"
+        aria-current="{% if request.path == '/' %}page{% endif %}">
+        <i class="fas fa-home" aria-hidden="true"></i>
+        <span>Home</span>
+      </a>
+      <a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}"
+        aria-current="{% if request.path == '/dashboard' %}page{% endif %}">
+        <i class="fas fa-chart-line" aria-hidden="true"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="/projects" class="nav-item {% if request.path == '/projects' %}active{% endif %}"
+        aria-current="{% if request.path == '/projects' %}page{% endif %}">
+        <i class="fas fa-folder" aria-hidden="true"></i>
+        <span>Projects</span>
+      </a>
+      <a href="/analytics" class="nav-item {% if request.path == '/analytics' %}active{% endif %}"
+        aria-current="{% if request.path == '/analytics' %}page{% endif %}">
+        <i class="fas fa-chart-bar" aria-hidden="true"></i>
+        <span>Analytics</span>
+      </a>
+      <a href="/dbtest" class="nav-item {% if request.path == '/dbtest' %}active{% endif %}"
+        aria-current="{% if request.path == '/dbtest' %}page{% endif %}">
+        <i class="fas fa-database" aria-hidden="true"></i>
+        <span>Database</span>
+      </a>
+      <hr style="border: none; border-top: 1px solid var(--border-color); margin: 0.5rem 0; opacity: 0.5;">
+      <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer" class="nav-item">
+        <i class="fas fa-code" aria-hidden="true"></i>
+        <span>Code Editor</span>
+        <i class="fas fa-external-link-alt external-icon" aria-hidden="true"></i>
+      </a>
+      <a href="/health" target="_blank" rel="noopener noreferrer" class="nav-item">
+        <i class="fas fa-heartbeat" aria-hidden="true"></i>
+        <span>API Health</span>
+        <i class="fas fa-external-link-alt external-icon" aria-hidden="true"></i>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-indicator">
+        <span class="status-dot online" aria-hidden="true"></span>
+        <span class="status-text">All Systems Operational</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="main-content" role="main">
+    <!-- Top Header Bar -->
+    <header class="top-header" role="banner">
+      <div class="header-left">
+        <button class="menu-toggle" id="menuToggle" aria-label="Toggle Navigation Menu" aria-expanded="false">
+          <i class="fas fa-bars" aria-hidden="true"></i>
+        </button>
+        <div class="breadcrumb" role="navigation" aria-label="Breadcrumb">
+          {% block breadcrumb %}
+          <i class="fas fa-home" aria-hidden="true"></i> / Dashboard
+          {% endblock %}
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="connection-status" id="connectionStatus" title="Connection Status">
+          <i class="fas fa-circle" aria-hidden="true"></i>
+          <span>Connected</span>
+        </div>
+        <div class="time-display" id="currentTime" title="Current Time">{{ now }}</div>
+        <button class="icon-button" title="Notifications" aria-label="Notifications">
+          <i class="fas fa-bell" aria-hidden="true"></i>
+          <span class="notification-badge">3</span>
+        </button>
+        <button class="icon-button" title="Settings" aria-label="Settings">
+          <i class="fas fa-cog" aria-hidden="true"></i>
+        </button>
+      </div>
     </header>
-    <main>
+
+    <!-- Page Content -->
+    <div class="content-wrapper">
       {% block content %}{% endblock %}
-    </main>
-    <footer>
-      <p>Cloud-Collab-Platform by Kritarth | Started at: {{ now }}</p>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer" role="contentinfo">
+      <div class="footer-content">
+        <p>&copy; 2025 CloudX Platform by Kritarth | Apache 2.0 License</p>
+        <div class="footer-links">
+          <a href="/health" target="_blank" rel="noopener noreferrer">API Health</a>
+          <a href="https://github.com/KayBe05/cloud-collab-platform" target="_blank"
+            rel="noopener noreferrer">GitHub</a>
+          <a href="/analytics">System Status</a>
+        </div>
+      </div>
     </footer>
-  </div>
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" role="region" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Base JavaScript -->
+  <script>
+    // Configuration
+    const CONFIG = {
+      socketTimeout: 60000,
+      reconnectDelay: 1000,
+      maxReconnectDelay: 30000,
+      toastDuration: 3000
+    };
+
+    // WebSocket connection with error handling
+    const socket = io({
+      reconnection: true,
+      reconnectionDelay: CONFIG.reconnectDelay,
+      reconnectionDelayMax: CONFIG.maxReconnectDelay,
+      reconnectionAttempts: 5
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to CloudX Platform');
+      updateConnectionStatus(true);
+      showToast('Connected to CloudX Platform', 'success');
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.warn('Disconnected:', reason);
+      updateConnectionStatus(false);
+      if (reason !== 'io client namespace disconnect') {
+        showToast('Disconnected from server', 'error');
+      }
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+      updateConnectionStatus(false);
+    });
+
+    socket.on('connection_response', (data) => {
+      console.log('Server response:', data);
+    });
+
+    socket.on('metrics_update', (metrics) => {
+      console.log('Metrics received:', metrics);
+      window.dispatchEvent(new CustomEvent('metricsUpdate', { detail: metrics }));
+    });
+
+    // Update connection status
+    function updateConnectionStatus(connected) {
+      const statusEl = document.getElementById('connectionStatus');
+      if (!statusEl) return;
+
+      if (connected) {
+        statusEl.classList.remove('disconnected');
+        statusEl.innerHTML = '<i class="fas fa-circle" aria-hidden="true"></i><span>Connected</span>';
+      } else {
+        statusEl.classList.add('disconnected');
+        statusEl.innerHTML = '<i class="fas fa-circle" aria-hidden="true"></i><span>Disconnected</span>';
+      }
+    }
+
+    // Update time display
+    function updateTime() {
+      const timeEl = document.getElementById('currentTime');
+      if (!timeEl) return;
+
+      const now = new Date();
+      const formattedTime = now.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      timeEl.textContent = formattedTime;
+    }
+
+    // Update time every second
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // Toast notifications with accessibility
+    function showToast(message, type = 'info', duration = CONFIG.toastDuration) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.setAttribute('role', 'alert');
+
+      const iconMap = {
+        'success': 'check-circle',
+        'error': 'exclamation-circle',
+        'warning': 'exclamation-triangle',
+        'info': 'info-circle'
+      };
+
+      const icon = iconMap[type] || 'info-circle';
+
+      toast.innerHTML = `
+        <i class="fas fa-${icon}" aria-hidden="true"></i>
+        <span>${escapeHtml(message)}</span>
+      `;
+
+      container.appendChild(toast);
+
+      // Trigger animation
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      // Remove after duration
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Sidebar toggle for mobile
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.querySelector('.sidebar');
+
+    if (menuToggle) {
+      menuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('mobile-open');
+        menuToggle.setAttribute('aria-expanded',
+          sidebar.classList.contains('mobile-open') ? 'true' : 'false'
+        );
+      });
+    }
+
+    // Close sidebar on mobile when clicking outside
+    document.querySelector('.main-content')?.addEventListener('click', (e) => {
+      if (window.innerWidth <= 768) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar?.classList.contains('mobile-open')) {
+          sidebar.classList.remove('mobile-open');
+          if (menuToggle) {
+            menuToggle.setAttribute('aria-expanded', 'false');
+          }
+        }
+      }
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 768) {
+        sidebar?.classList.remove('mobile-open');
+        if (menuToggle) {
+          menuToggle.setAttribute('aria-expanded', 'false');
+        }
+      }
+    });
+
+    // Keyboard accessibility
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && sidebar?.classList.contains('mobile-open')) {
+        sidebar.classList.remove('mobile-open');
+        if (menuToggle) {
+          menuToggle.setAttribute('aria-expanded', 'false');
+        }
+      }
+    });
+
+    // Check connectivity periodically
+    setInterval(() => {
+      if (!socket.connected) {
+        console.warn('Socket disconnected, attempting reconnection...');
+      }
+    }, 30000);
+
+    // Global error handler
+    window.addEventListener('error', (event) => {
+      console.error('Global error:', event.error);
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled rejection:', event.reason);
+    });
+  </script>
+
+  {% block scripts %}{% endblock %}
 </body>
 
 </html>

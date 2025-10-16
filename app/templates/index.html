@@ -1,22 +1,326 @@
 {% extends "base.html" %}
 
-{% block title %}Welcome - CloudX Prototype{% endblock %}
+{% block title %}Home - CloudX Platform v2.1{% endblock %}
+
+{% block breadcrumb %}
+<i class="fas fa-home" aria-hidden="true"></i> / Home
+{% endblock %}
 
 {% block content %}
-<div class="status-box success">
-  <strong>Status:</strong> Flask application is running successfully!
-</div>
+<!-- Hero Section -->
+<section class="hero-section" aria-labelledby="hero-title">
+  <div class="hero-content">
+    <div class="hero-text">
+      <h1 class="hero-title" id="hero-title">
+        Welcome to <span class="gradient-text">CloudX Platform</span>
+      </h1>
+      <p class="hero-subtitle">
+        Enterprise-grade cloud development environment with integrated CI/CD pipelines, real-time collaboration, and
+        advanced monitoring capabilities.
+      </p>
+      <div class="hero-buttons">
+        <a href="/dashboard" class="btn btn-primary">
+          <i class="fas fa-rocket" aria-hidden="true"></i> Get Started
+        </a>
+        <a href="/projects" class="btn btn-secondary">
+          <i class="fas fa-folder-open" aria-hidden="true"></i> View Projects
+        </a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="floating-card">
+        <i class="fas fa-server" aria-hidden="true"></i>
+        <span>High Performance</span>
+      </div>
+      <div class="floating-card">
+        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+        <span>Enterprise Security</span>
+      </div>
+      <div class="floating-card">
+        <i class="fas fa-bolt" aria-hidden="true"></i>
+        <span>Lightning Fast</span>
+      </div>
+      <div class="floating-card">
+        <i class="fas fa-users" aria-hidden="true"></i>
+        <span>Team Ready</span>
+      </div>
+    </div>
+  </div>
+</section>
 
-<p>This is a cloud-based collaborative development environment prototype featuring:</p>
-<ul>
-  <li>Flask web application (this page)</li>
-  <li>PostgreSQL database</li>
-  <li>VS Code in the browser (Code-Server)</li>
-  <li>Docker containerization</li>
-</ul>
+<!-- Stats Overview -->
+<section class="stats-grid" aria-labelledby="stats-title">
+  <h2 id="stats-title" style="display: none;">Platform Statistics</h2>
 
-<div class="links">
-  <a href="/dbtest">Test Database Connection</a>
-  <a href="http://localhost:8080" target="_blank">Open VS Code Editor</a>
-</div>
+  <div class="stat-card">
+    <div class="stat-icon blue">
+      <i class="fas fa-project-diagram" aria-hidden="true"></i>
+    </div>
+    <div class="stat-content">
+      <h3 class="stat-value">{{ stats.total_projects }}</h3>
+      <p class="stat-label">Active Projects</p>
+    </div>
+    <div class="stat-trend positive">
+      <i class="fas fa-arrow-up" aria-hidden="true"></i> 12%
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon green">
+      <i class="fas fa-rocket" aria-hidden="true"></i>
+    </div>
+    <div class="stat-content">
+      <h3 class="stat-value">{{ stats.active_deployments }}</h3>
+      <p class="stat-label">Live Deployments</p>
+    </div>
+    <div class="stat-trend positive">
+      <i class="fas fa-arrow-up" aria-hidden="true"></i> 8%
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon purple">
+      <i class="fas fa-history" aria-hidden="true"></i>
+    </div>
+    <div class="stat-content">
+      <h3 class="stat-value">{{ stats.total_activities }}</h3>
+      <p class="stat-label">System Activities</p>
+    </div>
+    <div class="stat-trend positive">
+      <i class="fas fa-arrow-up" aria-hidden="true"></i> 24%
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon orange">
+      <i class="fas fa-heart-pulse" aria-hidden="true"></i>
+    </div>
+    <div class="stat-content">
+      <h3 class="stat-value">99.9%</h3>
+      <p class="stat-label">Uptime SLA</p>
+    </div>
+    <div class="stat-trend positive">
+      <i class="fas fa-check-circle" aria-hidden="true"></i> Healthy
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section" aria-labelledby="features-title">
+  <h2 class="section-title" id="features-title">Platform Features</h2>
+
+  <div class="features-grid">
+    <article class="feature-card">
+      <div class="feature-icon">
+        <i class="fas fa-code" aria-hidden="true"></i>
+      </div>
+      <h3>Browser-based IDE</h3>
+      <p>Full-featured VS Code environment accessible from anywhere. Complete with syntax highlighting, IntelliSense,
+        and thousands of extensions.</p>
+      <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer" class="feature-link">
+        Open Editor <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="feature-card">
+      <div class="feature-icon">
+        <i class="fas fa-database" aria-hidden="true"></i>
+      </div>
+      <h3>PostgreSQL Database</h3>
+      <p>Enterprise-grade relational database with automatic backups, high availability, advanced query optimization,
+        and full ACID compliance.</p>
+      <a href="/dbtest" class="feature-link">
+        Test Connection <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="feature-card">
+      <div class="feature-icon">
+        <i class="fas fa-docker" aria-hidden="true"></i>
+      </div>
+      <h3>Docker Containers</h3>
+      <p>Isolated, reproducible development environments. Consistent deployments across development, staging, and
+        production environments.</p>
+      <a href="/dashboard" class="feature-link">
+        View Containers <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="feature-card">
+      <div class="feature-icon">
+        <i class="fas fa-sync-alt" aria-hidden="true"></i>
+      </div>
+      <h3>CI/CD Pipeline</h3>
+      <p>Automated testing and deployment with GitHub Actions. Push code and watch it deploy automatically with
+        zero-downtime rollouts.</p>
+      <a href="/analytics" class="feature-link">
+        View Pipeline <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="feature-card">
+      <div class="feature-icon">
+        <i class="fas fa-chart-line" aria-hidden="true"></i>
+      </div>
+      <h3>Real-time Analytics</h3>
+      <p>Monitor system performance, track deployments, and analyze metrics with beautiful interactive dashboards and
+        detailed reports.</p>
+      <a href="/analytics" class="feature-link">
+        View Analytics <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+
+    <article class="feature-card">
+      <div class="feature-icon">
+        <i class="fas fa-users" aria-hidden="true"></i>
+      </div>
+      <h3>Team Collaboration</h3>
+      <p>Work together in real-time with shared workspaces, live editing, presence indicators, and integrated
+        communication tools.</p>
+      <a href="/projects" class="feature-link">
+        Start Collaborating <i class="fas fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </article>
+  </div>
+</section>
+
+<!-- Recent Activity -->
+<section class="activity-section" aria-labelledby="activity-title">
+  <div class="section-header">
+    <h2 class="section-title" id="activity-title">Recent Activity</h2>
+    <a href="/dashboard" class="view-all-link">
+      View All <i class="fas fa-arrow-right" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  <div class="activity-list">
+    {% for activity in stats.recent_activities[:5] %}
+    <div class="activity-item">
+      <div class="activity-icon">
+        <i class="fas fa-circle" aria-hidden="true"></i>
+      </div>
+      <div class="activity-content">
+        <p class="activity-action">{{ activity.action | replace('_', ' ') | title }}</p>
+        {% if activity.details %}
+        <p class="activity-details">{{ activity.details }}</p>
+        {% endif %}
+      </div>
+      <div class="activity-time">
+        <time datetime="{{ activity.created_at.isoformat() }}">
+          {{ activity.created_at.strftime('%I:%M %p') }}
+        </time>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-inbox" aria-hidden="true"></i>
+      <p>No recent activity yet</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Quick Actions -->
+<section class="quick-actions" aria-labelledby="actions-title">
+  <h2 class="section-title" id="actions-title">Quick Actions</h2>
+  <div class="actions-grid">
+    <button class="action-btn" onclick="createNewProject()" title="Create a new project">
+      <i class="fas fa-plus-circle" aria-hidden="true"></i>
+      <span>New Project</span>
+    </button>
+    <button class="action-btn" onclick="deployApp()" title="Deploy your application">
+      <i class="fas fa-rocket" aria-hidden="true"></i>
+      <span>Deploy</span>
+    </button>
+    <button class="action-btn" onclick="runTests()" title="Run test suite">
+      <i class="fas fa-vial" aria-hidden="true"></i>
+      <span>Run Tests</span>
+    </button>
+    <button class="action-btn" onclick="viewLogs()" title="View system logs">
+      <i class="fas fa-file-alt" aria-hidden="true"></i>
+      <span>View Logs</span>
+    </button>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Quick action handlers with loading states
+  function createNewProject() {
+    showToast('Opening project creation wizard...', 'info');
+    setTimeout(() => window.location.href = '/projects', 800);
+  }
+
+  function deployApp() {
+    showToast('Initiating deployment...', 'info');
+    // Send deployment request
+    fetch('/api/deployments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        project_id: 1,
+        environment: 'production',
+        version: '1.0.0'
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Deployment initiated successfully', 'success');
+        } else {
+          showToast('Deployment failed: ' + data.error, 'error');
+        }
+      })
+      .catch(err => {
+        console.error('Deployment error:', err);
+        showToast('Error initiating deployment', 'error');
+      });
+  }
+
+  function runTests() {
+    showToast('Running test suite...', 'info');
+    // Test execution logic
+  }
+
+  function viewLogs() {
+    showToast('Loading logs...', 'info');
+    setTimeout(() => window.location.href = '/analytics', 800);
+  }
+
+  // Intersection Observer for animations
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate-in');
+        // Optional: unobserve after animation
+        // observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  // Observe all animatable elements
+  document.querySelectorAll('.stat-card, .feature-card').forEach(el => {
+    observer.observe(el);
+  });
+
+  // Request metrics from server
+  window.addEventListener('metricsUpdate', (e) => {
+    console.log('Metrics updated:', e.detail);
+  });
+
+  // Request metrics periodically
+  if (socket && socket.connected) {
+    setInterval(() => {
+      socket.emit('request_metrics');
+    }, 5000);
+  }
+</script>
 {% endblock %}

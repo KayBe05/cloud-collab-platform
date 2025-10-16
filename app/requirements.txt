@@ -1,23 +1,42 @@
-# app/requirements.txt
+# Flask Web Framework & Extensions
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-SocketIO==5.3.5
+Werkzeug==3.0.1
 
-# Flask web framework
-Flask==2.3.3
+# WebSocket Support
+python-socketio==5.10.0
+python-engineio==4.8.0
+eventlet==0.33.3
 
-# PostgreSQL adapter for Python (newer version)
+# Database Adapter
 psycopg==3.1.18
+psycopg-binary==3.1.18
 
-# Python interface for Git
-GitPython==3.1.41
+# Git Integration
+GitPython==3.1.43
 
-# Testing framework
-pytest==7.4.2
+# HTTP Client
+requests==2.31.0
 
-# Production WSGI server
-gunicorn==20.1.0
+# Production WSGI Server
+gunicorn==21.2.0
 
-# Code linter
-flake8==6.1.0
-
-# Additional useful packages
+# Security & Environment
 python-dotenv==1.0.0
-Werkzeug==2.3.7
+cryptography==41.0.7
+PyJWT==2.8.1
+
+# Testing Framework
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-asyncio==0.21.1
+
+# Code Quality Tools
+flake8==6.1.0
+black==23.12.1
+pylint==3.0.3
+isort==5.13.2
+
+# Monitoring & Logging
+python-json-logger==2.0

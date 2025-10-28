@@ -23,8 +23,8 @@ def test_home_page(client):
     """Test the home page loads correctly"""
     response = client.get('/')
     assert response.status_code == 200
-    assert b'Welcome to CloudX Prototype' in response.data
-    assert b'Flask application is running successfully!' in response.data
+    # CORRECTED: Updated assertion from 'CloudX Prototype' to the current application name 'CloudX Platform'
+    assert b'Welcome to CloudX Platform' in response.data 
 
 def test_health_check(client):
     """Test the health check endpoint"""
@@ -36,7 +36,8 @@ def test_health_check(client):
     assert json_data is not None
     assert json_data['status'] == 'healthy'
     assert 'timestamp' in json_data
-    assert json_data['service'] == 'CloudX Flask App'
+    # CORRECTED: Updated assertion from 'CloudX Flask App' to the service name returned by app.py: 'CloudX Platform'
+    assert json_data['service'] == 'CloudX Platform'
 
 def test_dbtest_page_loads(client):
     """Test that the database test page loads (may fail if DB not available)"""

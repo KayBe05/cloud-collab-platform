@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Error - CloudX Platform{% endblock %}
+
+{% block content %}
+<div
+  style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center;">
+  <div style="font-size: 4rem; color: #ef4444; margin-bottom: 1rem;">
+    <i class="fas fa-exclamation-circle"></i>
+  </div>
+  <h2 style="font-size: 2rem; margin-bottom: 1rem;">Something Went Wrong</h2>
+
+  <div
+    style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 1.5rem; border-radius: 8px; max-width: 600px; margin-bottom: 2rem;">
+    <code style="color: #ef4444;">{{ error }}</code>
+  </div>
+
+  <div style="display: flex; gap: 1rem;">
+    <a href="/" class="btn btn-secondary">
+      <i class="fas fa-home"></i> Go Home
+    </a>
+    <a href="/projects" class="btn btn-primary">
+      <i class="fas fa-sync"></i> Try Again
+    </a>
+  </div>
+</div>
+{% endblock %}

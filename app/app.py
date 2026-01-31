@@ -1,9 +1,3 @@
-"""
-CloudX Platform v2.1 - Enhanced Flask Web Application
-Enterprise-grade cloud development environment with real-time features,
-API management, comprehensive monitoring, and improved compatibility.
-"""
-
 from flask import Flask, jsonify, render_template, request, session, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
@@ -17,6 +11,8 @@ import hashlib
 import json
 import logging
 from functools import wraps
+import docker
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -487,6 +483,56 @@ def server_error(error):
     """Handle 500 errors"""
     logger.error(f"Server error: {error}")
     return jsonify({'error': 'Internal server error'}), 500
+
+@app.route('/api/projects/<int:project_id>/launch', methods=['POST'])
+@require_session
+def launch_workspace(project_id):
+    """
+    Orchestrator Endpoint: Spins up a new Docker container for the project.
+    """
+    try:
+        # Connect to the Docker Daemon
+        client = docker.from_env()
+        
+        # Generate a secure, random password for this session
+        session_password = secrets.token_hex(4)
+        
+        # Define the container name 
+        container_name = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
+        
+        # SPIN UP THE CONTAINER
+        container = client.containers.run(
+            image="cloudx-workspace:latest",  # Uses the image we built in Step 3
+            detach=True,
+            environment={"PASSWORD": session_password},
+            ports={'8080/tcp': None, '22/tcp': None}, 
+            name=container_name
+        )
+        
+        # 5. Wait for it to initialize
+        time.sleep(2)
+        container.reload()
+        
+        # 6. Extract the random ports Docker assigned
+        web_port = container.attrs['NetworkSettings']['Ports']['8080/tcp'][0]['HostPort']
+        ssh_port = container.attrs['NetworkSettings']['Ports']['22/tcp'][0]['HostPort']
+        
+        log_activity('workspace_provisioned', f"Launched {container_name}")
+        
+        # 7. Return the connection details to the frontend
+        return jsonify({
+            'success': True,
+            'status': 'provisioned',
+            'connection': {
+                'web_url': f"http://localhost:{web_port}",
+                'ssh_command': f"ssh root@localhost -p {ssh_port}",
+                'password': session_password
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Provisioning Failure: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=os.getenv('FLASK_DEBUG', False))

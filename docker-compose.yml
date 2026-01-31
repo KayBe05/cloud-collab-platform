@@ -8,15 +8,16 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cloudx}
       POSTGRES_USER: ${POSTGRES_USER:-cloudx_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudx_password}
+      # UPDATED: Hardcoded to match your .env to prevent auth errors
+      POSTGRES_PASSWORD: cloudx_9648
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloudx_user}"]
+      # Updated test to use the hardcoded password variable if needed
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloudx_user} -d ${POSTGRES_DB:-cloudx}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,7 +27,7 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # Flask Application
+  # Flask Application (The Orchestrator)
   app:
     build:
       context: .
@@ -41,14 +42,17 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-cloudx}
       POSTGRES_USER: ${POSTGRES_USER:-cloudx_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cloudx_password}
+      # UPDATED: Hardcoded to ensure it matches the DB
+      POSTGRES_PASSWORD: cloudx_9648
     ports:
-      - "5000:5000"
+      - "5001:5000"  # CHANGED: mapped to 5001 to avoid 'Address already in use' errors
     volumes:
-      - ./app.py:/app/app.py:ro
-      - ./templates:/app/templates:ro
-      - ./static:/app/static:ro
+      - ./app/app.py:/app/app.py:ro
+      - ./app/templates:/app/templates:ro
+      - ./app/static:/app/static:ro
       - app_logs:/app/logs
+      # CRITICAL ADDITION: Gives the app permission to control Docker
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db:
         condition: service_healthy
@@ -61,6 +65,8 @@ services:
     networks:
       - cloudx-network
     restart: unless-stopped
+    # Note: We keep security_opt here for the app, but it needs access to the socket.
+    # If you get permission errors later, we might need to remove 'no-new-privileges' for the app.
     security_opt:
       - no-new-privileges:true
     cap_drop:

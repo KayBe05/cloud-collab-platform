@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - CloudX Platform{% endblock %}
+
+{% block breadcrumb %}
+<i class="fas fa-folder" aria-hidden="true"></i> / Projects
+{% endblock %}
+
+{% block content %}
+<div class="projects-header"
+  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+  <h2>My Projects</h2>
+  <button class="btn btn-primary" onclick="createNewProject()">
+    <i class="fas fa-plus" aria-hidden="true"></i> New Project
+  </button>
+</div>
+
+<div class="projects-grid">
+  {% for project in projects %}
+  <div class="project-card">
+    <div class="card-header" style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+      <h3 style="margin: 0;">{{ project.name }}</h3>
+      <span class="status-badge"
+        style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">{{
+        project.status }}</span>
+    </div>
+    <p class="project-desc" style="color: var(--text-secondary); margin-bottom: 1.5rem;">{{ project.description }}</p>
+
+    <div class="card-actions" style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+      <button class="btn"
+        style="background: transparent; border: 1px solid var(--primary); color: var(--primary); width: 100%;"
+        onclick="launchEnvironment('{{ project.id }}', this)">
+        <i class="fas fa-rocket"></i> Launch Environment
+      </button>
+    </div>
+
+    <div id="connection-info-{{ project.id }}"
+      style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid var(--border-color);">
+      <div style="margin-bottom: 10px; font-family: monospace;">
+        <i class="fas fa-key" style="color: #fbbf24;"></i> <span class="password-field"
+          style="color: #fbbf24; font-weight: bold;"></span>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="#" target="_blank" class="btn btn-sm btn-primary web-link"
+          style="flex: 1; text-align: center; text-decoration: none; font-size: 0.9rem; padding: 8px;">
+          <i class="fas fa-external-link-alt"></i> Web IDE
+        </a>
+        <button class="btn btn-sm"
+          style="flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);"
+          onclick="copySSH(this)">
+          <i class="fas fa-terminal"></i> Copy SSH
+        </button>
+        <input type="hidden" class="ssh-command">
+      </div>
+    </div>
+
+    <div class="card-footer" style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-tertiary);">
+      <span><i class="fas fa-clock"></i> Updated {{ project.updated_at }}</span>
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 4rem;">
+    <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-tertiary); margin-bottom: 1rem;"></i>
+    <p>No projects found. Create one to get started!</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  // Mock function for creating a project
+  function createNewProject() {
+    fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Demo Project ' + Math.floor(Math.random() * 1000),
+        description: 'A cloud-native project created for demonstration.',
+        tags: 'demo,python'
+      })
+    }).then(() => window.location.reload());
+  }
+
+  async function launchEnvironment(projectId, btnElement) {
+    // 1. Show Loading State
+    const originalText = btnElement.innerHTML;
+    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Provisioning...';
+    btnElement.disabled = true;
+
+    try {
+      // 2. Call the API
+      const response = await fetch(`/api/projects/${projectId}/launch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 3. Show Success & Connection Details
+        btnElement.innerHTML = '<i class="fas fa-check"></i> Environment Running';
+        btnElement.style.borderColor = '#10b981';
+        btnElement.style.color = '#10b981';
+
+        // Fill in the hidden box
+        const box = document.getElementById(`connection-info-${projectId}`);
+        box.style.display = 'block';
+
+        box.querySelector('.password-field').textContent = data.connection.password;
+        box.querySelector('.web-link').href = data.connection.web_url;
+        box.querySelector('.ssh-command').value = data.connection.ssh_command;
+
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      console.error(error);
+      btnElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
+      btnElement.style.borderColor = '#ef4444';
+      btnElement.style.color = '#ef4444';
+      alert('Launch failed: ' + error.message);
+    }
+  }
+
+  function copySSH(btn) {
+    const command = btn.nextElementSibling.value;
+    navigator.clipboard.writeText(command);
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+    setTimeout(() => btn.innerHTML = original, 2000);
+  }
+</script>
+
+<style>
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .project-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: transform 0.2s;
+  }
+
+  .project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+</style>
+{% endblock %}

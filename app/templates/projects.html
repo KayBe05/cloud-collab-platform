@@ -3,107 +3,289 @@
 {% block title %}Projects - CloudX Platform{% endblock %}
 
 {% block breadcrumb %}
-<i class="fas fa-folder" aria-hidden="true"></i> / Projects
+<i class="fas fa-folder"></i>
+<i class="fas fa-chevron-right"></i>
+<span>Projects</span>
 {% endblock %}
 
 {% block content %}
-<div class="projects-header"
-  style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-  <h2>My Projects</h2>
+<div class="projects-header">
+  <div>
+    <h2 style="margin-bottom: 0.5rem;">My Projects</h2>
+    <p style="color: var(--text-secondary); font-size: 0.95rem;">Manage and deploy your cloud applications</p>
+  </div>
   <button class="btn btn-primary" onclick="createNewProject()">
-    <i class="fas fa-plus" aria-hidden="true"></i> New Project
+    <i class="fas fa-plus"></i> New Project
   </button>
 </div>
 
 <div class="projects-grid">
   {% for project in projects %}
   <div class="project-card">
-    <div class="card-header" style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-      <h3 style="margin: 0;">{{ project.name }}</h3>
-      <span class="status-badge"
-        style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">{{
-        project.status }}</span>
+    <div class="card-header">
+      <h3>{{ project.name }}</h3>
+      <span class="status-badge">{{ project.status }}</span>
     </div>
-    <p class="project-desc" style="color: var(--text-secondary); margin-bottom: 1.5rem;">{{ project.description }}</p>
 
-    <div class="card-actions" style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
-      <button class="btn"
-        style="background: transparent; border: 1px solid var(--primary); color: var(--primary); width: 100%;"
-        onclick="launchEnvironment('{{ project.id }}', this)">
+    <p class="project-desc">{{ project.description or 'No description provided' }}</p>
+
+    <div class="card-actions">
+      <button class="btn btn-primary" style="width: 100%;" onclick="launchEnvironment('{{ project.id }}', this)">
         <i class="fas fa-rocket"></i> Launch Environment
       </button>
     </div>
 
     <div id="connection-info-{{ project.id }}"
-      style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; border: 1px solid var(--border-color);">
-      <div style="margin-bottom: 10px; font-family: monospace;">
-        <i class="fas fa-key" style="color: #fbbf24;"></i> <span class="password-field"
-          style="color: #fbbf24; font-weight: bold;"></span>
+      style="display: none; margin-top: 1.5rem; padding: 1.25rem; background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+      <div style="margin-bottom: 1rem;">
+        <label
+          style="font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.5rem;">
+          <i class="fas fa-key"></i> Password
+        </label>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <code class="password-field"
+            style="flex: 1; background: var(--bg-tertiary); padding: 0.75rem; border-radius: var(--radius-md); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--warning); font-weight: 600; border: 1px solid var(--border-color);"></code>
+          <button class="icon-button" onclick="copyPassword(this)" title="Copy password">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
       </div>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="#" target="_blank" class="btn btn-sm btn-primary web-link"
-          style="flex: 1; text-align: center; text-decoration: none; font-size: 0.9rem; padding: 8px;">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <a href="#" target="_blank" class="btn btn-primary web-link"
+          style="text-decoration: none; justify-content: center;">
           <i class="fas fa-external-link-alt"></i> Web IDE
         </a>
-        <button class="btn btn-sm"
-          style="flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);"
-          onclick="copySSH(this)">
+        <button class="btn btn-secondary" onclick="copySSH(this)">
           <i class="fas fa-terminal"></i> Copy SSH
         </button>
         <input type="hidden" class="ssh-command">
       </div>
     </div>
 
-    <div class="card-footer" style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-tertiary);">
-      <span><i class="fas fa-clock"></i> Updated {{ project.updated_at }}</span>
+    <div class="card-footer">
+      <i class="fas fa-clock"></i>
+      <span>Updated {{ project.updated_at }}</span>
     </div>
   </div>
   {% else %}
-  <div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 4rem;">
-    <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-tertiary); margin-bottom: 1rem;"></i>
-    <p>No projects found. Create one to get started!</p>
+  <div class="empty-state" style="grid-column: 1/-1; padding: 4rem 2rem;">
+    <i class="fas fa-folder-open"></i>
+    <h3 style="margin: 1rem 0 0.5rem; color: var(--text-primary);">No projects yet</h3>
+    <p>Create your first project to get started with CloudX Platform!</p>
+    <button class="btn btn-primary" onclick="createNewProject()" style="margin-top: 1.5rem;">
+      <i class="fas fa-plus"></i> Create Project
+    </button>
   </div>
   {% endfor %}
 </div>
 
+<!-- Project Creation Modal (hidden by default) -->
+<div id="createProjectModal" class="modal" style="display: none;">
+  <div class="modal-overlay" onclick="closeCreateModal()"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Create New Project</h3>
+      <button class="icon-button" onclick="closeCreateModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Project Name</label>
+        <input type="text" id="projectName" placeholder="My Awesome Project" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="projectDescription" placeholder="A brief description of your project" class="form-input"
+          rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tags (comma-separated)</label>
+        <input type="text" id="projectTags" placeholder="python, docker, web" class="form-input">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitNewProject()">
+        <i class="fas fa-plus"></i> Create Project
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Modal Styles */
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-content {
+    position: relative;
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-2xl);
+    width: 100%;
+    max-width: 500px;
+    border: 1px solid var(--border-color);
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  }
+
+  .form-input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  textarea.form-input {
+    resize: vertical;
+    min-height: 80px;
+  }
+</style>
+
 <script>
-  // Mock function for creating a project
+  // Show create project modal
   function createNewProject() {
+    document.getElementById('createProjectModal').style.display = 'flex';
+    document.getElementById('projectName').focus();
+  }
+
+  // Close create project modal
+  function closeCreateModal() {
+    document.getElementById('createProjectModal').style.display = 'none';
+    document.getElementById('projectName').value = '';
+    document.getElementById('projectDescription').value = '';
+    document.getElementById('projectTags').value = '';
+  }
+
+  // Submit new project
+  function submitNewProject() {
+    const name = document.getElementById('projectName').value.trim();
+    const description = document.getElementById('projectDescription').value.trim();
+    const tags = document.getElementById('projectTags').value.trim();
+
+    if (!name) {
+      showToast('Please enter a project name', 'error');
+      return;
+    }
+
     fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'Demo Project ' + Math.floor(Math.random() * 1000),
-        description: 'A cloud-native project created for demonstration.',
-        tags: 'demo,python'
+      body: JSON.stringify({ name, description, tags })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          showToast('Project created successfully!', 'success');
+          closeCreateModal();
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          showToast('Failed to create project: ' + data.error, 'error');
+        }
       })
-    }).then(() => window.location.reload());
+      .catch(err => {
+        console.error('Error creating project:', err);
+        showToast('Error creating project', 'error');
+      });
   }
 
+  // Launch environment
   async function launchEnvironment(projectId, btnElement) {
-    // 1. Show Loading State
     const originalText = btnElement.innerHTML;
     btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Provisioning...';
     btnElement.disabled = true;
 
     try {
-      // 2. Call the API
       const response = await fetch(`/api/projects/${projectId}/launch`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Content-Type': 'application/json' }
       });
 
       const data = await response.json();
 
       if (data.success) {
-        // 3. Show Success & Connection Details
         btnElement.innerHTML = '<i class="fas fa-check"></i> Environment Running';
-        btnElement.style.borderColor = '#10b981';
-        btnElement.style.color = '#10b981';
+        btnElement.style.background = 'rgba(16, 185, 129, 0.1)';
+        btnElement.style.borderColor = 'var(--success)';
+        btnElement.style.color = 'var(--success)';
 
-        // Fill in the hidden box
         const box = document.getElementById(`connection-info-${projectId}`);
         box.style.display = 'block';
 
@@ -111,45 +293,47 @@
         box.querySelector('.web-link').href = data.connection.web_url;
         box.querySelector('.ssh-command').value = data.connection.ssh_command;
 
+        showToast('Environment provisioned successfully!', 'success');
       } else {
         throw new Error(data.error);
       }
     } catch (error) {
       console.error(error);
       btnElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
-      btnElement.style.borderColor = '#ef4444';
-      btnElement.style.color = '#ef4444';
-      alert('Launch failed: ' + error.message);
+      btnElement.style.background = 'rgba(239, 68, 68, 0.1)';
+      btnElement.style.borderColor = 'var(--error)';
+      btnElement.style.color = 'var(--error)';
+      showToast('Launch failed: ' + error.message, 'error');
     }
   }
 
+  // Copy password
+  function copyPassword(btn) {
+    const password = btn.parentElement.querySelector('.password-field').textContent;
+    navigator.clipboard.writeText(password).then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i>';
+      showToast('Password copied to clipboard', 'success');
+      setTimeout(() => btn.innerHTML = original, 2000);
+    });
+  }
+
+  // Copy SSH command
   function copySSH(btn) {
     const command = btn.nextElementSibling.value;
-    navigator.clipboard.writeText(command);
-    const original = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-    setTimeout(() => btn.innerHTML = original, 2000);
+    navigator.clipboard.writeText(command).then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+      showToast('SSH command copied to clipboard', 'success');
+      setTimeout(() => btn.innerHTML = original, 2000);
+    });
   }
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeCreateModal();
+    }
+  });
 </script>
-
-<style>
-  .projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .project-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1.5rem;
-    transition: transform 0.2s;
-  }
-
-  .project-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-  }
-</style>
 {% endblock %}

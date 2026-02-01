@@ -77,8 +77,8 @@ def init_db():
                         ip_address VARCHAR(45),
                         user_agent TEXT,
                         severity VARCHAR(20) DEFAULT 'info',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        INDEX idx_created_at (created_at)
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        -- The INDEX line must be removed from here
                     )
                 """)
                 

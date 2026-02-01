@@ -1,0 +1,573 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - CloudX Platform{% endblock %}
+
+{% block breadcrumb %}
+<i class="fas fa-chart-line"></i>
+<i class="fas fa-chevron-right"></i>
+<span>Dashboard</span>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+  <div>
+    <h2>Dashboard</h2>
+    <p style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.5rem;">
+      Welcome back! Here's what's happening with your projects today.
+    </p>
+  </div>
+  <div class="dashboard-actions">
+    <button class="btn btn-secondary" onclick="refreshDashboard()">
+      <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+    <button class="btn btn-primary" onclick="window.location.href='/projects'">
+      <i class="fas fa-plus"></i> New Project
+    </button>
+  </div>
+</div>
+
+<!-- Key Metrics Grid -->
+<section class="metrics-section">
+  <div class="metrics-grid">
+    <div class="metric-card animate-in" style="animation-delay: 0.1s;">
+      <div class="metric-header">
+        <div class="metric-icon blue">
+          <i class="fas fa-project-diagram"></i>
+        </div>
+        <div class="metric-trend positive">
+          <i class="fas fa-arrow-up"></i> 12%
+        </div>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value" id="totalProjects">{{ stats.total_projects }}</h3>
+        <p class="metric-label">Total Projects</p>
+        <div class="metric-footer">
+          <span class="metric-detail">
+            <i class="fas fa-check-circle"></i> {{ stats.total_projects }} active
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card animate-in" style="animation-delay: 0.2s;">
+      <div class="metric-header">
+        <div class="metric-icon green">
+          <i class="fas fa-rocket"></i>
+        </div>
+        <div class="metric-trend positive">
+          <i class="fas fa-arrow-up"></i> 8%
+        </div>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value" id="activeDeployments">{{ stats.active_deployments }}</h3>
+        <p class="metric-label">Active Deployments</p>
+        <div class="metric-footer">
+          <span class="metric-detail">
+            <i class="fas fa-clock"></i> Last deploy 2h ago
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card animate-in" style="animation-delay: 0.3s;">
+      <div class="metric-header">
+        <div class="metric-icon purple">
+          <i class="fas fa-server"></i>
+        </div>
+        <div class="metric-trend positive">
+          <i class="fas fa-check"></i> 100%
+        </div>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value">99.9%</h3>
+        <p class="metric-label">Uptime</p>
+        <div class="metric-footer">
+          <span class="metric-detail">
+            <i class="fas fa-heartbeat"></i> All systems operational
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-card animate-in" style="animation-delay: 0.4s;">
+      <div class="metric-header">
+        <div class="metric-icon orange">
+          <i class="fas fa-history"></i>
+        </div>
+        <div class="metric-trend positive">
+          <i class="fas fa-arrow-up"></i> 24%
+        </div>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value" id="totalActivities">{{ stats.total_activities }}</h3>
+        <p class="metric-label">Total Activities</p>
+        <div class="metric-footer">
+          <span class="metric-detail">
+            <i class="fas fa-bolt"></i> High activity today
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Charts Section -->
+<div class="dashboard-grid">
+  <!-- System Performance Chart -->
+  <div class="dashboard-card chart-card">
+    <div class="card-header-dash">
+      <div>
+        <h3>System Performance</h3>
+        <p class="card-subtitle">Real-time system metrics</p>
+      </div>
+      <div class="chart-controls">
+        <button class="chart-btn active" data-range="24h">24h</button>
+        <button class="chart-btn" data-range="7d">7d</button>
+        <button class="chart-btn" data-range="30d">30d</button>
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="performanceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Deployment Success Rate -->
+  <div class="dashboard-card chart-card">
+    <div class="card-header-dash">
+      <div>
+        <h3>Deployment Success Rate</h3>
+        <p class="card-subtitle">Last 30 days</p>
+      </div>
+      <div class="success-rate-badge">
+        <i class="fas fa-check-circle"></i> 98.5%
+      </div>
+    </div>
+    <div class="chart-container">
+      <canvas id="deploymentChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Activity & Resources Grid -->
+<div class="dashboard-grid-2">
+  <!-- Recent Activity Feed -->
+  <div class="dashboard-card activity-card">
+    <div class="card-header-dash">
+      <div>
+        <h3>Recent Activity</h3>
+        <p class="card-subtitle">Latest system events</p>
+      </div>
+      <a href="/analytics" class="view-all-link">
+        View All <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+    <div class="activity-feed">
+      {% for activity in stats.recent_activities[:10] %}
+      <div class="activity-feed-item">
+        <div class="activity-feed-icon">
+          <i class="fas fa-circle"></i>
+        </div>
+        <div class="activity-feed-content">
+          <p class="activity-feed-action">{{ activity.action | replace('_', ' ') | title }}</p>
+          {% if activity.details %}
+          <p class="activity-feed-details">{{ activity.details }}</p>
+          {% endif %}
+          <time class="activity-feed-time">{{ activity.created_at.strftime('%I:%M %p') }}</time>
+        </div>
+        <div class="activity-feed-status">
+          <span class="status-dot success"></span>
+        </div>
+      </div>
+      {% else %}
+      <div class="empty-state-small">
+        <i class="fas fa-inbox"></i>
+        <p>No recent activity</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- System Resources -->
+  <div class="dashboard-card resources-card">
+    <div class="card-header-dash">
+      <div>
+        <h3>System Resources</h3>
+        <p class="card-subtitle">Current usage</p>
+      </div>
+      <button class="icon-button" onclick="updateResourceMetrics()">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+    <div class="resources-grid">
+      <div class="resource-item">
+        <div class="resource-header">
+          <span class="resource-label">
+            <i class="fas fa-microchip"></i> CPU Usage
+          </span>
+          <span class="resource-value" id="cpuValue">45.2%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="cpuProgress" style="width: 45.2%;"></div>
+        </div>
+        <p class="resource-status">Normal load</p>
+      </div>
+
+      <div class="resource-item">
+        <div class="resource-header">
+          <span class="resource-label">
+            <i class="fas fa-memory"></i> Memory Usage
+          </span>
+          <span class="resource-value" id="memoryValue">68.5%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill warning" id="memoryProgress" style="width: 68.5%;"></div>
+        </div>
+        <p class="resource-status">Moderate usage</p>
+      </div>
+
+      <div class="resource-item">
+        <div class="resource-header">
+          <span class="resource-label">
+            <i class="fas fa-hdd"></i> Disk Usage
+          </span>
+          <span class="resource-value" id="diskValue">52.1%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="diskProgress" style="width: 52.1%;"></div>
+        </div>
+        <p class="resource-status">Healthy</p>
+      </div>
+
+      <div class="resource-item">
+        <div class="resource-header">
+          <span class="resource-label">
+            <i class="fas fa-network-wired"></i> Network I/O
+          </span>
+          <span class="resource-value" id="networkValue">3.2 MB/s</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill success" id="networkProgress" style="width: 32%;"></div>
+        </div>
+        <p class="resource-status">Low traffic</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="quick-stats-grid">
+  <div class="quick-stat-card">
+    <div class="quick-stat-icon blue">
+      <i class="fas fa-code-branch"></i>
+    </div>
+    <div class="quick-stat-content">
+      <h4>156</h4>
+      <p>Commits Today</p>
+    </div>
+    <div class="quick-stat-trend positive">+18%</div>
+  </div>
+
+  <div class="quick-stat-card">
+    <div class="quick-stat-icon green">
+      <i class="fas fa-check-double"></i>
+    </div>
+    <div class="quick-stat-content">
+      <h4>23</h4>
+      <p>Tests Passed</p>
+    </div>
+    <div class="quick-stat-trend positive">+5%</div>
+  </div>
+
+  <div class="quick-stat-card">
+    <div class="quick-stat-icon purple">
+      <i class="fas fa-users"></i>
+    </div>
+    <div class="quick-stat-content">
+      <h4>8</h4>
+      <p>Active Users</p>
+    </div>
+    <div class="quick-stat-trend positive">+2</div>
+  </div>
+
+  <div class="quick-stat-card">
+    <div class="quick-stat-icon orange">
+      <i class="fas fa-clock"></i>
+    </div>
+    <div class="quick-stat-content">
+      <h4>2.3s</h4>
+      <p>Avg Deploy Time</p>
+    </div>
+    <div class="quick-stat-trend negative">-12%</div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Initialize charts
+  let performanceChart, deploymentChart;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    initPerformanceChart();
+    initDeploymentChart();
+    startMetricsUpdate();
+    initAnimations();
+  });
+
+  function initPerformanceChart() {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(14, 165, 233, 0.3)');
+    gradient.addColorStop(1, 'rgba(14, 165, 233, 0.01)');
+
+    performanceChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+        datasets: [{
+          label: 'CPU Usage',
+          data: [45, 52, 48, 65, 58, 70, 62],
+          borderColor: '#0EA5E9',
+          backgroundColor: gradient,
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#0EA5E9',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }, {
+          label: 'Memory Usage',
+          data: [62, 68, 65, 72, 70, 75, 68],
+          borderColor: '#8B5CF6',
+          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#8B5CF6',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#64748B',
+              font: { size: 12, family: 'Inter' },
+              usePointStyle: true,
+              padding: 15
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#F1F5F9',
+            bodyColor: '#CBD5E1',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 12,
+            displayColors: true,
+            callbacks: {
+              label: function (context) {
+                return context.dataset.label + ': ' + context.parsed.y + '%';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: '#E2E8F0', drawBorder: false },
+            ticks: { color: '#94A3B8', font: { size: 11 } }
+          },
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: '#E2E8F0', drawBorder: false },
+            ticks: {
+              color: '#94A3B8',
+              font: { size: 11 },
+              callback: function (value) { return value + '%'; }
+            }
+          }
+        },
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        }
+      }
+    });
+  }
+
+  function initDeploymentChart() {
+    const ctx = document.getElementById('deploymentChart').getContext('2d');
+
+    deploymentChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [{
+          label: 'Successful',
+          data: [12, 15, 10, 18, 14, 8, 6],
+          backgroundColor: 'rgba(16, 185, 129, 0.8)',
+          borderColor: '#10B981',
+          borderWidth: 1,
+          borderRadius: 6
+        }, {
+          label: 'Failed',
+          data: [1, 0, 2, 1, 0, 1, 0],
+          backgroundColor: 'rgba(239, 68, 68, 0.8)',
+          borderColor: '#EF4444',
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#64748B',
+              font: { size: 12, family: 'Inter' },
+              usePointStyle: true,
+              padding: 15
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#F1F5F9',
+            bodyColor: '#CBD5E1',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 12
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#94A3B8', font: { size: 11 } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: '#E2E8F0', drawBorder: false },
+            ticks: {
+              color: '#94A3B8',
+              font: { size: 11 },
+              stepSize: 5
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Real-time metrics update
+  function startMetricsUpdate() {
+    setInterval(updateResourceMetrics, 5000);
+  }
+
+  function updateResourceMetrics() {
+    // Request metrics from WebSocket
+    if (socket && socket.connected) {
+      socket.emit('request_metrics');
+    }
+
+    // Simulate metric updates (replace with actual data)
+    const cpu = (Math.random() * 30 + 40).toFixed(1);
+    const memory = (Math.random() * 20 + 60).toFixed(1);
+    const disk = (Math.random() * 10 + 50).toFixed(1);
+    const network = (Math.random() * 5 + 1).toFixed(1);
+
+    updateResourceDisplay('cpu', cpu, '%');
+    updateResourceDisplay('memory', memory, '%');
+    updateResourceDisplay('disk', disk, '%');
+    updateResourceDisplay('network', network, ' MB/s');
+  }
+
+  function updateResourceDisplay(type, value, unit) {
+    const valueEl = document.getElementById(type + 'Value');
+    const progressEl = document.getElementById(type + 'Progress');
+
+    if (valueEl) valueEl.textContent = value + unit;
+    if (progressEl) {
+      progressEl.style.width = (unit === ' MB/s' ? parseFloat(value) * 10 : value) + '%';
+
+      // Update color based on value
+      progressEl.className = 'progress-fill';
+      if (parseFloat(value) > 80) {
+        progressEl.classList.add('danger');
+      } else if (parseFloat(value) > 60) {
+        progressEl.classList.add('warning');
+      } else {
+        progressEl.classList.add('success');
+      }
+    }
+  }
+
+  // Listen for WebSocket metrics updates
+  window.addEventListener('metricsUpdate', function (e) {
+    const metrics = e.detail;
+    if (metrics.cpu_usage) updateResourceDisplay('cpu', metrics.cpu_usage, '%');
+    if (metrics.memory_usage) updateResourceDisplay('memory', metrics.memory_usage, '%');
+    if (metrics.disk_usage) updateResourceDisplay('disk', metrics.disk_usage, '%');
+  });
+
+  // Chart time range controls
+  document.querySelectorAll('.chart-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+
+      // Update chart data based on selected range
+      const range = this.dataset.range;
+      console.log('Updating chart for range:', range);
+      // Implement range-based data fetching here
+    });
+  });
+
+  // Refresh dashboard
+  function refreshDashboard() {
+    showToast('Refreshing dashboard...', 'info');
+
+    // Simulate refresh
+    setTimeout(() => {
+      updateResourceMetrics();
+      performanceChart.update();
+      deploymentChart.update();
+      showToast('Dashboard refreshed successfully', 'success');
+    }, 1000);
+  }
+
+  // Animations
+  function initAnimations() {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.metric-card, .dashboard-card, .quick-stat-card').forEach(el => {
+      observer.observe(el);
+    });
+  }
+</script>
+{% endblock %}

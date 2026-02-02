@@ -1,35 +1,142 @@
 {% extends "base.html" %}
 
-{% block title %}Database Test - Success{% endblock %}
+{% block title %}Database Status - CloudX Platform{% endblock %}
+
+{% block breadcrumb %}
+<i class="fas fa-database"></i>
+<i class="fas fa-chevron-right"></i>
+<span>Database Status</span>
+{% endblock %}
 
 {% block content %}
-<h2>✅ Database Connection Test</h2>
-<div class="status-box success">
-  <strong>Success!</strong> Connected to PostgreSQL database successfully.
-  <br>New record created with ID: <strong>{{ record_id }}</strong>
+<div class="dashboard-header">
+  <div>
+    <h2>Database Connectivity</h2>
+    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+      Real-time connection status and storage metrics.
+    </p>
+  </div>
+  <div class="dashboard-actions">
+    <a href="/dashboard" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+    <button onclick="window.location.reload()" class="btn btn-primary">
+      <i class="fas fa-sync-alt"></i> Re-Test Connection
+    </button>
+  </div>
 </div>
 
-<h3>Recent Database Records:</h3>
-<table>
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Message</th>
-      <th>Created At</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for record in records %}
-    <tr>
-      <td>{{ record[0] }}</td>
-      <td>{{ record[1] }}</td>
-      <td>{{ record[2] }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<div class="links">
-  <a href="/">← Back to Home</a>
+<div class="status-card success animate-in">
+  <div class="status-icon-wrapper">
+    <i class="fas fa-check-circle"></i>
+  </div>
+  <div class="status-content">
+    <h3>Connection Successful</h3>
+    <p>Successfully connected to the PostgreSQL container.</p>
+    <div class="tech-badge">
+      <i class="fas fa-server"></i> {{ db_version }}
+    </div>
+  </div>
 </div>
+
+<h3 class="section-title-small">Current Storage Stats</h3>
+<div class="stats-grid">
+  <div class="stat-card animate-in" style="animation-delay: 0.1s;">
+    <div class="stat-icon blue">
+      <i class="fas fa-folder"></i>
+    </div>
+    <div class="stat-content">
+      <h3 class="stat-value">{{ project_count }}</h3>
+      <p class="stat-label">Total Projects</p>
+    </div>
+  </div>
+
+  <div class="stat-card animate-in" style="animation-delay: 0.2s;">
+    <div class="stat-icon green">
+      <i class="fas fa-rocket"></i>
+    </div>
+    <div class="stat-content">
+      <h3 class="stat-value">{{ deployment_count }}</h3>
+      <p class="stat-label">Deployments</p>
+    </div>
+  </div>
+
+  <div class="stat-card animate-in" style="animation-delay: 0.3s;">
+    <div class="stat-icon purple">
+      <i class="fas fa-list-alt"></i>
+    </div>
+    <div class="stat-content">
+      <h3 class="stat-value">{{ log_count }}</h3>
+      <p class="stat-label">Activity Logs</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Custom Styles for this page */
+  .status-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    margin-bottom: 3rem;
+  }
+
+  .status-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: var(--success);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  }
+
+  .status-content h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+  }
+
+  .status-content p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+  }
+
+  .tech-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--primary);
+  }
+
+  .section-title-small {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Responsive tweaks */
+  @media (max-width: 768px) {
+    .status-card {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+</style>
 {% endblock %}

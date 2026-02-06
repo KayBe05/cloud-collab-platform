@@ -13,6 +13,9 @@
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% if request.path == '/settings' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}">
+  {% endif %}
   <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
 
   <!-- WebSocket & Chart Libraries -->
@@ -76,6 +79,10 @@
           <i class="fas fa-heartbeat"></i>
           <span>Health Check</span>
           <i class="fas fa-external-link-alt nav-external"></i>
+        </a>
+        <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+          <i class="fas fa-cog"></i>
+          <span>Settings</span>
         </a>
       </div>
     </nav>

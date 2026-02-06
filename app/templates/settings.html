@@ -1,0 +1,524 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - CloudX Platform{% endblock %}
+
+{% block breadcrumb %}
+<i class="fas fa-cog"></i>
+<i class="fas fa-chevron-right"></i>
+<span>Settings</span>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+  <!-- Settings Content Panels -->
+  <div class="settings-content">
+
+    <!-- Profile Section -->
+    <section id="profile" class="settings-section">
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h2>Profile Settings</h2>
+          <p>Manage your personal information and profile picture</p>
+        </div>
+
+        <div class="settings-card-body">
+          <!-- Avatar Upload -->
+          <div class="avatar-section">
+            <div class="avatar-preview">
+              <img src="https://ui-avatars.com/api/?name=User&background=0EA5E9&color=fff&size=200" alt="Profile Avatar"
+                id="avatarImage">
+              <div class="avatar-overlay">
+                <i class="fas fa-camera"></i>
+              </div>
+            </div>
+            <div class="avatar-controls">
+              <h4>Profile Picture</h4>
+              <p>PNG, JPG or GIF. Max size 2MB.</p>
+              <div class="avatar-buttons">
+                <label for="avatarUpload" class="btn btn-primary btn-sm">
+                  <i class="fas fa-upload"></i> Change Avatar
+                </label>
+                <input type="file" id="avatarUpload" accept="image/*" style="display: none;">
+                <button class="btn btn-secondary btn-sm" onclick="removeAvatar()">
+                  <i class="fas fa-trash"></i> Remove
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Form -->
+          <form class="settings-form" id="profileForm">
+            <div class="form-group">
+              <label for="fullName">Full Name</label>
+              <input type="text" id="fullName" class="form-input" value="John Doe" placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" class="form-input" value="john.doe@example.com"
+                placeholder="your.email@example.com">
+              <span class="form-hint">
+                <i class="fas fa-info-circle"></i> Your email is used for notifications and account recovery
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input type="text" id="username" class="form-input" value="johndoe"
+                placeholder="Choose a unique username">
+            </div>
+
+            <div class="form-group">
+              <label for="bio">Bio</label>
+              <textarea id="bio" class="form-textarea" rows="4"
+                placeholder="Tell us about yourself...">Full-stack developer passionate about cloud technologies and modern web development.</textarea>
+              <span class="form-hint">
+                <i class="fas fa-info-circle"></i> Brief description for your profile. Max 200 characters.
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label for="location">Location</label>
+              <input type="text" id="location" class="form-input" value="San Francisco, CA" placeholder="City, Country">
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Changes
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="resetProfileForm()">
+                <i class="fas fa-undo"></i> Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Appearance Section -->
+    <section id="appearance" class="settings-section">
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h2>Appearance</h2>
+          <p>Customize how CloudX looks for you</p>
+        </div>
+
+        <div class="settings-card-body">
+          <div class="form-group">
+            <label>Theme</label>
+            <p class="setting-description">Choose your preferred color scheme</p>
+
+            <div class="theme-selector">
+              <div class="theme-option" data-theme="light">
+                <div class="theme-icon">
+                  <i class="fas fa-sun"></i>
+                </div>
+                <div class="theme-label">
+                  <span class="theme-name">Light</span>
+                  <span class="theme-desc">Bright and clean</span>
+                </div>
+                <div class="theme-check">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+              </div>
+
+              <div class="theme-option active" data-theme="dark">
+                <div class="theme-icon">
+                  <i class="fas fa-moon"></i>
+                </div>
+                <div class="theme-label">
+                  <span class="theme-name">Dark</span>
+                  <span class="theme-desc">Easy on the eyes</span>
+                </div>
+                <div class="theme-check">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+              </div>
+
+              <div class="theme-option" data-theme="system">
+                <div class="theme-icon">
+                  <i class="fas fa-desktop"></i>
+                </div>
+                <div class="theme-label">
+                  <span class="theme-name">System</span>
+                  <span class="theme-desc">Match OS preference</span>
+                </div>
+                <div class="theme-check">
+                  <i class="fas fa-check-circle"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Sidebar Position</label>
+            <p class="setting-description">Choose where the navigation sidebar appears</p>
+            <select class="form-select" id="sidebarPosition">
+              <option value="left" selected>Left (Default)</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Interface Density</label>
+            <p class="setting-description">Adjust spacing and sizing of UI elements</p>
+            <select class="form-select" id="density">
+              <option value="comfortable">Comfortable (Default)</option>
+              <option value="compact">Compact</option>
+              <option value="spacious">Spacious</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security Section -->
+    <section id="security" class="settings-section">
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h2>Security</h2>
+          <p>Manage your password and API access</p>
+        </div>
+
+        <div class="settings-card-body">
+          <!-- Change Password -->
+          <div class="form-group">
+            <label>Change Password</label>
+            <p class="setting-description">Update your password regularly to keep your account secure</p>
+          </div>
+
+          <form class="settings-form" id="passwordForm">
+            <div class="form-group">
+              <label for="currentPassword">Current Password</label>
+              <div class="input-with-icon">
+                <input type="password" id="currentPassword" class="form-input" placeholder="Enter current password">
+                <button type="button" class="input-icon-btn" onclick="togglePassword('currentPassword')">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="newPassword">New Password</label>
+              <div class="input-with-icon">
+                <input type="password" id="newPassword" class="form-input" placeholder="Enter new password">
+                <button type="button" class="input-icon-btn" onclick="togglePassword('newPassword')">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+              <span class="form-hint">
+                <i class="fas fa-info-circle"></i> Must be at least 8 characters with letters and numbers
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label for="confirmPassword">Confirm New Password</label>
+              <div class="input-with-icon">
+                <input type="password" id="confirmPassword" class="form-input" placeholder="Re-enter new password">
+                <button type="button" class="input-icon-btn" onclick="togglePassword('confirmPassword')">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-lock"></i> Update Password
+              </button>
+            </div>
+          </form>
+
+          <div class="divider"></div>
+
+          <!-- API Access -->
+          <div class="form-group">
+            <label>API Access</label>
+            <p class="setting-description">Your personal API key for programmatic access</p>
+          </div>
+
+          <div class="api-key-section">
+            <div class="api-key-display">
+              <div class="api-key-icon">
+                <i class="fas fa-key"></i>
+              </div>
+              <div class="api-key-info">
+                <span class="api-key-label">API Key</span>
+                <code class="api-key-value" id="apiKeyValue">sk_live_••••••••••••••••••••••••4a7c</code>
+                <span class="api-key-created">Created on Jan 15, 2026</span>
+              </div>
+              <div class="api-key-actions">
+                <button class="btn btn-secondary btn-sm" onclick="copyApiKey()">
+                  <i class="fas fa-copy"></i> Copy
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="regenerateApiKey()">
+                  <i class="fas fa-sync-alt"></i> Regenerate
+                </button>
+              </div>
+            </div>
+            <div class="api-key-warning">
+              <i class="fas fa-exclamation-triangle"></i>
+              Keep your API key secure. Don't share it in publicly accessible areas.
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Two-Factor Authentication -->
+          <div class="form-group">
+            <label>Two-Factor Authentication</label>
+            <p class="setting-description">Add an extra layer of security to your account</p>
+          </div>
+
+          <div class="security-feature">
+            <div class="security-feature-info">
+              <div class="security-feature-icon">
+                <i class="fas fa-mobile-alt"></i>
+              </div>
+              <div class="security-feature-text">
+                <h4>Authenticator App</h4>
+                <p>Use an app to generate one-time codes</p>
+                <span class="badge badge-success">
+                  <i class="fas fa-check"></i> Enabled
+                </span>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm">
+              <i class="fas fa-cog"></i> Manage
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notifications Section -->
+    <section id="notifications" class="settings-section">
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h2>Notifications</h2>
+          <p>Manage how and when you receive notifications</p>
+        </div>
+
+        <div class="settings-card-body">
+          <!-- Email Notifications -->
+          <div class="form-group">
+            <label>Email Notifications</label>
+            <p class="setting-description">Choose which emails you want to receive</p>
+          </div>
+
+          <div class="notification-list">
+            <div class="notification-item">
+              <div class="notification-info">
+                <h4>Deployment Success</h4>
+                <p>Get notified when your deployments complete successfully</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notification-item">
+              <div class="notification-info">
+                <h4>Failed Builds</h4>
+                <p>Receive alerts when your builds fail</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notification-item">
+              <div class="notification-info">
+                <h4>Security Alerts</h4>
+                <p>Important security updates and alerts</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notification-item">
+              <div class="notification-info">
+                <h4>Project Activity</h4>
+                <p>Updates on project changes and collaborator activity</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notification-item">
+              <div class="notification-info">
+                <h4>Weekly Summary</h4>
+                <p>Receive a weekly digest of your project activity</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notification-item">
+              <div class="notification-info">
+                <h4>Product Updates</h4>
+                <p>News about new features and improvements</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Push Notifications -->
+          <div class="form-group">
+            <label>Push Notifications</label>
+            <p class="setting-description">Manage browser push notifications</p>
+          </div>
+
+          <div class="notification-list">
+            <div class="notification-item">
+              <div class="notification-info">
+                <h4>Browser Notifications</h4>
+                <p>Receive real-time alerts in your browser</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="pushNotifications">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Billing Section -->
+    <section id="billing" class="settings-section">
+      <div class="settings-card">
+        <div class="settings-card-header">
+          <h2>Billing & Subscription</h2>
+          <p>Manage your subscription and payment methods</p>
+        </div>
+
+        <div class="settings-card-body">
+          <!-- Current Plan -->
+          <div class="plan-card">
+            <div class="plan-header">
+              <div class="plan-badge">Current Plan</div>
+              <h3>Professional</h3>
+              <div class="plan-price">
+                <span class="amount">$29</span>
+                <span class="period">/month</span>
+              </div>
+            </div>
+            <div class="plan-features">
+              <div class="plan-feature">
+                <i class="fas fa-check"></i> Unlimited projects
+              </div>
+              <div class="plan-feature">
+                <i class="fas fa-check"></i> 100 GB storage
+              </div>
+              <div class="plan-feature">
+                <i class="fas fa-check"></i> Priority support
+              </div>
+              <div class="plan-feature">
+                <i class="fas fa-check"></i> Advanced analytics
+              </div>
+            </div>
+            <div class="plan-actions">
+              <button class="btn btn-secondary">
+                <i class="fas fa-arrow-up"></i> Upgrade Plan
+              </button>
+              <button class="btn btn-secondary">
+                <i class="fas fa-times"></i> Cancel Subscription
+              </button>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Payment Method -->
+          <div class="form-group">
+            <label>Payment Method</label>
+            <p class="setting-description">Your default payment method</p>
+          </div>
+
+          <div class="payment-method">
+            <div class="payment-card">
+              <div class="payment-card-icon">
+                <i class="fab fa-cc-visa"></i>
+              </div>
+              <div class="payment-card-info">
+                <span class="card-type">Visa</span>
+                <span class="card-number">•••• •••• •••• 4242</span>
+                <span class="card-expiry">Expires 12/2026</span>
+              </div>
+              <div class="payment-card-actions">
+                <button class="btn btn-secondary btn-sm">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-secondary btn-sm">
+                  <i class="fas fa-trash"></i> Remove
+                </button>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm">
+              <i class="fas fa-plus"></i> Add Payment Method
+            </button>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Billing History -->
+          <div class="form-group">
+            <label>Billing History</label>
+            <p class="setting-description">View and download your invoices</p>
+          </div>
+
+          <div class="billing-history">
+            <div class="billing-item">
+              <div class="billing-date">
+                <i class="fas fa-receipt"></i>
+                <span>Jan 1, 2026</span>
+              </div>
+              <div class="billing-desc">Professional Plan - Monthly</div>
+              <div class="billing-amount">$29.00</div>
+              <div class="billing-status">
+                <span class="badge badge-success">Paid</span>
+              </div>
+              <button class="btn btn-secondary btn-sm">
+                <i class="fas fa-download"></i> Download
+              </button>
+            </div>
+
+            <div class="billing-item">
+              <div class="billing-date">
+                <i class="fas fa-receipt"></i>
+                <span>Dec 1, 2025</span>
+              </div>
+              <div class="billing-desc">Professional Plan - Monthly</div>
+              <div class="billing-amount">$29.00</div>
+              <div class="billing-status">
+                <span class="badge badge-success">Paid</span>
+              </div>
+              <button class="btn btn-secondary btn-sm">
+                <i class="fas fa-download"></i> Download
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='settings.js') }}"></script>
+{% endblock %}

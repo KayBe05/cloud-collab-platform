@@ -196,6 +196,14 @@ def analytics():
     log_activity('page_view', 'analytics')
     return render_template('analytics.html')
 
+@app.route('/settings')
+@require_session
+def settings():
+    """User settings and preferences page"""
+    log_activity('page_view', 'settings')
+    stats = get_dashboard_stats()
+    return render_template('settings.html', stats=stats)
+
 @app.route('/api/projects', methods=['GET', 'POST'])
 def api_projects():
     """API endpoint for project management"""

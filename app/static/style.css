@@ -1,7 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /* Modern Color Palette - Sky Blue & Slate */
   --primary: #0EA5E9;
   --primary-hover: #0284C7;
   --primary-light: #38BDF8;
@@ -14,7 +13,6 @@
   --error: #EF4444;
   --info: #3B82F6;
 
-  /* Neutral Colors - Modern Slate */
   --gray-50: #F8FAFC;
   --gray-100: #F1F5F9;
   --gray-200: #E2E8F0;
@@ -26,7 +24,6 @@
   --gray-800: #1E293B;
   --gray-900: #0F172A;
 
-  /* Backgrounds */
   --bg-primary: #FFFFFF;
   --bg-secondary: #F8FAFC;
   --bg-tertiary: #F1F5F9;
@@ -69,6 +66,7 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 24px;
+  --radius-3xl: 32px;
   --radius-full: 9999px;
 }
 
@@ -1033,21 +1031,17 @@ body {
 .toast {
   position: relative;
   background: var(--bg-card);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 1rem 1.25rem;
+  border-radius: var(--radius-3xl);
+  padding: 1rem;
   display: flex;
   align-items: center;
   gap: 1rem;
   min-width: 340px;
   max-width: 420px;
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
   opacity: 0;
-  transform: translateX(20px) scale(0.95);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: auto;
   overflow: hidden;
@@ -1056,15 +1050,6 @@ body {
 .toast.show {
   opacity: 1;
   transform: translateX(0) scale(1);
-}
-
-.toast::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
 }
 
 .toast i:first-child {
@@ -1092,7 +1077,7 @@ body {
 }
 
 .toast-success {
-  border-left: 3px solid var(--success);
+  border: 2px dashed var(--success);
 }
 
 .toast-success i:first-child {
@@ -1100,7 +1085,7 @@ body {
 }
 
 .toast-error {
-  border-left: 3px solid var(--error);
+  border: 2px dashed var(--error);
 }
 
 .toast-error i:first-child {
@@ -1108,7 +1093,7 @@ body {
 }
 
 .toast-info {
-  border-left: 3px solid var(--info);
+  border: 2px dashed var(--info);
 }
 
 .toast-info i:first-child {
@@ -1116,11 +1101,11 @@ body {
 }
 
 .toast-close {
-  background: transparent;
+  background: none;
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0;
   margin-right: -0.5rem;
   border-radius: var(--radius-md);
   display: flex;
@@ -1130,7 +1115,6 @@ body {
 }
 
 .toast-close:hover {
-  background: var(--bg-secondary);
   color: var(--text-primary);
 }
 

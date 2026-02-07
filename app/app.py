@@ -600,8 +600,77 @@ def server_error(error):
     logger.error(f"Server error: {error}")
     return jsonify({'error': 'Internal server error'}), 500
 
+
+terminal_sessions = {}
+
+@socketio.on('terminal_join')
+def on_terminal_join(data):
+    """Start a terminal session for a specific container"""
+    container_id = data.get('container_id')
+    sid = request.sid
+    
+    try:
+        client = docker.from_env()
+        exec_inst = client.api.exec_create(
+            container_id, 
+            "/bin/bash", 
+            stdin=True, 
+            tty=True, 
+            stdout=True, 
+            stderr=True
+        )
+        exec_id = exec_inst['Id']
+        
+        sock = client.api.exec_start(exec_id, detach=False, tty=True, socket=True)
+        
+        terminal_sessions[sid] = sock
+        
+        def read_docker_output():
+            try:
+                raw_sock = sock._sock if hasattr(sock, '_sock') else sock
+                
+                while True:
+                    data = raw_sock.recv(1024)
+                    if not data:
+                        break
+                    socketio.emit('terminal_output', {'output': data.decode('utf-8', errors='ignore')}, room=sid)
+            except Exception as e:
+                logger.error(f"Terminal read error: {e}")
+            finally:
+                pass
+
+        socketio.start_background_task(target=read_docker_output)
+        
+    except Exception as e:
+        logger.error(f"Terminal connect error: {e}")
+        emit('terminal_output', {'output': f"\r\n\x1b[31mError connecting to container: {str(e)}\x1b[0m\r\n"})
+
+@socketio.on('terminal_input')
+def on_terminal_input(data):
+    """Write keystrokes from browser to Docker socket"""
+    sid = request.sid
+    if sid in terminal_sessions:
+        sock = terminal_sessions[sid]
+        try:
+            raw_sock = sock._sock if hasattr(sock, '_sock') else sock
+            raw_sock.send(data['input'].encode())
+        except Exception as e:
+            logger.error(f"Terminal write error: {e}")
+
+@socketio.on('disconnect')
+def on_disconnect_cleanup():
+    """Cleanup socket when user closes tab"""
+    sid = request.sid
+    if sid in terminal_sessions:
+        try:
+            sock = terminal_sessions[sid]
+            raw_sock = sock._sock if hasattr(sock, '_sock') else sock
+            raw_sock.close()
+        except:
+            pass
+        del terminal_sessions[sid]
+
 if __name__ == '__main__':
-    # --- START THE MONITOR THREAD ---
     if SystemMonitor:
         monitor = SystemMonitor(socketio)
         monitor.daemon = True

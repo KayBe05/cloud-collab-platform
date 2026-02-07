@@ -14,6 +14,14 @@ from functools import wraps
 import docker
 import time
 
+# --- ADD THIS IMPORT ---
+# This enables the background CPU/Memory monitoring
+try:
+    from monitor import SystemMonitor
+except ImportError:
+    SystemMonitor = None
+    logging.warning("monitor.py not found. Real-time stats will be disabled.")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,7 +35,7 @@ app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
 
-# Database configuration with connection pooling support
+# Database configuration
 DB_CONFIG = {
     'host': os.getenv('POSTGRES_HOST', 'db'),
     'dbname': os.getenv('POSTGRES_DB', 'cloudx'),
@@ -78,7 +86,6 @@ def init_db():
                         user_agent TEXT,
                         severity VARCHAR(20) DEFAULT 'info',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        -- The INDEX line must be removed from here
                     )
                 """)
                 
@@ -152,6 +159,8 @@ def log_activity(action, details=None, severity='info'):
     except Exception as e:
         logger.error(f"Activity logging error: {e}")
 
+# --- ROUTES ---
+
 @app.route('/')
 @require_session
 def home():
@@ -203,6 +212,15 @@ def settings():
     log_activity('page_view', 'settings')
     stats = get_dashboard_stats()
     return render_template('settings.html', stats=stats)
+
+# --- NEW: Instances Page ---
+@app.route('/instances')
+@require_session
+def instances():
+    """Render the Instances Management Page"""
+    return render_template('instances.html')
+
+# --- API ENDPOINTS ---
 
 @app.route('/api/projects', methods=['GET', 'POST'])
 def api_projects():
@@ -437,97 +455,96 @@ def get_dashboard_stats():
     
     return stats
 
-# WebSocket events for real-time updates
-@socketio.on('connect')
-def handle_connect():
-    """Handle WebSocket connection"""
-    session_id = secrets.token_hex(16)
-    emit('connection_response', {
-        'data': 'Connected to CloudX Platform',
-        'session_id': session_id,
-        'timestamp': datetime.now().isoformat()
-    })
-    log_activity('websocket_connect', f'Session: {session_id}')
+# --- NEW: Container Management APIs ---
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    """Handle WebSocket disconnection"""
-    log_activity('websocket_disconnect', 'Client disconnected')
+@app.route('/api/containers', methods=['GET'])
+@require_session
+def list_containers():
+    """List all CloudX containers"""
+    try:
+        client = docker.from_env()
+        containers = client.containers.list(all=True, filters={"name": "cloudx-project"})
+        
+        container_list = []
+        for c in containers:
+            container_list.append({
+                'id': c.short_id,
+                'name': c.name,
+                'status': c.status, 
+                'image': c.image.tags[0] if c.image.tags else 'unknown',
+                'created': c.attrs['Created'],
+                'ports': c.ports 
+            })
+            
+        return jsonify({'success': True, 'containers': container_list})
+    except Exception as e:
+        logger.error(f"Error listing containers: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-@socketio.on('request_metrics')
-def handle_metrics_request():
-    """Send real-time metrics to client"""
-    metrics = {
-        'cpu_usage': 45.2,
-        'memory_usage': 68.5,
-        'disk_usage': 52.1,
-        'network_in': 1024,
-        'network_out': 2048,
-        'timestamp': datetime.now().isoformat()
-    }
-    emit('metrics_update', metrics)
+@app.route('/api/containers/<container_id>/action', methods=['POST'])
+@require_session
+def container_action(container_id):
+    """Handle Stop/Restart/Delete actions"""
+    data = request.json
+    action = data.get('action')
+    
+    try:
+        client = docker.from_env()
+        container = client.containers.get(container_id)
+        
+        if action == 'stop':
+            container.stop()
+            msg = "Container stopped successfully"
+        elif action == 'restart':
+            container.restart()
+            msg = "Container restarted successfully"
+        elif action == 'delete':
+            container.remove(force=True)
+            msg = "Container deleted successfully"
+        else:
+            return jsonify({'success': False, 'error': 'Invalid action'}), 400
+            
+        return jsonify({'success': True, 'message': msg})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-@socketio.on('join')
-def handle_join(data):
-    """Join a room for targeted updates"""
-    room = data.get('room')
-    join_room(room)
-    emit('status', {'msg': f'Joined room {room}'})
-
-@socketio.on('leave')
-def handle_leave(data):
-    """Leave a room"""
-    room = data.get('room')
-    leave_room(room)
-    emit('status', {'msg': f'Left room {room}'})
-
-@app.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors"""
-    return jsonify({'error': 'Resource not found'}), 404
-
-@app.errorhandler(500)
-def server_error(error):
-    """Handle 500 errors"""
-    logger.error(f"Server error: {error}")
-    return jsonify({'error': 'Internal server error'}), 500
+@app.route('/api/containers/<container_id>/logs', methods=['GET'])
+@require_session
+def container_logs(container_id):
+    """Fetch recent logs"""
+    try:
+        client = docker.from_env()
+        container = client.containers.get(container_id)
+        logs = container.logs(tail=100).decode('utf-8')
+        return jsonify({'success': True, 'logs': logs})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/projects/<int:project_id>/launch', methods=['POST'])
 @require_session
 def launch_workspace(project_id):
-    """
-    Orchestrator Endpoint: Spins up a new Docker container for the project.
-    """
+    """Orchestrator Endpoint"""
     try:
-        # Connect to the Docker Daemon
         client = docker.from_env()
-        
-        # Generate a secure, random password for this session
         session_password = secrets.token_hex(4)
-        
-        # Define the container name 
         container_name = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
         
-        # SPIN UP THE CONTAINER
         container = client.containers.run(
-            image="cloudx-workspace:latest",  # Uses the image we built in Step 3
+            image="cloudx-workspace:latest",
             detach=True,
             environment={"PASSWORD": session_password},
             ports={'8080/tcp': None, '22/tcp': None}, 
             name=container_name
         )
         
-        # 5. Wait for it to initialize
         time.sleep(2)
         container.reload()
         
-        # 6. Extract the random ports Docker assigned
         web_port = container.attrs['NetworkSettings']['Ports']['8080/tcp'][0]['HostPort']
         ssh_port = container.attrs['NetworkSettings']['Ports']['22/tcp'][0]['HostPort']
         
         log_activity('workspace_provisioned', f"Launched {container_name}")
         
-        # 7. Return the connection details to the frontend
         return jsonify({
             'success': True,
             'status': 'provisioned',
@@ -542,5 +559,53 @@ def launch_workspace(project_id):
         logger.error(f"Provisioning Failure: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# WebSocket events
+@socketio.on('connect')
+def handle_connect():
+    session_id = secrets.token_hex(16)
+    emit('connection_response', {
+        'data': 'Connected to CloudX Platform',
+        'session_id': session_id,
+        'timestamp': datetime.now().isoformat()
+    })
+    log_activity('websocket_connect', f'Session: {session_id}')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    log_activity('websocket_disconnect', 'Client disconnected')
+
+@socketio.on('request_metrics')
+def handle_metrics_request():
+    # Fallback if monitor isn't running
+    pass 
+
+@socketio.on('join')
+def handle_join(data):
+    room = data.get('room')
+    join_room(room)
+    emit('status', {'msg': f'Joined room {room}'})
+
+@socketio.on('leave')
+def handle_leave(data):
+    room = data.get('room')
+    leave_room(room)
+    emit('status', {'msg': f'Left room {room}'})
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Resource not found'}), 404
+
+@app.errorhandler(500)
+def server_error(error):
+    logger.error(f"Server error: {error}")
+    return jsonify({'error': 'Internal server error'}), 500
+
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=os.getenv('FLASK_DEBUG', False))
+    # --- START THE MONITOR THREAD ---
+    if SystemMonitor:
+        monitor = SystemMonitor(socketio)
+        monitor.daemon = True
+        monitor.start()
+        logger.info("Background SystemMonitor started")
+    
+    socketio.run(app, host='0.0.0.0', port=5000, debug=os.getenv('FLASK_DEBUG', False), allow_unsafe_werkzeug=True)

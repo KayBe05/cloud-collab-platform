@@ -1,10 +1,4 @@
-/* ============================================================
-   analytics.css — Scoped styles for the Analytics page
-   All custom-property tokens (--primary, --shadow-sm, etc.)
-   are defined in style.css and inherited here.
-   ============================================================ */
 
-/* ─── PAGE HEADER ─────────────────────────────────────────── */
 .analytics-page-header {
   display: flex;
   justify-content: space-between;

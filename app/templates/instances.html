@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}My Instances - CloudX Platform{% endblock %}
+
+{% block breadcrumb %}
+<i class="fas fa-server"></i>
+<i class="fas fa-chevron-right"></i>
+<span>My Instances</span>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='instances.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Page Header with Stats -->
+<div class="instances-header">
+  <div class="instances-header-content">
+    <div class="instances-title-section">
+      <div class="page-icon-wrapper">
+        <i class="fas fa-server"></i>
+      </div>
+      <div>
+        <h2 class="page-title">My Instances</h2>
+        <p class="page-subtitle">Manage and monitor your container workspaces</p>
+      </div>
+    </div>
+    <div class="instances-header-actions">
+      <div id="instancesStats" class="instances-stats-mini">
+        <div class="stat-mini">
+          <i class="fas fa-circle stat-mini-icon running"></i>
+          <span id="runningCount">-</span>
+          <span class="stat-mini-label">Running</span>
+        </div>
+        <div class="stat-mini">
+          <i class="fas fa-stop-circle stat-mini-icon stopped"></i>
+          <span id="stoppedCount">-</span>
+          <span class="stat-mini-label">Stopped</span>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-refresh" onclick="loadContainers()">
+        <i class="fas fa-sync-alt"></i>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Main Container Card -->
+<div class="instances-container">
+  <!-- Loading State -->
+  <div id="loadingState" class="loading-state-modern">
+    <div class="loading-spinner-wrapper">
+      <div class="loading-spinner"></div>
+    </div>
+    <p class="loading-text">Fetching containers...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div id="emptyState" class="empty-state-modern">
+    <div class="empty-state-icon">
+      <i class="fas fa-box-open"></i>
+    </div>
+    <h3 class="empty-state-title">No containers running</h3>
+    <p class="empty-state-description">Launch a new environment from the Projects page to get started with CloudX
+      workspaces.</p>
+    <a href="/projects" class="btn btn-primary btn-large">
+      <i class="fas fa-plus-circle"></i>
+      <span>Create New Instance</span>
+    </a>
+  </div>
+
+  <!-- Data Table Container -->
+  <div id="containerTable" class="table-container">
+    <div class="table-wrapper">
+      <table class="data-table-modern">
+        <thead>
+          <tr>
+            <th class="th-name">
+              <div class="th-content">
+                <i class="fas fa-tag"></i>
+                <span>Container</span>
+              </div>
+            </th>
+            <th class="th-status">
+              <div class="th-content">
+                <i class="fas fa-heartbeat"></i>
+                <span>Status</span>
+              </div>
+            </th>
+            <th class="th-image">
+              <div class="th-content">
+                <i class="fas fa-box"></i>
+                <span>Image</span>
+              </div>
+            </th>
+            <th class="th-created">
+              <div class="th-content">
+                <i class="fas fa-clock"></i>
+                <span>Created</span>
+              </div>
+            </th>
+            <th class="th-actions">
+              <div class="th-content">
+                <i class="fas fa-sliders-h"></i>
+                <span>Actions</span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="containerTableBody">
+          <!-- Rows will be dynamically inserted here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Logs Modal -->
+<div id="logsModal" class="modal-modern">
+  <div class="modal-overlay-modern" onclick="closeLogsModal()"></div>
+  <div class="modal-content-modern logs-modal">
+    <div class="modal-header-modern">
+      <div class="modal-header-left">
+        <div class="modal-icon-wrapper">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <div>
+          <h3 class="modal-title">Container Logs</h3>
+          <p id="logsContainerName" class="modal-subtitle"></p>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closeLogsModal()" aria-label="Close modal">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body-modern">
+      <div id="logsLoadingState" class="logs-loading-state">
+        <div class="loading-spinner-wrapper">
+          <div class="loading-spinner"></div>
+        </div>
+        <p class="loading-text">Fetching logs...</p>
+      </div>
+
+      <div id="logsContentWrapper" class="logs-content-wrapper">
+        <div class="logs-toolbar">
+          <div class="logs-toolbar-left">
+            <span class="logs-toolbar-label">
+              <i class="fas fa-terminal"></i>
+              Output
+            </span>
+          </div>
+          <div class="logs-toolbar-right">
+            <button class="logs-toolbar-btn" onclick="copyLogsToClipboard()" title="Copy logs">
+              <i class="fas fa-copy"></i>
+              <span>Copy</span>
+            </button>
+            <button class="logs-toolbar-btn" onclick="downloadLogs()" title="Download logs">
+              <i class="fas fa-download"></i>
+              <span>Download</span>
+            </button>
+          </div>
+        </div>
+        <pre id="logsContent" class="logs-content"></pre>
+      </div>
+
+      <div id="logsErrorState" class="logs-error-state">
+        <div class="error-icon-wrapper">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <p class="error-text">Failed to load logs</p>
+        <button class="btn btn-secondary btn-sm"
+          onclick="viewLogs(window.currentContainerId, window.currentContainerName)">
+          <i class="fas fa-sync-alt"></i>
+          <span>Retry</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="modal-footer-modern">
+      <button class="btn btn-secondary" onclick="closeLogsModal()">
+        <i class="fas fa-times"></i>
+        <span>Close</span>
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='instances.js') }}"></script>
+{% endblock %}

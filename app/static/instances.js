@@ -1,23 +1,24 @@
-/**
- * CloudX Platform - Instances Management
- * JavaScript module for managing Docker containers
- */
+let term;
+let fitAddon;
+let currentSocket = null;
 
-// ==================== Initialization ====================
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadContainers();
-});
-
-// Global variables for logs modal
 window.currentContainerId = null;
 window.currentContainerName = null;
 
+document.addEventListener('DOMContentLoaded', () => {
+  loadContainers();
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeLogsModal();
+      closeTerminal();
+    }
+  });
+});
+
+
 // ==================== Main Functions ====================
 
-/**
- * Load and display all containers
- */
 async function loadContainers() {
   const loadingState = document.getElementById('loadingState');
   const emptyState = document.getElementById('emptyState');
@@ -75,11 +76,6 @@ async function loadContainers() {
         <span>Retry</span>
       </button>
     `;
-
-    // Show toast notification
-    if (typeof showToast === 'function') {
-      showToast('Failed to load containers: ' + error.message, 'error');
-    }
   }
 }
 
@@ -91,8 +87,11 @@ function updateStats(containers) {
   const runningCount = containers.filter(c => c.status.toLowerCase() === 'running').length;
   const stoppedCount = containers.filter(c => c.status.toLowerCase() === 'exited').length;
 
-  document.getElementById('runningCount').textContent = runningCount;
-  document.getElementById('stoppedCount').textContent = stoppedCount;
+  const runningEl = document.getElementById('runningCount');
+  const stoppedEl = document.getElementById('stoppedCount');
+
+  if (runningEl) runningEl.textContent = runningCount;
+  if (stoppedEl) stoppedEl.textContent = stoppedCount;
 }
 
 // ==================== Container Row Creation ====================
@@ -110,8 +109,13 @@ function createContainerRow(container) {
   const timeAgo = formatTimeAgo(createdDate);
 
   // Determine status badge class and icon
-  const statusClass = container.status.toLowerCase();
-  const statusIcon = getStatusIcon(container.status);
+  const status = container.status.toLowerCase();
+  const statusClass = status === 'running' ? 'status-running' : 'status-stopped';
+
+  // Icon logic
+  let statusIconClass = 'fa-question-circle';
+  if (status === 'running') statusIconClass = 'fa-circle';
+  else if (status === 'exited') statusIconClass = 'fa-stop-circle';
 
   // Create row HTML with modern design
   tr.innerHTML = `
@@ -127,9 +131,9 @@ function createContainerRow(container) {
       </div>
     </td>
     <td data-label="Status">
-      <span class="status-badge-modern ${statusClass}">
-        <i class="fas ${statusIcon}"></i>
-        <span>${escapeHtml(container.status)}</span>
+      <span class="status-badge ${status === 'running' ? 'success' : 'danger'}">
+        <i class="fas ${statusIconClass}"></i>
+        <span>${escapeHtml(container.status.toUpperCase())}</span>
       </span>
     </td>
     <td data-label="Image">
@@ -142,7 +146,7 @@ function createContainerRow(container) {
       </span>
     </td>
     <td data-label="Actions">
-      <div class="action-buttons-modern">
+      <div class="action-buttons-modern" style="justify-content: flex-end;">
         ${createActionButtons(container)}
       </div>
     </td>
@@ -153,43 +157,47 @@ function createContainerRow(container) {
 
 /**
  * Create action buttons HTML based on container status
- * @param {Object} container - Container data object
- * @returns {string} - HTML string with action buttons
+ * @param {Object} container
+ * @returns {string} 
  */
 function createActionButtons(container) {
   const status = container.status.toLowerCase();
   let buttons = '';
 
-  // Logs button (always available)
+  // 1. TERMINAL BUTTON (Only for running containers)
+  if (status === 'running') {
+    buttons += `
+      <button class="action-btn-modern terminal-btn" onclick="openTerminal('${container.id}', '${escapeHtml(container.name)}')" title="Open Terminal" style="color: #10b981; border-color: #10b981;">
+        <i class="fas fa-terminal"></i>
+        <span>Term</span>
+      </button>
+    `;
+  }
+
+  // 2. LOGS BUTTON (Always available)
   buttons += `
     <button class="action-btn-modern" onclick="viewLogs('${container.id}', '${escapeHtml(container.name)}')" title="View Logs">
       <i class="fas fa-file-alt"></i>
-      <span>Logs</span>
     </button>
   `;
 
+  // 3. CONTROL BUTTONS
   if (status === 'running') {
-    // Stop and Restart for running containers
     buttons += `
-      <button class="action-btn-modern" onclick="containerAction('${container.id}', 'stop', this)" title="Stop Container">
-        <i class="fas fa-stop"></i>
-        <span>Stop</span>
-      </button>
-      <button class="action-btn-modern" onclick="containerAction('${container.id}', 'restart', this)" title="Restart Container">
+      <button class="action-btn-modern" onclick="containerAction('${container.id}', 'restart', this)" title="Restart">
         <i class="fas fa-sync-alt"></i>
-        <span>Restart</span>
+      </button>
+      <button class="action-btn-modern danger" onclick="containerAction('${container.id}', 'stop', this)" title="Stop">
+        <i class="fas fa-stop"></i>
       </button>
     `;
-  } else if (status === 'exited' || status === 'paused') {
-    // Start and Delete for stopped containers
+  } else {
     buttons += `
-      <button class="action-btn-modern success" onclick="containerAction('${container.id}', 'restart', this)" title="Start Container">
+      <button class="action-btn-modern success" onclick="containerAction('${container.id}', 'restart', this)" title="Start">
         <i class="fas fa-play"></i>
-        <span>Start</span>
       </button>
-      <button class="action-btn-modern danger" onclick="containerAction('${container.id}', 'delete', this)" title="Delete Container">
+      <button class="action-btn-modern danger" onclick="containerAction('${container.id}', 'delete', this)" title="Delete">
         <i class="fas fa-trash"></i>
-        <span>Delete</span>
       </button>
     `;
   }
@@ -199,12 +207,6 @@ function createActionButtons(container) {
 
 // ==================== Container Actions ====================
 
-/**
- * Perform an action on a container (stop, restart, delete)
- * @param {string} containerId - Container ID
- * @param {string} action - Action to perform
- * @param {HTMLElement} buttonElement - Button element that triggered the action
- */
 async function containerAction(containerId, action, buttonElement) {
   const originalHTML = buttonElement.innerHTML;
   buttonElement.disabled = true;
@@ -223,42 +225,93 @@ async function containerAction(containerId, action, buttonElement) {
       throw new Error(data.error || 'Action failed');
     }
 
-    // Show success toast
-    if (typeof showToast === 'function') {
-      const actionLabels = {
-        'stop': 'stopped',
-        'restart': 'restarted',
-        'delete': 'deleted'
-      };
-      showToast(`Container ${actionLabels[action] || action} successfully`, 'success');
-    }
-
-    // Reload containers after a short delay
     setTimeout(() => loadContainers(), 1000);
 
   } catch (error) {
     console.error(`Error performing ${action}:`, error);
+    alert(`Failed to ${action} container: ${error.message}`);
 
-    // Show error toast
-    if (typeof showToast === 'function') {
-      showToast(`Failed to ${action} container: ${error.message}`, 'error');
-    }
-
-    // Restore button state
     buttonElement.disabled = false;
     buttonElement.innerHTML = originalHTML;
   }
 }
 
+// ==================== TERMINAL LOGIC ====================
+
+function openTerminal(containerId, name) {
+  const modal = document.getElementById('terminalModal');
+  if (!modal) {
+    console.error("Terminal modal not found!");
+    return;
+  }
+  modal.style.display = 'flex';
+
+  const titleEl = document.getElementById('term-title');
+  if (titleEl) titleEl.innerText = `root@${name}`;
+
+  if (term) {
+    term.dispose(); 
+  }
+
+  term = new Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: '"JetBrains Mono", monospace',
+    theme: {
+      background: '#000000',
+      foreground: '#ffffff',
+      cursor: '#10b981',
+      selection: 'rgba(16, 185, 129, 0.3)'
+    }
+  });
+
+  fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+
+  const container = document.getElementById('terminal-container');
+  container.innerHTML = ''; 
+  term.open(container);
+
+
+  if (typeof socket !== 'undefined') {
+    socket.emit('terminal_join', { container_id: containerId });
+
+    term.onData(data => {
+      socket.emit('terminal_input', { input: data });
+    });
+
+    socket.off('terminal_output');
+    socket.on('terminal_output', data => {
+      term.write(data.output);
+    });
+  } else {
+    term.write('\r\n\x1b[31mError: Socket.IO connection not found.\x1b[0m\r\n');
+  }
+
+  setTimeout(() => {
+    fitAddon.fit();
+    term.focus();
+  }, 200);
+
+  window.addEventListener('resize', () => fitAddon.fit());
+}
+
+function closeTerminal() {
+  const modal = document.getElementById('terminalModal');
+  if (modal) modal.style.display = 'none';
+
+  if (term) {
+    term.dispose();
+    term = null;
+  }
+  if (typeof socket !== 'undefined') {
+    socket.off('terminal_output');
+  }
+}
+
 // ==================== Logs Modal ====================
 
-/**
- * View container logs in a modal
- * @param {string} containerId - Container ID
- * @param {string} containerName - Container name for display
- */
 async function viewLogs(containerId, containerName) {
-  // Store globally for retry functionality
   window.currentContainerId = containerId;
   window.currentContainerName = containerName;
 
@@ -297,40 +350,21 @@ async function viewLogs(containerId, containerName) {
   }
 }
 
-/**
- * Close the logs modal
- */
 function closeLogsModal() {
   const modal = document.getElementById('logsModal');
   modal.style.display = 'none';
-
-  // Clear global variables
   window.currentContainerId = null;
   window.currentContainerName = null;
 }
 
-/**
- * Copy logs to clipboard
- */
 function copyLogsToClipboard() {
   const logsContent = document.getElementById('logsContent');
   const text = logsContent.textContent;
-
   navigator.clipboard.writeText(text).then(() => {
-    if (typeof showToast === 'function') {
-      showToast('Logs copied to clipboard', 'success');
-    }
-  }).catch(err => {
-    console.error('Failed to copy logs:', err);
-    if (typeof showToast === 'function') {
-      showToast('Failed to copy logs', 'error');
-    }
+    alert('Logs copied to clipboard');
   });
 }
 
-/**
- * Download logs as a text file
- */
 function downloadLogs() {
   const logsContent = document.getElementById('logsContent');
   const text = logsContent.textContent;
@@ -347,37 +381,10 @@ function downloadLogs() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-
-  if (typeof showToast === 'function') {
-    showToast('Logs downloaded successfully', 'success');
-  }
 }
 
 // ==================== Utility Functions ====================
 
-/**
- * Get Font Awesome icon class for container status
- * @param {string} status - Container status
- * @returns {string} - Font Awesome icon class
- */
-function getStatusIcon(status) {
-  const icons = {
-    'running': 'fa-circle',
-    'exited': 'fa-stop-circle',
-    'paused': 'fa-pause-circle',
-    'restarting': 'fa-sync-alt',
-    'created': 'fa-plus-circle',
-    'removing': 'fa-minus-circle',
-    'dead': 'fa-times-circle'
-  };
-  return icons[status.toLowerCase()] || 'fa-question-circle';
-}
-
-/**
- * Format a date as "time ago" string
- * @param {Date} date - Date object
- * @returns {string} - Formatted time ago string
- */
 function formatTimeAgo(date) {
   const now = new Date();
   const seconds = Math.floor((now - date) / 1000);
@@ -386,32 +393,15 @@ function formatTimeAgo(date) {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-  if (seconds < 2592000) return `${Math.floor(seconds / 604800)}w ago`;
-
   return date.toLocaleDateString();
 }
 
-/**
- * Escape HTML to prevent XSS attacks
- * @param {string} text 
- * @returns {string} 
- */
 function escapeHtml(text) {
-  if (text === null || text === undefined) {
-    return '';
-  }
+  if (text === null || text === undefined) return '';
   const div = document.createElement('div');
   div.textContent = String(text);
   return div.innerHTML;
 }
-
-// ==================== Event Listeners ====================
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeLogsModal();
-  }
-});
 
 window.loadContainers = loadContainers;
 window.containerAction = containerAction;
@@ -419,3 +409,5 @@ window.viewLogs = viewLogs;
 window.closeLogsModal = closeLogsModal;
 window.copyLogsToClipboard = copyLogsToClipboard;
 window.downloadLogs = downloadLogs;
+window.openTerminal = openTerminal;
+window.closeTerminal = closeTerminal;

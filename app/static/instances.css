@@ -793,6 +793,49 @@
   font-size: 1rem;
 }
 
+/* Terminal Modal Specifics */
+.terminal-window {
+  background: #1e1e1e;
+  width: 100%;
+  max-width: 1000px;
+  height: 600px;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  border: 2px solid #333;
+}
+
+.terminal-header {
+  padding: 0.8rem 1.5rem;
+  background: #2d2d2d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333;
+}
+
+.terminal-title {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: bold;
+}
+
+.terminal-title i {
+  color: #10b981;
+}
+
+#terminal-container {
+  flex: 1;
+  padding: 10px;
+  background: #000;
+  overflow: hidden;
+}
+
 /* Animations */
 @keyframes fadeInDown {
   from {

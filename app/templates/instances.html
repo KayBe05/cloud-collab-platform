@@ -10,10 +10,13 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='instances.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
 {% endblock %}
 
 {% block content %}
-<!-- Page Header with Stats -->
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+
 <div class="instances-header">
   <div class="instances-header-content">
     <div class="instances-title-section">
@@ -46,9 +49,7 @@
   </div>
 </div>
 
-<!-- Main Container Card -->
 <div class="instances-container">
-  <!-- Loading State -->
   <div id="loadingState" class="loading-state-modern">
     <div class="loading-spinner-wrapper">
       <div class="loading-spinner"></div>
@@ -56,7 +57,6 @@
     <p class="loading-text">Fetching containers...</p>
   </div>
 
-  <!-- Empty State -->
   <div id="emptyState" class="empty-state-modern">
     <div class="empty-state-icon">
       <i class="fas fa-box-open"></i>
@@ -70,7 +70,6 @@
     </a>
   </div>
 
-  <!-- Data Table Container -->
   <div id="containerTable" class="table-container">
     <div class="table-wrapper">
       <table class="data-table-modern">
@@ -109,14 +108,12 @@
           </tr>
         </thead>
         <tbody id="containerTableBody">
-          <!-- Rows will be dynamically inserted here -->
         </tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- Logs Modal -->
 <div id="logsModal" class="modal-modern">
   <div class="modal-overlay-modern" onclick="closeLogsModal()"></div>
   <div class="modal-content-modern logs-modal">
@@ -183,6 +180,31 @@
         <i class="fas fa-times"></i>
         <span>Close</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<div id="terminalModal" class="modal-modern" style="display: none;">
+  <div class="modal-overlay-modern" onclick="closeTerminal()"></div>
+  <div class="modal-content-modern terminal-modal-content"
+    style="max-width: 900px; background: #000; border: 1px solid #333;">
+    <div class="modal-header-modern" style="background: #1a1a1a; border-bottom: 1px solid #333;">
+      <div class="modal-header-left">
+        <div class="modal-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+          <i class="fas fa-terminal"></i>
+        </div>
+        <div>
+          <h3 class="modal-title" style="font-family: 'JetBrains Mono', monospace;">Terminal</h3>
+          <p id="term-title" class="modal-subtitle" style="font-family: 'JetBrains Mono', monospace;">root@container</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" onclick="closeTerminal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="modal-body-modern" style="padding: 0; display: flex; flex-direction: column; height: 500px;">
+      <div id="terminal-container" style="flex: 1; overflow: hidden; background: #000; padding: 10px;"></div>
     </div>
   </div>
 </div>

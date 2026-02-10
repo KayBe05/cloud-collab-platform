@@ -2,6 +2,10 @@
 
 {% block title %}Projects - CloudX Platform{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='projects.css') }}">
+{% endblock %}
+
 {% block breadcrumb %}
 <i class="fas fa-folder"></i>
 <i class="fas fa-chevron-right"></i>
@@ -14,7 +18,7 @@
     <h2 style="margin-bottom: 0.5rem;">My Projects</h2>
     <p style="color: var(--text-secondary); font-size: 0.95rem;">Manage and deploy your cloud applications</p>
   </div>
-  <button class="btn btn-primary" onclick="createNewProject()">
+  <button class="btn btn-primary" onclick="openProjectWizard()">
     <i class="fas fa-plus"></i> New Project
   </button>
 </div>
@@ -73,200 +77,388 @@
     <i class="fas fa-folder-open"></i>
     <h3 style="margin: 1rem 0 0.5rem; color: var(--text-primary);">No projects yet</h3>
     <p>Create your first project to get started with CloudX Platform!</p>
-    <button class="btn btn-primary" onclick="createNewProject()" style="margin-top: 1.5rem;">
+    <button class="btn btn-primary" onclick="openProjectWizard()" style="margin-top: 1.5rem;">
       <i class="fas fa-plus"></i> Create Project
     </button>
   </div>
   {% endfor %}
 </div>
 
-<!-- Project Creation Modal (hidden by default) -->
-<div id="createProjectModal" class="modal" style="display: none;">
-  <div class="modal-overlay" onclick="closeCreateModal()"></div>
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>Create New Project</h3>
-      <button class="icon-button" onclick="closeCreateModal()">
+<!-- Multi-Step Wizard Modal -->
+<div id="wizardModal" class="wizard-modal">
+  <div class="wizard-overlay"></div>
+
+  <div class="wizard-container">
+    <!-- Sidebar Navigation -->
+    <aside class="wizard-sidebar">
+      <div class="wizard-brand">
+        <div class="wizard-brand-icon">
+          <i class="fas fa-cloud"></i>
+        </div>
+        <span class="wizard-brand-text">CloudX</span>
+      </div>
+
+      <nav class="wizard-steps">
+        <div class="wizard-step active" data-step="1">
+          <div class="step-indicator">1</div>
+          <div class="step-info">
+            <span class="step-number">Step 1</span>
+            <span class="step-title">Connect Git</span>
+          </div>
+        </div>
+
+        <div class="wizard-step" data-step="2">
+          <div class="step-indicator">2</div>
+          <div class="step-info">
+            <span class="step-number">Step 2</span>
+            <span class="step-title">Select Framework</span>
+          </div>
+        </div>
+
+        <div class="wizard-step" data-step="3">
+          <div class="step-indicator">3</div>
+          <div class="step-info">
+            <span class="step-number">Step 3</span>
+            <span class="step-title">Environment</span>
+          </div>
+        </div>
+
+        <div class="wizard-step" data-step="4">
+          <div class="step-indicator">4</div>
+          <div class="step-info">
+            <span class="step-number">Step 4</span>
+            <span class="step-title">Review</span>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="wizard-content">
+      <button class="wizard-close" id="closeWizard">
         <i class="fas fa-times"></i>
       </button>
-    </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label>Project Name</label>
-        <input type="text" id="projectName" placeholder="My Awesome Project" class="form-input">
+
+      <!-- Step 1: Connect Git -->
+      <div class="step-section active" data-step="1">
+        <header class="wizard-header">
+          <h2>Connect Your Repository</h2>
+          <p>Link your Git repository to deploy your project on CloudX Platform</p>
+        </header>
+
+        <div class="wizard-body">
+          <div class="form-grid">
+            <!-- Git Provider Selection -->
+            <div class="form-group-wizard">
+              <label class="form-label-wizard">
+                <i class="fab fa-git-alt"></i> Git Provider
+                <span class="optional">(Optional)</span>
+              </label>
+              <div class="git-providers">
+                <div class="git-provider-card" data-provider="github">
+                  <div class="git-provider-icon">
+                    <i class="fab fa-github"></i>
+                  </div>
+                  <div class="git-provider-info">
+                    <h4>GitHub</h4>
+                    <p>Most popular platform</p>
+                  </div>
+                  <span class="selected-badge">
+                    <i class="fas fa-check"></i> Selected
+                  </span>
+                </div>
+
+                <div class="git-provider-card" data-provider="gitlab">
+                  <div class="git-provider-icon">
+                    <i class="fab fa-gitlab"></i>
+                  </div>
+                  <div class="git-provider-info">
+                    <h4>GitLab</h4>
+                    <p>CI/CD integrated</p>
+                  </div>
+                  <span class="selected-badge">
+                    <i class="fas fa-check"></i> Selected
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Project Name -->
+            <div class="form-group-wizard">
+              <label class="form-label-wizard" for="projectName">
+                <i class="fas fa-tag"></i> Project Name
+                <span class="required">*</span>
+              </label>
+              <input type="text" id="projectName" class="form-input-wizard" placeholder="my-awesome-project" required>
+              <div class="form-hint">
+                <i class="fas fa-info-circle"></i>
+                Choose a unique name for your project
+              </div>
+            </div>
+
+            <!-- Repository URL -->
+            <div class="form-group-wizard">
+              <label class="form-label-wizard" for="repositoryUrl">
+                <i class="fas fa-link"></i> Repository URL
+                <span class="required">*</span>
+              </label>
+              <input type="url" id="repositoryUrl" class="form-input-wizard"
+                placeholder="https://github.com/username/repository" required>
+              <div class="form-hint">
+                <i class="fas fa-info-circle"></i>
+                HTTPS URL to your Git repository
+              </div>
+            </div>
+
+            <!-- Project Description -->
+            <div class="form-group-wizard">
+              <label class="form-label-wizard" for="projectDescription">
+                <i class="fas fa-align-left"></i> Description
+                <span class="optional">(Optional)</span>
+              </label>
+              <textarea id="projectDescription" class="form-input-wizard"
+                placeholder="A brief description of your project..."></textarea>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Description</label>
-        <textarea id="projectDescription" placeholder="A brief description of your project" class="form-input"
-          rows="3"></textarea>
+
+      <!-- Step 2: Select Framework -->
+      <div class="step-section" data-step="2">
+        <header class="wizard-header">
+          <h2>Choose Your Framework</h2>
+          <p>Select the technology stack that powers your application</p>
+        </header>
+
+        <div class="wizard-body">
+          <div class="framework-grid">
+            <div class="framework-card selected" data-framework="nodejs">
+              <div class="framework-icon">
+                <i class="fab fa-node-js"></i>
+              </div>
+              <div class="framework-info">
+                <h4>Node.js</h4>
+                <p>JavaScript runtime for scalable apps</p>
+              </div>
+              <span class="framework-badge">
+                <i class="fas fa-check"></i> Selected
+              </span>
+            </div>
+
+            <div class="framework-card" data-framework="react">
+              <div class="framework-icon">
+                <i class="fab fa-react"></i>
+              </div>
+              <div class="framework-info">
+                <h4>React</h4>
+                <p>Modern UI library</p>
+              </div>
+              <span class="framework-badge">
+                <i class="fas fa-check"></i> Selected
+              </span>
+            </div>
+
+            <div class="framework-card" data-framework="python">
+              <div class="framework-icon">
+                <i class="fab fa-python"></i>
+              </div>
+              <div class="framework-info">
+                <h4>Python</h4>
+                <p>Versatile backend language</p>
+              </div>
+              <span class="framework-badge">
+                <i class="fas fa-check"></i> Selected
+              </span>
+            </div>
+
+            <div class="framework-card" data-framework="docker">
+              <div class="framework-icon">
+                <i class="fab fa-docker"></i>
+              </div>
+              <div class="framework-info">
+                <h4>Docker</h4>
+                <p>Containerized deployment</p>
+              </div>
+              <span class="framework-badge">
+                <i class="fas fa-check"></i> Selected
+              </span>
+            </div>
+
+            <div class="framework-card" data-framework="nextjs">
+              <div class="framework-icon">
+                <i class="fas fa-layer-group"></i>
+              </div>
+              <div class="framework-info">
+                <h4>Next.js</h4>
+                <p>React framework for production</p>
+              </div>
+              <span class="framework-badge">
+                <i class="fas fa-check"></i> Selected
+              </span>
+            </div>
+
+            <div class="framework-card" data-framework="vue">
+              <div class="framework-icon">
+                <i class="fab fa-vuejs"></i>
+              </div>
+              <div class="framework-info">
+                <h4>Vue.js</h4>
+                <p>Progressive JavaScript framework</p>
+              </div>
+              <span class="framework-badge">
+                <i class="fas fa-check"></i> Selected
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Tags (comma-separated)</label>
-        <input type="text" id="projectTags" placeholder="python, docker, web" class="form-input">
+
+      <!-- Step 3: Environment Variables -->
+      <div class="step-section" data-step="3">
+        <header class="wizard-header">
+          <h2>Environment Variables</h2>
+          <p>Configure environment-specific settings for your project</p>
+        </header>
+
+        <div class="wizard-body">
+          <div id="envEmptyState" class="env-empty-state">
+            <i class="fas fa-key"></i>
+            <p>No environment variables yet. Click below to add one.</p>
+          </div>
+
+          <div id="envVarsContainer" class="env-vars-container"></div>
+
+          <button class="btn-add-env" id="btnAddEnv">
+            <i class="fas fa-plus"></i>
+            Add Environment Variable
+          </button>
+
+          <div class="form-hint" style="margin-top: 1.5rem;">
+            <i class="fas fa-info-circle"></i>
+            Environment variables are optional and can be added later in project settings
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitNewProject()">
-        <i class="fas fa-plus"></i> Create Project
-      </button>
-    </div>
+
+      <!-- Step 4: Review -->
+      <div class="step-section" data-step="4">
+        <header class="wizard-header">
+          <h2>Review & Create</h2>
+          <p>Verify your project configuration before deployment</p>
+        </header>
+
+        <div class="wizard-body">
+          <div class="review-grid">
+            <!-- Project Details -->
+            <div class="review-card">
+              <div class="review-header">
+                <h4><i class="fas fa-info-circle"></i> Project Details</h4>
+                <button class="btn-edit-step" onclick="projectWizard.goToStep(1)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+              <div class="review-content">
+                <div class="review-item">
+                  <div class="review-item-label">Project Name</div>
+                  <div class="review-item-value" id="reviewProjectName">-</div>
+                </div>
+                <div class="review-item">
+                  <div class="review-item-label">Repository URL</div>
+                  <div class="review-item-value">
+                    <code id="reviewRepoUrl">-</code>
+                  </div>
+                </div>
+                <div class="review-item">
+                  <div class="review-item-label">Description</div>
+                  <div class="review-item-value" id="reviewDescription">-</div>
+                </div>
+                <div class="review-item">
+                  <div class="review-item-label">Git Provider</div>
+                  <div class="review-item-value">
+                    <span class="review-badge">
+                      <i class="fab fa-git-alt"></i>
+                      <span id="reviewGitProvider">-</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Framework -->
+            <div class="review-card">
+              <div class="review-header">
+                <h4><i class="fas fa-layer-group"></i> Framework</h4>
+                <button class="btn-edit-step" onclick="projectWizard.goToStep(2)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+              <div class="review-content">
+                <div class="review-item">
+                  <div class="review-item-label">Selected Framework</div>
+                  <div class="review-item-value">
+                    <span class="review-badge">
+                      <i class="fas fa-code"></i>
+                      <span id="reviewFramework">-</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Environment Variables -->
+            <div class="review-card">
+              <div class="review-header">
+                <h4><i class="fas fa-key"></i> Environment Variables</h4>
+                <button class="btn-edit-step" onclick="projectWizard.goToStep(3)">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+              </div>
+              <div class="review-content">
+                <div class="review-env-vars" id="reviewEnvVars">
+                  <div class="review-no-env">
+                    <i class="fas fa-info-circle"></i> No environment variables configured
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Navigation -->
+      <footer class="wizard-footer">
+        <div class="wizard-progress">
+          <div class="progress-bar-mini">
+            <div class="progress-fill-mini"></div>
+          </div>
+          <span>Step 1 of 4</span>
+        </div>
+
+        <div class="wizard-actions">
+          <button class="btn-wizard btn-wizard-secondary" id="btnBack" style="display: none;">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button class="btn-wizard btn-wizard-primary" id="btnNext">
+            Next <i class="fas fa-arrow-right"></i>
+          </button>
+          <button class="btn-wizard btn-wizard-primary" id="btnSubmit" style="display: none;">
+            <i class="fas fa-rocket"></i> Create Project
+          </button>
+        </div>
+      </footer>
+
+      <!-- Loading Overlay -->
+      <div class="wizard-loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Creating your project...</div>
+        <div class="loading-subtext">This will only take a moment</div>
+      </div>
+    </main>
   </div>
 </div>
 
-<style>
-  /* Modal Styles */
-  .modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-  }
-
-  .modal-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-  }
-
-  .modal-content {
-    position: relative;
-    background: var(--bg-card);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-2xl);
-    width: 100%;
-    max-width: 500px;
-    border: 1px solid var(--border-color);
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .modal-header h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-
-  .modal-body {
-    padding: 1.5rem;
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    padding: 1.5rem;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .form-group {
-    margin-bottom: 1.25rem;
-  }
-
-  .form-group:last-child {
-    margin-bottom: 0;
-  }
-
-  .form-group label {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-  }
-
-  .form-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-size: 0.95rem;
-    font-family: inherit;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    transition: all var(--transition-fast);
-  }
-
-  .form-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-  }
-
-  .form-input::placeholder {
-    color: var(--text-tertiary);
-  }
-
-  textarea.form-input {
-    resize: vertical;
-    min-height: 80px;
-  }
-</style>
-
 <script>
-  // Show create project modal
-  function createNewProject() {
-    document.getElementById('createProjectModal').style.display = 'flex';
-    document.getElementById('projectName').focus();
-  }
-
-  // Close create project modal
-  function closeCreateModal() {
-    document.getElementById('createProjectModal').style.display = 'none';
-    document.getElementById('projectName').value = '';
-    document.getElementById('projectDescription').value = '';
-    document.getElementById('projectTags').value = '';
-  }
-
-  // Submit new project
-  function submitNewProject() {
-    const name = document.getElementById('projectName').value.trim();
-    const description = document.getElementById('projectDescription').value.trim();
-    const tags = document.getElementById('projectTags').value.trim();
-
-    if (!name) {
-      showToast('Please enter a project name', 'error');
-      return;
-    }
-
-    fetch('/api/projects', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, tags })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          showToast('Project created successfully!', 'success');
-          closeCreateModal();
-          setTimeout(() => window.location.reload(), 1000);
-        } else {
-          showToast('Failed to create project: ' + data.error, 'error');
-        }
-      })
-      .catch(err => {
-        console.error('Error creating project:', err);
-        showToast('Error creating project', 'error');
-      });
-  }
-
-  // Launch environment
+  // Launch environment function
   async function launchEnvironment(projectId, btnElement) {
     const originalText = btnElement.innerHTML;
     btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Provisioning...';
@@ -328,12 +520,9 @@
       setTimeout(() => btn.innerHTML = original, 2000);
     });
   }
-
-  // Close modal on Escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeCreateModal();
-    }
-  });
 </script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='projects.js') }}"></script>
 {% endblock %}

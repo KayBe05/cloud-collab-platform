@@ -34,8 +34,11 @@
     <p class="project-desc">{{ project.description or 'No description provided' }}</p>
 
     <div class="card-actions">
-      <button class="btn btn-primary" style="width: 100%;" onclick="launchEnvironment('{{ project.id }}', this)">
-        <i class="fas fa-rocket"></i> Launch Environment
+      <button class="btn btn-secondary" onclick="openDeploymentHistory('{{ project.id }}')" style="flex: 1;">
+        <i class="fas fa-history"></i> History
+      </button>
+      <button class="btn btn-primary" onclick="launchEnvironment('{{ project.id }}', this)" style="flex: 2;">
+        <i class="fas fa-rocket"></i> Launch
       </button>
     </div>
 
@@ -457,6 +460,37 @@
   </div>
 </div>
 
+<!-- Deployment History Modal -->
+<div id="deploymentModal" class="deployment-modal">
+  <div class="deployment-overlay"></div>
+
+  <div class="deployment-container">
+    <header class="deployment-header">
+      <h2>
+        <i class="fas fa-history"></i>
+        Deployment History
+      </h2>
+      <button class="deployment-close" id="closeDeployment">
+        <i class="fas fa-times"></i>
+      </button>
+    </header>
+
+    <div class="deployment-actions">
+      <button class="btn-redeploy" id="btnRedeploy">
+        <i class="fas fa-redo"></i>
+        Redeploy Now
+      </button>
+    </div>
+
+    <div class="deployment-body" id="deploymentTimeline">
+      <div class="timeline-empty">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading deployment history...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   // Launch environment function
   async function launchEnvironment(projectId, btnElement) {
@@ -473,7 +507,7 @@
       const data = await response.json();
 
       if (data.success) {
-        btnElement.innerHTML = '<i class="fas fa-check"></i> Environment Running';
+        btnElement.innerHTML = '<i class="fas fa-check"></i> Running';
         btnElement.style.background = 'rgba(16, 185, 129, 0.1)';
         btnElement.style.borderColor = 'var(--success)';
         btnElement.style.color = 'var(--success)';

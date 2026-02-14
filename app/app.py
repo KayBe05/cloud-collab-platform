@@ -14,8 +14,6 @@ from functools import wraps
 import docker
 import time
 
-# --- ADD THIS IMPORT ---
-# This enables the background CPU/Memory monitoring
 try:
     from monitor import SystemMonitor
 except ImportError:
@@ -28,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 app.config['JSON_SORT_KEYS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
@@ -319,6 +317,77 @@ def api_deployments():
     except Exception as e:
         logger.error(f"Deployments API error: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/<int:project_id>/deployments', methods=['GET'])
+@require_session
+def get_project_deployments(project_id):
+    """Get deployment history for a specific project"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cursor:
+                cursor.execute("""
+                    SELECT id, status, version, commit_hash, deployed_by, 
+                           duration_ms, deployed_at, environment
+                    FROM deployments 
+                    WHERE project_id = %s
+                    ORDER BY deployed_at DESC 
+                    LIMIT 10
+                """, (project_id,))
+                deployments = cursor.fetchall()
+        
+        return jsonify({'success': True, 'deployments': deployments})
+    except Exception as e:
+        logger.error(f"Error fetching deployments for project {project_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/deployments/redeploy', methods=['POST'])
+@require_session
+def redeploy():
+    """Simulate a redeployment by creating a new deployment record"""
+    data = request.get_json()
+    
+    if not data or 'project_id' not in data:
+        return jsonify({'success': False, 'error': 'Missing project_id'}), 400
+    
+    try:
+        project_id = data.get('project_id')
+        
+        # Generate simulated deployment data
+        version = data.get('version', f"v1.0.{secrets.randbelow(100)}")
+        commit_hash = secrets.token_hex(4)[:7]
+        deployed_by = data.get('deployed_by', 'CloudX User')
+        environment = data.get('environment', 'production')
+        duration_ms = secrets.randbelow(5000) + 2000  # 2-7 seconds
+        
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO deployments 
+                       (project_id, environment, status, version, commit_hash, deployed_by, duration_ms) 
+                       VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                    (project_id, environment, 'success', version, commit_hash, deployed_by, duration_ms)
+                )
+                deployment_id = cursor.fetchone()[0]
+                conn.commit()
+        
+        log_activity('deployment_redeployed', f"Project {project_id} redeployed - Deployment ID: {deployment_id}")
+        
+        return jsonify({
+            'success': True, 
+            'deployment_id': deployment_id,
+            'message': 'Deployment completed successfully',
+            'deployment': {
+                'id': deployment_id,
+                'status': 'success',
+                'version': version,
+                'commit_hash': commit_hash,
+                'deployed_by': deployed_by,
+                'duration_ms': duration_ms
+            }
+        }), 201
+    except Exception as e:
+        logger.error(f"Redeploy error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/metrics')
 def api_metrics():

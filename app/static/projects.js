@@ -1,6 +1,7 @@
 /**
- * CloudX Project Creation Wizard
+ * CloudX Project Creation Wizard & Deployment History
  * Multi-step wizard for creating new projects with Git integration
+ * Deployment history viewer with timeline visualization
  */
 
 class ProjectWizard {
@@ -524,16 +525,239 @@ class ProjectWizard {
   }
 }
 
-// Initialize wizard
-const projectWizard = new ProjectWizard();
+/**
+ * Deployment History Manager
+ */
+class DeploymentHistory {
+  constructor() {
+    this.modal = null;
+    this.currentProjectId = null;
+    this.init();
+  }
 
-// Global function to open wizard (called from HTML)
+  init() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.setupEventListeners());
+    } else {
+      this.setupEventListeners();
+    }
+  }
+
+  setupEventListeners() {
+    this.modal = document.getElementById('deploymentModal');
+
+    // Close modal
+    document.getElementById('closeDeployment')?.addEventListener('click', () => this.closeModal());
+    document.querySelector('.deployment-overlay')?.addEventListener('click', () => this.closeModal());
+
+    // Redeploy button
+    document.getElementById('btnRedeploy')?.addEventListener('click', () => this.triggerRedeploy());
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (!this.modal || !this.modal.classList.contains('show')) return;
+      if (e.key === 'Escape') {
+        this.closeModal();
+      }
+    });
+  }
+
+  async openModal(projectId) {
+    if (!this.modal) {
+      console.error('Deployment modal not found');
+      return;
+    }
+
+    this.currentProjectId = projectId;
+
+    // Show modal
+    this.modal.style.display = 'flex';
+    setTimeout(() => this.modal.classList.add('show'), 10);
+
+    // Load deployment history
+    await this.loadDeployments();
+  }
+
+  closeModal() {
+    if (!this.modal) return;
+
+    this.modal.classList.remove('show');
+    setTimeout(() => {
+      this.modal.style.display = 'none';
+    }, 300);
+  }
+
+  async loadDeployments() {
+    const timelineContainer = document.getElementById('deploymentTimeline');
+    if (!timelineContainer) return;
+
+    // Show loading state
+    timelineContainer.innerHTML = `
+      <div class="timeline-empty">
+        <i class="fas fa-spinner fa-spin"></i>
+        <p>Loading deployment history...</p>
+      </div>
+    `;
+
+    try {
+      const response = await fetch(`/api/projects/${this.currentProjectId}/deployments`);
+      const data = await response.json();
+
+      if (data.success && data.deployments.length > 0) {
+        this.renderTimeline(data.deployments);
+      } else {
+        timelineContainer.innerHTML = `
+          <div class="timeline-empty">
+            <i class="fas fa-inbox"></i>
+            <p>No deployments yet. Click "Redeploy Now" to create your first deployment!</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      console.error('Error loading deployments:', error);
+      timelineContainer.innerHTML = `
+        <div class="timeline-empty">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Failed to load deployment history</p>
+        </div>
+      `;
+    }
+  }
+
+  renderTimeline(deployments) {
+    const timelineContainer = document.getElementById('deploymentTimeline');
+    if (!timelineContainer) return;
+
+    const timelineHTML = deployments.map(deployment => {
+      const timestamp = this.formatTimestamp(deployment.deployed_at);
+      const statusClass = deployment.status.toLowerCase();
+
+      return `
+        <div class="timeline-item">
+          <div class="timeline-dot ${statusClass}"></div>
+          <div class="timeline-time">${timestamp}</div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <div class="timeline-version">${deployment.version || 'Unknown'}</div>
+              <span class="timeline-status ${statusClass}">${deployment.status}</span>
+            </div>
+            <div class="timeline-details">
+              <div class="timeline-detail">
+                <div class="timeline-detail-label">Commit</div>
+                <div class="timeline-detail-value">${deployment.commit_hash || 'N/A'}</div>
+              </div>
+              <div class="timeline-detail">
+                <div class="timeline-detail-label">Environment</div>
+                <div class="timeline-detail-value">${deployment.environment || 'production'}</div>
+              </div>
+              <div class="timeline-detail">
+                <div class="timeline-detail-label">Deployed By</div>
+                <div class="timeline-detail-value">${deployment.deployed_by || 'System'}</div>
+              </div>
+              <div class="timeline-detail">
+                <div class="timeline-detail-label">Duration</div>
+                <div class="timeline-detail-value">${this.formatDuration(deployment.duration_ms)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    timelineContainer.innerHTML = `<div class="timeline">${timelineHTML}</div>`;
+  }
+
+  async triggerRedeploy() {
+    const btnRedeploy = document.getElementById('btnRedeploy');
+    if (!btnRedeploy) return;
+
+    // Disable button and show loading state
+    const originalText = btnRedeploy.innerHTML;
+    btnRedeploy.disabled = true;
+    btnRedeploy.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Building...';
+
+    try {
+      // Simulate 2-second build delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Trigger redeploy API
+      const response = await fetch('/api/deployments/redeploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: this.currentProjectId
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        showToast('Deployment completed successfully!', 'success');
+
+        // Reload deployment history
+        await this.loadDeployments();
+
+        // Reset button
+        btnRedeploy.disabled = false;
+        btnRedeploy.innerHTML = originalText;
+      } else {
+        throw new Error(data.error || 'Deployment failed');
+      }
+    } catch (error) {
+      console.error('Error redeploying:', error);
+      showToast('Deployment failed: ' + error.message, 'error');
+
+      // Reset button
+      btnRedeploy.disabled = false;
+      btnRedeploy.innerHTML = originalText;
+    }
+  }
+
+  formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  formatDuration(durationMs) {
+    if (!durationMs) return 'N/A';
+
+    const seconds = Math.floor(durationMs / 1000);
+    if (seconds < 60) return `${seconds}s`;
+
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+}
+
+// Initialize both managers
+const projectWizard = new ProjectWizard();
+const deploymentHistory = new DeploymentHistory();
+
+// Global functions to open modals (called from HTML)
 function openProjectWizard() {
   projectWizard.openModal();
+}
+
+function openDeploymentHistory(projectId) {
+  deploymentHistory.openModal(projectId);
 }
 
 // Export for use in other scripts if needed
 if (typeof window !== 'undefined') {
   window.projectWizard = projectWizard;
+  window.deploymentHistory = deploymentHistory;
   window.openProjectWizard = openProjectWizard;
+  window.openDeploymentHistory = openDeploymentHistory;
 }

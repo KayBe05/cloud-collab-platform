@@ -91,7 +91,7 @@ def init_db():
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS deployments (
                         id SERIAL PRIMARY KEY,
-                        project_id INTEGER REFERENCES projects(id),
+                        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
                         environment VARCHAR(50),
                         status VARCHAR(50),
                         version VARCHAR(50),
@@ -276,6 +276,54 @@ def api_projects():
     except Exception as e:
         logger.error(f"Projects API error: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/projects/<int:project_id>', methods=['DELETE'])
+@require_session
+def delete_project(project_id):
+    """Delete a project and all related data"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cursor:
+                # First, check if project exists
+                cursor.execute("SELECT name FROM projects WHERE id = %s", (project_id,))
+                project = cursor.fetchone()
+                
+                if not project:
+                    return jsonify({
+                        'success': False, 
+                        'error': 'Project not found'
+                    }), 404
+                
+                project_name = project['name']
+                
+                # Delete related deployments (if ON DELETE CASCADE is not set)
+                cursor.execute("DELETE FROM deployments WHERE project_id = %s", (project_id,))
+                deleted_deployments = cursor.rowcount
+                
+                # Delete the project
+                cursor.execute("DELETE FROM projects WHERE id = %s", (project_id,))
+                
+                conn.commit()
+                
+                # Log the deletion
+                log_activity(
+                    'project_deleted', 
+                    f"Project '{project_name}' (ID: {project_id}) and {deleted_deployments} deployments deleted",
+                    severity='warning'
+                )
+                
+                return jsonify({
+                    'success': True, 
+                    'message': f"Project '{project_name}' deleted successfully",
+                    'deleted_deployments': deleted_deployments
+                }), 200
+                
+    except Exception as e:
+        logger.error(f"Project deletion error: {e}")
+        return jsonify({
+            'success': False, 
+            'error': f"Failed to delete project: {str(e)}"
+        }), 500
 
 @app.route('/api/deployments', methods=['GET', 'POST'])
 def api_deployments():

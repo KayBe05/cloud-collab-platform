@@ -1,9 +1,3 @@
-/**
- * CloudX Project Creation Wizard & Deployment History
- * Multi-step wizard for creating new projects with Git integration
- * Deployment history viewer with timeline visualization
- */
-
 class ProjectWizard {
   constructor() {
     // Wizard state
@@ -741,6 +735,146 @@ class DeploymentHistory {
   }
 }
 
+/**
+ * Project Deletion with Confirmation
+ */
+async function deleteProject(projectId, projectName) {
+  // Show confirmation dialog
+  const confirmed = confirm(
+    `Are you sure you want to delete "${projectName}"?\n\n` +
+    `This will permanently delete the project and all its deployments.\n` +
+    `This action cannot be undone.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  // Find the project card element
+  const projectCard = document.querySelector(`[data-project-id="${projectId}"]`);
+
+  if (projectCard) {
+    // Show loading state on the card
+    projectCard.style.opacity = '0.5';
+    projectCard.style.pointerEvents = 'none';
+  }
+
+  try {
+    const response = await fetch(`/api/projects/${projectId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Show success message
+      showToast(`Project "${projectName}" deleted successfully`, 'success');
+
+      // Animate card removal
+      if (projectCard) {
+        projectCard.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        projectCard.style.transform = 'scale(0.9)';
+        projectCard.style.opacity = '0';
+
+        setTimeout(() => {
+          projectCard.remove();
+
+          // Check if no projects remain
+          const remainingCards = document.querySelectorAll('.project-card').length;
+          if (remainingCards === 0) {
+            // Reload page to show empty state
+            window.location.reload();
+          }
+        }, 400);
+      } else {
+        // If card not found, just reload
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    } else {
+      throw new Error(data.error || 'Failed to delete project');
+    }
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    showToast(`Failed to delete project: ${error.message}`, 'error');
+
+    // Restore card state
+    if (projectCard) {
+      projectCard.style.opacity = '1';
+      projectCard.style.pointerEvents = 'auto';
+    }
+  }
+}
+
+// Launch environment function
+async function launchEnvironment(projectId, btnElement) {
+  const originalText = btnElement.innerHTML;
+  btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Provisioning...';
+  btnElement.disabled = true;
+
+  try {
+    const response = await fetch(`/api/projects/${projectId}/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      btnElement.innerHTML = '<i class="fas fa-check-circle"></i> Running';
+      btnElement.classList.add('btn-success-state');
+
+      const box = document.getElementById(`connection-info-${projectId}`);
+      box.style.display = 'block';
+
+      box.querySelector('.password-field').textContent = data.connection.password;
+      box.querySelector('.web-link').href = data.connection.web_url;
+      box.querySelector('.ssh-command').value = data.connection.ssh_command;
+
+      showToast('Environment provisioned successfully!', 'success');
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (error) {
+    console.error(error);
+    btnElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
+    btnElement.classList.add('btn-error-state');
+    showToast('Launch failed: ' + error.message, 'error');
+  }
+}
+
+// Copy password
+function copyPassword(btn) {
+  const password = btn.parentElement.querySelector('.password-field').textContent;
+  navigator.clipboard.writeText(password).then(() => {
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    btn.style.color = 'var(--success)';
+    showToast('Password copied to clipboard', 'success');
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.style.color = '';
+    }, 2000);
+  }).catch(err => {
+    showToast('Failed to copy password', 'error');
+  });
+}
+
+// Copy SSH command
+function copySSH(btn) {
+  const command = btn.nextElementSibling.value;
+  navigator.clipboard.writeText(command).then(() => {
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+    showToast('SSH command copied to clipboard', 'success');
+    setTimeout(() => btn.innerHTML = original, 2000);
+  }).catch(err => {
+    showToast('Failed to copy SSH command', 'error');
+  });
+}
+
 // Initialize both managers
 const projectWizard = new ProjectWizard();
 const deploymentHistory = new DeploymentHistory();
@@ -760,4 +894,8 @@ if (typeof window !== 'undefined') {
   window.deploymentHistory = deploymentHistory;
   window.openProjectWizard = openProjectWizard;
   window.openDeploymentHistory = openDeploymentHistory;
+  window.deleteProject = deleteProject;
+  window.launchEnvironment = launchEnvironment;
+  window.copyPassword = copyPassword;
+  window.copySSH = copySSH;
 }

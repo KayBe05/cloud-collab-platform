@@ -15,52 +15,93 @@
 {% block content %}
 <div class="projects-header">
   <div>
-    <h2 style="margin-bottom: 0.5rem;">My Projects</h2>
-    <p style="color: var(--text-secondary); font-size: 0.95rem;">Manage and deploy your cloud applications</p>
+    <h2 style="margin-bottom: 0.5rem; font-size: 2.25rem; font-weight: 800; letter-spacing: -1px;">My Projects</h2>
+    <p style="color: var(--text-secondary); font-size: 1.05rem;">Manage and deploy your cloud applications with ease
+    </p>
   </div>
-  <button class="btn btn-primary" onclick="openProjectWizard()">
+  <button class="btn btn-primary" onclick="openProjectWizard()"
+    style="box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);">
     <i class="fas fa-plus"></i> New Project
   </button>
 </div>
 
 <div class="projects-grid">
   {% for project in projects %}
-  <div class="project-card">
+  <div class="project-card" data-project-id="{{ project.id }}">
     <div class="card-header">
-      <h3>{{ project.name }}</h3>
-      <span class="status-badge">{{ project.status }}</span>
+      <div class="card-title-section">
+        <h3>
+          <i class="fas fa-folder-open"></i>
+          {{ project.name }}
+        </h3>
+        <div class="card-meta">
+          <div class="card-badges">
+            <span class="status-badge">
+              <i class="fas fa-circle"></i>
+              {{ project.status }}
+            </span>
+            {% if project.tags %}
+            <span class="framework-badge">
+              <i class="fas fa-code"></i>
+              {{ project.tags }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <button class="btn-delete-project" onclick="deleteProject({{ project.id }}, '{{ project.name }}')"
+        title="Delete project" aria-label="Delete project">
+        <i class="fas fa-trash-alt"></i>
+      </button>
     </div>
 
     <p class="project-desc">{{ project.description or 'No description provided' }}</p>
 
+    <div class="project-info-grid">
+      <div class="info-item">
+        <div class="info-label">
+          <i class="fas fa-code-branch"></i> Repository
+        </div>
+        <div class="info-value">{{ project.repository_url or 'Not set' }}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-label">
+          <i class="fas fa-calendar-alt"></i> Created
+        </div>
+        <div class="info-value">{{ project.created_at.strftime('%b %d, %Y') if project.created_at else 'N/A' }}</div>
+      </div>
+    </div>
+
     <div class="card-actions">
-      <button class="btn btn-secondary" onclick="openDeploymentHistory('{{ project.id }}')" style="flex: 1;">
+      <button class="btn btn-secondary" onclick="openDeploymentHistory('{{ project.id }}')">
         <i class="fas fa-history"></i> History
       </button>
-      <button class="btn btn-primary" onclick="launchEnvironment('{{ project.id }}', this)" style="flex: 2;">
+
+      <button class="btn btn-primary" onclick="launchEnvironment('{{ project.id }}', this)">
         <i class="fas fa-rocket"></i> Launch
       </button>
     </div>
 
-    <div id="connection-info-{{ project.id }}"
-      style="display: none; margin-top: 1.5rem; padding: 1.25rem; background: var(--bg-secondary); border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
-      <div style="margin-bottom: 1rem;">
-        <label
-          style="font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.5rem;">
+    <div id="connection-info-{{ project.id }}" class="connection-info-box" style="display: none;">
+      <div class="connection-header">
+        <i class="fas fa-lock"></i>
+        <h4>Connection Details</h4>
+      </div>
+
+      <div class="credential-item">
+        <div class="credential-label">
           <i class="fas fa-key"></i> Password
-        </label>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <code class="password-field"
-            style="flex: 1; background: var(--bg-tertiary); padding: 0.75rem; border-radius: var(--radius-md); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--warning); font-weight: 600; border: 1px solid var(--border-color);"></code>
+        </div>
+        <div class="credential-value">
+          <code class="password-field"></code>
           <button class="icon-button" onclick="copyPassword(this)" title="Copy password">
             <i class="fas fa-copy"></i>
           </button>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-        <a href="#" target="_blank" class="btn btn-primary web-link"
-          style="text-decoration: none; justify-content: center;">
+      <div class="connection-actions">
+        <a href="#" target="_blank" class="btn btn-primary web-link" style="text-decoration: none;">
           <i class="fas fa-external-link-alt"></i> Web IDE
         </a>
         <button class="btn btn-secondary" onclick="copySSH(this)">
@@ -71,17 +112,27 @@
     </div>
 
     <div class="card-footer">
-      <i class="fas fa-clock"></i>
-      <span>Updated {{ project.updated_at }}</span>
+      <div class="footer-item">
+        <i class="fas fa-clock"></i>
+        <span>Updated {{ project.updated_at.strftime('%b %d, %Y at %I:%M %p') if project.updated_at else 'N/A' }}</span>
+      </div>
+      {% if project.owner_id %}
+      <div class="footer-item">
+        <i class="fas fa-user"></i>
+        <span>{{ project.owner_id }}</span>
+      </div>
+      {% endif %}
     </div>
   </div>
   {% else %}
-  <div class="empty-state" style="grid-column: 1/-1; padding: 4rem 2rem;">
-    <i class="fas fa-folder-open"></i>
-    <h3 style="margin: 1rem 0 0.5rem; color: var(--text-primary);">No projects yet</h3>
-    <p>Create your first project to get started with CloudX Platform!</p>
-    <button class="btn btn-primary" onclick="openProjectWizard()" style="margin-top: 1.5rem;">
-      <i class="fas fa-plus"></i> Create Project
+  <div class="projects-empty-state">
+    <div class="empty-state-icon">
+      <i class="fas fa-folder-open"></i>
+    </div>
+    <h3>No projects yet</h3>
+    <p>Create your first project to start building and deploying your applications on CloudX Platform!</p>
+    <button class="btn btn-primary" onclick="openProjectWizard()" style="padding: 1rem 2rem; font-size: 1.05rem;">
+      <i class="fas fa-plus"></i> Create Your First Project
     </button>
   </div>
   {% endfor %}
@@ -490,71 +541,6 @@
     </div>
   </div>
 </div>
-
-<script>
-  // Launch environment function
-  async function launchEnvironment(projectId, btnElement) {
-    const originalText = btnElement.innerHTML;
-    btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Provisioning...';
-    btnElement.disabled = true;
-
-    try {
-      const response = await fetch(`/api/projects/${projectId}/launch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        btnElement.innerHTML = '<i class="fas fa-check"></i> Running';
-        btnElement.style.background = 'rgba(16, 185, 129, 0.1)';
-        btnElement.style.borderColor = 'var(--success)';
-        btnElement.style.color = 'var(--success)';
-
-        const box = document.getElementById(`connection-info-${projectId}`);
-        box.style.display = 'block';
-
-        box.querySelector('.password-field').textContent = data.connection.password;
-        box.querySelector('.web-link').href = data.connection.web_url;
-        box.querySelector('.ssh-command').value = data.connection.ssh_command;
-
-        showToast('Environment provisioned successfully!', 'success');
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      console.error(error);
-      btnElement.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Failed';
-      btnElement.style.background = 'rgba(239, 68, 68, 0.1)';
-      btnElement.style.borderColor = 'var(--error)';
-      btnElement.style.color = 'var(--error)';
-      showToast('Launch failed: ' + error.message, 'error');
-    }
-  }
-
-  // Copy password
-  function copyPassword(btn) {
-    const password = btn.parentElement.querySelector('.password-field').textContent;
-    navigator.clipboard.writeText(password).then(() => {
-      const original = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-check"></i>';
-      showToast('Password copied to clipboard', 'success');
-      setTimeout(() => btn.innerHTML = original, 2000);
-    });
-  }
-
-  // Copy SSH command
-  function copySSH(btn) {
-    const command = btn.nextElementSibling.value;
-    navigator.clipboard.writeText(command).then(() => {
-      const original = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-      showToast('SSH command copied to clipboard', 'success');
-      setTimeout(() => btn.innerHTML = original, 2000);
-    });
-  }
-</script>
 {% endblock %}
 
 {% block scripts %}

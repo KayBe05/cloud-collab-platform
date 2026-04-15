@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — CloudX Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #0EA5E9;
+      --primary-dark: #0284C7;
+      --secondary: #06B6D4;
+      --accent: #8B5CF6;
+      --success: #10B981;
+      --error: #EF4444;
+      --bg-dark: #0A1628;
+      --bg-card: #FFFFFF;
+      --text-muted: #94A3B8;
+      --border: #E2E8F0;
+      --radius: 14px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg-dark);
+    }
+
+    /* ── LAYOUT ─────────────────────────────────────────────────────────── */
+    .auth-shell {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── LEFT — HERO ────────────────────────────────────────────────────── */
+    .hero-panel {
+      position: relative;
+      background: var(--bg-dark);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem;
+      overflow: hidden;
+    }
+
+    /* animated grid */
+    .hero-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(14, 165, 233, .07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14, 165, 233, .07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: grid-drift 20s linear infinite;
+    }
+
+    @keyframes grid-drift {
+      to {
+        background-position: 48px 48px;
+      }
+    }
+
+    /* glowing orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.25;
+      animation: orb-pulse 8s ease-in-out infinite alternate;
+    }
+
+    .orb-1 {
+      width: 380px;
+      height: 380px;
+      background: var(--primary);
+      top: -100px;
+      left: -100px;
+    }
+
+    .orb-2 {
+      width: 300px;
+      height: 300px;
+      background: var(--accent);
+      bottom: 0;
+      right: -80px;
+      animation-delay: 3s;
+    }
+
+    .orb-3 {
+      width: 200px;
+      height: 200px;
+      background: var(--secondary);
+      top: 50%;
+      left: 40%;
+      animation-delay: 6s;
+    }
+
+    @keyframes orb-pulse {
+      from {
+        transform: scale(1) rotate(0deg);
+      }
+
+      to {
+        transform: scale(1.2) rotate(15deg);
+      }
+    }
+
+    .hero-logo {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logo-mark {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: #fff;
+      box-shadow: 0 0 32px rgba(14, 165, 233, .5);
+    }
+
+    .logo-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-name span {
+      color: var(--primary);
+    }
+
+    .hero-body {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--primary);
+      background: rgba(14, 165, 233, .1);
+      border: 1px solid rgba(14, 165, 233, .25);
+      border-radius: 100px;
+      padding: 0.375rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-headline {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.2rem, 3.5vw, 3.4rem);
+      font-weight: 800;
+      line-height: 1.08;
+      color: #fff;
+      letter-spacing: -1.5px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-headline .grad {
+      background: linear-gradient(100deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      color: #7E9BB5;
+      line-height: 1.75;
+      max-width: 420px;
+      margin-bottom: 2.5rem;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 100px;
+      color: #CBD5E1;
+      font-size: 0.85rem;
+      font-weight: 500;
+      backdrop-filter: blur(8px);
+      transition: all .25s;
+    }
+
+    .badge i {
+      color: var(--primary);
+      font-size: .8rem;
+    }
+
+    .badge:hover {
+      background: rgba(14, 165, 233, .12);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .hero-footer {
+      position: relative;
+      z-index: 1;
+      color: #3E5A74;
+      font-size: 0.8rem;
+    }
+
+    /* ── RIGHT — FORM ───────────────────────────────────────────────────── */
+    .form-panel {
+      background: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 4rem;
+    }
+
+    .form-card {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .form-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #0F172A;
+      letter-spacing: -0.75px;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-subtitle {
+      color: #64748B;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Flash messages */
+    .flash-list {
+      list-style: none;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+
+    .flash {
+      display: flex;
+      align-items: center;
+      gap: .625rem;
+      padding: .75rem 1rem;
+      border-radius: 10px;
+      font-size: .875rem;
+      font-weight: 500;
+    }
+
+    .flash-error {
+      background: #FEF2F2;
+      color: #DC2626;
+      border: 1px solid #FCA5A5;
+    }
+
+    .flash-success {
+      background: #F0FDF4;
+      color: #15803D;
+      border: 1px solid #86EFAC;
+    }
+
+    .flash-info {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #93C5FD;
+    }
+
+    /* Form groups */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: .5rem;
+      letter-spacing: .01em;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94A3B8;
+      font-size: .9rem;
+      pointer-events: none;
+      transition: color .2s;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: .875rem 1rem .875rem 2.75rem;
+      border: 1.5px solid #E2E8F0;
+      border-radius: var(--radius);
+      background: #fff;
+      color: #0F172A;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, .12);
+    }
+
+    input:focus~i,
+    .input-wrap:focus-within i {
+      color: var(--primary);
+    }
+
+    .toggle-pw {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #94A3B8;
+      cursor: pointer;
+      padding: 0;
+      font-size: .9rem;
+      transition: color .2s;
+    }
+
+    .toggle-pw:hover {
+      color: var(--primary);
+    }
+
+    /* Remember / Forgot row */
+    .form-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .875rem;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      accent-color: var(--primary);
+      padding: 0;
+    }
+
+    .forgot-link {
+      font-size: .875rem;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color .2s;
+    }
+
+    .forgot-link:hover {
+      color: var(--primary-dark);
+    }
+
+    /* Submit button */
+    .btn-submit {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .25px;
+      cursor: pointer;
+      transition: transform .2s, box-shadow .2s, opacity .2s;
+      box-shadow: 0 4px 20px rgba(14, 165, 233, .35);
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(14, 165, 233, .45);
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      color: #CBD5E1;
+      font-size: .8rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #E2E8F0;
+    }
+
+    /* Switch link */
+    .switch-link {
+      text-align: center;
+      font-size: .9rem;
+      color: #64748B;
+    }
+
+    .switch-link a {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: none;
+      margin-left: .25rem;
+    }
+
+    .switch-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .auth-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-panel {
+        display: none;
+      }
+
+      .form-panel {
+        padding: 2.5rem 2rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="auth-shell">
+
+    <!-- ── LEFT HERO ────────────────────────────────────────────────────────── -->
+    <div class="hero-panel">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+
+      <div class="hero-logo">
+        <div class="logo-mark"><i class="fas fa-cloud"></i></div>
+        <span class="logo-name">Cloud<span>X</span></span>
+      </div>
+
+      <div class="hero-body">
+        <div class="hero-eyebrow">
+          <i class="fas fa-circle" style="font-size:.45rem"></i>
+          Enterprise Cloud Platform
+        </div>
+        <h1 class="hero-headline">
+          Build. Deploy.<br>
+          <span class="grad">Scale Infinitely.</span>
+        </h1>
+        <p class="hero-sub">
+          A unified workspace for your containers, deployments,
+          and infrastructure — secured by tenant isolation.
+        </p>
+        <div class="hero-badges">
+          <div class="badge"><i class="fas fa-shield-alt"></i> Isolated Tenants</div>
+          <div class="badge"><i class="fas fa-bolt"></i> Real-time Logs</div>
+          <div class="badge"><i class="fas fa-code-branch"></i> Git-native</div>
+          <div class="badge"><i class="fas fa-terminal"></i> Web Terminal</div>
+        </div>
+      </div>
+
+      <div class="hero-footer">© 2026 CloudX Platform · Apache 2.0</div>
+    </div>
+
+    <!-- ── RIGHT FORM ────────────────────────────────────────────────────────── -->
+    <div class="form-panel">
+      <div class="form-card">
+
+        <h2 class="form-title">Welcome back</h2>
+        <p class="form-subtitle">Sign in to your CloudX workspace</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="flash-list">
+          {% for category, message in messages %}
+          <li class="flash flash-{{ category }}">
+            <i
+              class="fas fa-{% if category == 'error' %}exclamation-circle{% elif category == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+            {{ message }}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('login') }}" novalidate>
+          <div class="form-group">
+            <label for="username">Username</label>
+            <div class="input-wrap">
+              <input type="text" id="username" name="username" placeholder="your_username" autocomplete="username"
+                required>
+              <i class="fas fa-user"></i>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-wrap">
+              <input type="password" id="password" name="password" placeholder="••••••••"
+                autocomplete="current-password" required>
+              <i class="fas fa-lock"></i>
+              <button type="button" class="toggle-pw" onclick="togglePw('password', this)"
+                aria-label="Toggle password visibility">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-meta">
+            <label class="checkbox-label">
+              <input type="checkbox" name="remember"> Remember me
+            </label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-sign-in-alt" style="margin-right:.5rem"></i>Sign In
+          </button>
+        </form>
+
+        <div class="divider">or</div>
+        <p class="switch-link">Don't have an account?<a href="{{ url_for('signup.html') }}">Create one</a></p>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function togglePw(id, btn) {
+      const inp = document.getElementById(id);
+      const icon = btn.querySelector('i');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        inp.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+  </script>
+</body>
+
+</html>

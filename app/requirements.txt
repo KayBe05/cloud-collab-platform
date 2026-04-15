@@ -2,6 +2,7 @@
 Flask==3.0.0
 Flask-CORS==4.0.0
 Flask-SocketIO==5.3.5
+Flask-Login==0.6.3
 Werkzeug==3.0.1
 
 # WebSocket Support
@@ -26,7 +27,7 @@ python-dotenv==1.0.0
 cryptography==41.0.7
 PyJWT==2.8.0
 
-#Docker
+# Docker
 docker==7.0.0
 
 # Testing Framework

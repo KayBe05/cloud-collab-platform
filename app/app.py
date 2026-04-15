@@ -1,6 +1,11 @@
-from flask import Flask, jsonify, render_template, request, session, send_from_directory
+from flask import Flask, jsonify, render_template, request, session, redirect, url_for, flash
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_login import (
+    LoginManager, UserMixin, login_user, logout_user,
+    login_required, current_user
+)
+from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg
 from psycopg.rows import dict_row
 import os
@@ -26,12 +31,76 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['JSON_SORT_KEYS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
+
+# ── Flask-Login setup ──────────────────────────────────────────────────────────
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
+
+
+class User(UserMixin):
+    """Lightweight User model backed by PostgreSQL."""
+    def __init__(self, id, username, email, password_hash, created_at=None):
+        self.id = id
+        self.username = username
+        self.email = email
+        self.password_hash = password_hash
+        self.created_at = created_at
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    @staticmethod
+    def get_by_id(user_id):
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor(row_factory=dict_row) as cur:
+                    cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return User(**row)
+        except Exception as e:
+            logger.error(f"User.get_by_id error: {e}")
+        return None
+
+    @staticmethod
+    def get_by_username(username):
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor(row_factory=dict_row) as cur:
+                    cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+                    row = cur.fetchone()
+                    if row:
+                        return User(**row)
+        except Exception as e:
+            logger.error(f"User.get_by_username error: {e}")
+        return None
+
+    @staticmethod
+    def get_by_email(email):
+        try:
+            with get_db_connection() as conn:
+                with conn.cursor(row_factory=dict_row) as cur:
+                    cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+                    row = cur.fetchone()
+                    if row:
+                        return User(**row)
+        except Exception as e:
+            logger.error(f"User.get_by_email error: {e}")
+        return None
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get_by_id(int(user_id))
+
 
 # Database configuration
 DB_CONFIG = {
@@ -46,6 +115,7 @@ DB_CONFIG = {
 # Cache for frequently accessed data
 cache = {'metrics': {}, 'projects': {}, 'last_update': {}}
 
+
 def get_db_connection():
     """Get database connection with error handling"""
     try:
@@ -54,221 +124,337 @@ def get_db_connection():
         logger.error(f"Database connection error: {e}")
         raise
 
+
 def init_db():
     """Initialize database with required tables"""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                # Projects table
+
+                # ── Users table (must be created before projects) ──────────────
                 cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS projects (
-                        id SERIAL PRIMARY KEY,
-                        name VARCHAR(255) NOT NULL,
-                        description TEXT,
-                        repository_url VARCHAR(500),
-                        status VARCHAR(50) DEFAULT 'active',
-                        owner_id VARCHAR(255),
-                        tags TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    CREATE TABLE IF NOT EXISTS users (
+                        id            SERIAL PRIMARY KEY,
+                        username      VARCHAR(80)  NOT NULL UNIQUE,
+                        email         VARCHAR(255) NOT NULL UNIQUE,
+                        password_hash VARCHAR(255) NOT NULL,
+                        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                
-                # Activity logs table
+
+                # ── Projects table (owner_id → users.id) ───────────────────────
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS projects (
+                        id             SERIAL PRIMARY KEY,
+                        name           VARCHAR(255) NOT NULL,
+                        description    TEXT,
+                        repository_url VARCHAR(500),
+                        status         VARCHAR(50)  DEFAULT 'active',
+                        owner_id       INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                        tags           TEXT,
+                        created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+
+                # ── Activity logs ──────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS activity_logs (
-                        id SERIAL PRIMARY KEY,
-                        action VARCHAR(255) NOT NULL,
-                        details TEXT,
+                        id         SERIAL PRIMARY KEY,
+                        user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                        action     VARCHAR(255) NOT NULL,
+                        details    TEXT,
                         ip_address VARCHAR(45),
                         user_agent TEXT,
-                        severity VARCHAR(20) DEFAULT 'info',
+                        severity   VARCHAR(20) DEFAULT 'info',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                
-                # Deployments table
+
+                # ── Deployments ────────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS deployments (
-                        id SERIAL PRIMARY KEY,
-                        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                        id          SERIAL PRIMARY KEY,
+                        project_id  INTEGER REFERENCES projects(id) ON DELETE CASCADE,
                         environment VARCHAR(50),
-                        status VARCHAR(50),
-                        version VARCHAR(50),
+                        status      VARCHAR(50),
+                        version     VARCHAR(50),
                         commit_hash VARCHAR(100),
                         deployed_by VARCHAR(255),
                         duration_ms INTEGER,
                         deployed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                
-                # System metrics table
+
+                # ── System metrics ─────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS system_metrics (
-                        id SERIAL PRIMARY KEY,
-                        metric_name VARCHAR(100),
+                        id           SERIAL PRIMARY KEY,
+                        metric_name  VARCHAR(100),
                         metric_value FLOAT,
-                        unit VARCHAR(50),
-                        recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        unit         VARCHAR(50),
+                        recorded_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
 
-                # User sessions table
+                # ── User sessions ──────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS user_sessions (
-                        id SERIAL PRIMARY KEY,
-                        session_id VARCHAR(255) UNIQUE,
-                        user_agent TEXT,
-                        ip_address VARCHAR(45),
-                        connected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        id            SERIAL PRIMARY KEY,
+                        session_id    VARCHAR(255) UNIQUE,
+                        user_agent    TEXT,
+                        ip_address    VARCHAR(45),
+                        connected_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
-                
+
                 conn.commit()
                 logger.info("Database initialized successfully")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
 
+
 # Initialize database on startup
 with app.app_context():
     init_db()
 
-def require_session(f):
-    """Decorator to require valid session"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'session_id' not in session:
-            session['session_id'] = secrets.token_hex(16)
-        return f(*args, **kwargs)
-    return decorated_function
 
 def log_activity(action, details=None, severity='info'):
-    """Log user activity to database"""
+    """Log user activity to database, scoped to the current authenticated user."""
     try:
+        user_id = current_user.id if current_user.is_authenticated else None
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    """INSERT INTO activity_logs (action, details, ip_address, user_agent, severity) 
-                       VALUES (%s, %s, %s, %s, %s)""",
-                    (action, details, request.remote_addr, request.headers.get('User-Agent'), severity)
+                    """INSERT INTO activity_logs
+                           (user_id, action, details, ip_address, user_agent, severity)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (user_id, action, details,
+                     request.remote_addr, request.headers.get('User-Agent'), severity)
                 )
                 conn.commit()
     except Exception as e:
         logger.error(f"Activity logging error: {e}")
 
-# --- ROUTES ---
+
+# ── AUTH ROUTES ────────────────────────────────────────────────────────────────
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        remember = request.form.get('remember') == 'on'
+
+        if not username or not password:
+            flash('Username and password are required.', 'error')
+            return render_template('login.html')
+
+        user = User.get_by_username(username)
+        if user and user.check_password(password):
+            login_user(user, remember=remember)
+            log_activity('user_login', f"User '{username}' logged in")
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('home'))
+
+        flash('Invalid username or password.', 'error')
+
+    return render_template('login.html')
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email    = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm  = request.form.get('confirm_password', '')
+
+        # Basic validation
+        errors = []
+        if not username or len(username) < 3:
+            errors.append('Username must be at least 3 characters.')
+        if not email or '@' not in email:
+            errors.append('A valid email is required.')
+        if len(password) < 8:
+            errors.append('Password must be at least 8 characters.')
+        if password != confirm:
+            errors.append('Passwords do not match.')
+
+        if not errors:
+            if User.get_by_username(username):
+                errors.append('Username already taken.')
+            if User.get_by_email(email):
+                errors.append('Email already registered.')
+
+        if errors:
+            for err in errors:
+                flash(err, 'error')
+            return render_template('signup.html',
+                                   form_username=username, form_email=email)
+
+        try:
+            password_hash = generate_password_hash(password)
+            with get_db_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO users (username, email, password_hash)
+                           VALUES (%s, %s, %s) RETURNING id""",
+                        (username, email, password_hash)
+                    )
+                    new_id = cur.fetchone()[0]
+                    conn.commit()
+
+            user = User.get_by_id(new_id)
+            login_user(user)
+            log_activity('user_signup', f"New user '{username}' registered")
+            flash(f'Welcome to CloudX, {username}!', 'success')
+            return redirect(url_for('home'))
+
+        except Exception as e:
+            logger.error(f"Signup error: {e}")
+            flash('Registration failed. Please try again.', 'error')
+
+    return render_template('signup.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    log_activity('user_logout', f"User '{current_user.username}' logged out")
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+
+# ── PAGE ROUTES ────────────────────────────────────────────────────────────────
 
 @app.route('/')
-@require_session
+@login_required
 def home():
-    """Enhanced landing page with dashboard"""
     log_activity('page_view', 'home')
     stats = get_dashboard_stats()
-    return render_template('index.html', 
-                         now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                         stats=stats,
-                         app_version='2.1.0')
+    return render_template('index.html',
+                           now=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                           stats=stats,
+                           app_version='2.1.0')
+
 
 @app.route('/dashboard')
-@require_session
+@login_required
 def dashboard():
-    """Comprehensive dashboard with analytics"""
     log_activity('page_view', 'dashboard')
     stats = get_dashboard_stats()
     return render_template('dashboard.html', stats=stats)
 
+
 @app.route('/projects')
-@require_session
+@login_required
 def projects():
-    """Project management page"""
     log_activity('page_view', 'projects')
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
                 cursor.execute("""
-                    SELECT * FROM projects 
+                    SELECT * FROM projects
+                    WHERE owner_id = %s
                     ORDER BY updated_at DESC
-                """)
+                """, (current_user.id,))
                 projects_list = cursor.fetchall()
         return render_template('projects.html', projects=projects_list)
     except Exception as e:
         logger.error(f"Projects page error: {e}")
         return render_template('error.html', error=str(e)), 500
 
+
 @app.route('/analytics')
-@require_session
+@login_required
 def analytics():
-    """Analytics and monitoring page"""
     log_activity('page_view', 'analytics')
     return render_template('analytics.html')
 
+
 @app.route('/settings')
-@require_session
+@login_required
 def settings():
-    """User settings and preferences page"""
     log_activity('page_view', 'settings')
     stats = get_dashboard_stats()
     return render_template('settings.html', stats=stats)
 
-# --- NEW: Instances Page ---
+
 @app.route('/instances')
-@require_session
+@login_required
 def instances():
-    """Render the Instances Management Page"""
     return render_template('instances.html')
 
-# --- API ENDPOINTS ---
+
+# ── API: PROJECTS (tenant-isolated) ───────────────────────────────────────────
 
 @app.route('/api/projects', methods=['GET', 'POST'])
+@login_required
 def api_projects():
-    """API endpoint for project management"""
     if request.method == 'POST':
         data = request.get_json()
         if not data or 'name' not in data:
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-        
+
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        """INSERT INTO projects (name, description, repository_url, status, tags) 
-                           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-                        (data.get('name'), data.get('description'), 
-                         data.get('repository_url'), 'active', data.get('tags'))
+                        """INSERT INTO projects
+                               (name, description, repository_url, status, tags, owner_id)
+                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                        (data.get('name'), data.get('description'),
+                         data.get('repository_url'), 'active',
+                         data.get('tags'), current_user.id)   # ← tenant scoped
                     )
                     project_id = cursor.fetchone()[0]
                     conn.commit()
-            
+
             log_activity('project_created', f"Project: {data.get('name')}")
-            return jsonify({'success': True, 'project_id': project_id, 'message': 'Project created successfully'}), 201
+            return jsonify({
+                'success': True,
+                'project_id': project_id,
+                'message': 'Project created successfully'
+            }), 201
         except Exception as e:
             logger.error(f"Project creation error: {e}")
             return jsonify({'success': False, 'error': str(e)}), 400
-    
-    # GET request with pagination
+
+    # GET – only this user's projects
     try:
-        page = request.args.get('page', 1, type=int)
-        limit = request.args.get('limit', 10, type=int)
+        page   = request.args.get('page', 1, type=int)
+        limit  = request.args.get('limit', 10, type=int)
         offset = (page - 1) * limit
-        
+
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
                 cursor.execute("""
-                    SELECT * FROM projects 
-                    ORDER BY created_at DESC 
+                    SELECT * FROM projects
+                    WHERE owner_id = %s
+                    ORDER BY created_at DESC
                     LIMIT %s OFFSET %s
-                """, (limit, offset))
+                """, (current_user.id, limit, offset))
                 projects_list = cursor.fetchall()
-                
-                cursor.execute("SELECT COUNT(*) as total FROM projects")
+
+                cursor.execute(
+                    "SELECT COUNT(*) as total FROM projects WHERE owner_id = %s",
+                    (current_user.id,)
+                )
                 total = cursor.fetchone()['total']
-        
+
         return jsonify({
             'data': projects_list,
             'pagination': {
-                'page': page,
-                'limit': limit,
+                'page': page, 'limit': limit,
                 'total': total,
                 'pages': (total + limit - 1) // limit
             }
@@ -277,159 +463,178 @@ def api_projects():
         logger.error(f"Projects API error: {e}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/projects/<int:project_id>', methods=['DELETE'])
-@require_session
+@login_required
 def delete_project(project_id):
-    """Delete a project and all related data"""
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
-                # First, check if project exists
-                cursor.execute("SELECT name FROM projects WHERE id = %s", (project_id,))
-                project = cursor.fetchone()
-                
-                if not project:
-                    return jsonify({
-                        'success': False, 
-                        'error': 'Project not found'
-                    }), 404
-                
-                project_name = project['name']
-                
-                # Delete related deployments (if ON DELETE CASCADE is not set)
-                cursor.execute("DELETE FROM deployments WHERE project_id = %s", (project_id,))
-                deleted_deployments = cursor.rowcount
-                
-                # Delete the project
-                cursor.execute("DELETE FROM projects WHERE id = %s", (project_id,))
-                
-                conn.commit()
-                
-                # Log the deletion
-                log_activity(
-                    'project_deleted', 
-                    f"Project '{project_name}' (ID: {project_id}) and {deleted_deployments} deployments deleted",
-                    severity='warning'
+                # Ensure the project belongs to the current user
+                cursor.execute(
+                    "SELECT name FROM projects WHERE id = %s AND owner_id = %s",
+                    (project_id, current_user.id)
                 )
-                
-                return jsonify({
-                    'success': True, 
-                    'message': f"Project '{project_name}' deleted successfully",
-                    'deleted_deployments': deleted_deployments
-                }), 200
-                
+                project = cursor.fetchone()
+
+                if not project:
+                    return jsonify({'success': False, 'error': 'Project not found'}), 404
+
+                cursor.execute(
+                    "DELETE FROM deployments WHERE project_id = %s", (project_id,)
+                )
+                deleted_deployments = cursor.rowcount
+                cursor.execute(
+                    "DELETE FROM projects WHERE id = %s", (project_id,)
+                )
+                conn.commit()
+
+        log_activity(
+            'project_deleted',
+            f"Project '{project['name']}' (ID: {project_id}) and "
+            f"{deleted_deployments} deployments deleted",
+            severity='warning'
+        )
+        return jsonify({
+            'success': True,
+            'message': f"Project '{project['name']}' deleted successfully",
+            'deleted_deployments': deleted_deployments
+        }), 200
     except Exception as e:
         logger.error(f"Project deletion error: {e}")
-        return jsonify({
-            'success': False, 
-            'error': f"Failed to delete project: {str(e)}"
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ── API: DEPLOYMENTS (tenant-isolated) ────────────────────────────────────────
 
 @app.route('/api/deployments', methods=['GET', 'POST'])
+@login_required
 def api_deployments():
-    """API endpoint for deployment management"""
     if request.method == 'POST':
         data = request.get_json()
         try:
+            # Verify the project belongs to current user
             with get_db_connection() as conn:
-                with conn.cursor() as cursor:
+                with conn.cursor(row_factory=dict_row) as cursor:
                     cursor.execute(
-                        """INSERT INTO deployments 
-                           (project_id, environment, status, version, commit_hash, deployed_by, duration_ms) 
+                        "SELECT id FROM projects WHERE id = %s AND owner_id = %s",
+                        (data.get('project_id'), current_user.id)
+                    )
+                    if not cursor.fetchone():
+                        return jsonify({'success': False,
+                                        'error': 'Project not found'}), 404
+
+                    cursor.execute(
+                        """INSERT INTO deployments
+                               (project_id, environment, status, version,
+                                commit_hash, deployed_by, duration_ms)
                            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
                         (data.get('project_id'), data.get('environment'), 'pending',
-                         data.get('version'), data.get('commit_hash'), 
-                         data.get('deployed_by'), data.get('duration_ms'))
+                         data.get('version'), data.get('commit_hash'),
+                         current_user.username, data.get('duration_ms'))
                     )
                     deployment_id = cursor.fetchone()[0]
                     conn.commit()
-            
+
             log_activity('deployment_created', f"Deployment ID: {deployment_id}")
             return jsonify({'success': True, 'deployment_id': deployment_id}), 201
         except Exception as e:
             logger.error(f"Deployment creation error: {e}")
             return jsonify({'success': False, 'error': str(e)}), 400
-    
-    # GET request
+
+    # GET – only deployments for this user's projects
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
                 cursor.execute("""
-                    SELECT d.*, p.name as project_name 
+                    SELECT d.*, p.name AS project_name
                     FROM deployments d
                     JOIN projects p ON d.project_id = p.id
+                    WHERE p.owner_id = %s
                     ORDER BY d.deployed_at DESC LIMIT 50
-                """)
+                """, (current_user.id,))
                 deployments = cursor.fetchall()
         return jsonify(deployments)
     except Exception as e:
         logger.error(f"Deployments API error: {e}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/projects/<int:project_id>/deployments', methods=['GET'])
-@require_session
+@login_required
 def get_project_deployments(project_id):
-    """Get deployment history for a specific project"""
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
+                # Verify ownership before returning deployment data
+                cursor.execute(
+                    "SELECT id FROM projects WHERE id = %s AND owner_id = %s",
+                    (project_id, current_user.id)
+                )
+                if not cursor.fetchone():
+                    return jsonify({'success': False, 'error': 'Project not found'}), 404
+
                 cursor.execute("""
-                    SELECT id, status, version, commit_hash, deployed_by, 
+                    SELECT id, status, version, commit_hash, deployed_by,
                            duration_ms, deployed_at, environment
-                    FROM deployments 
+                    FROM deployments
                     WHERE project_id = %s
-                    ORDER BY deployed_at DESC 
-                    LIMIT 10
+                    ORDER BY deployed_at DESC LIMIT 10
                 """, (project_id,))
                 deployments = cursor.fetchall()
-        
+
         return jsonify({'success': True, 'deployments': deployments})
     except Exception as e:
         logger.error(f"Error fetching deployments for project {project_id}: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @app.route('/api/deployments/redeploy', methods=['POST'])
-@require_session
+@login_required
 def redeploy():
-    """Simulate a redeployment by creating a new deployment record"""
     data = request.get_json()
-    
     if not data or 'project_id' not in data:
         return jsonify({'success': False, 'error': 'Missing project_id'}), 400
-    
+
     try:
         project_id = data.get('project_id')
-        
-        # Generate simulated deployment data
-        version = data.get('version', f"v1.0.{secrets.randbelow(100)}")
+
+        with get_db_connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    "SELECT id FROM projects WHERE id = %s AND owner_id = %s",
+                    (project_id, current_user.id)
+                )
+                if not cursor.fetchone():
+                    return jsonify({'success': False, 'error': 'Project not found'}), 404
+
+        version    = data.get('version', f"v1.0.{secrets.randbelow(100)}")
         commit_hash = secrets.token_hex(4)[:7]
-        deployed_by = data.get('deployed_by', 'CloudX User')
         environment = data.get('environment', 'production')
-        duration_ms = secrets.randbelow(5000) + 2000  # 2-7 seconds
-        
+        duration_ms = secrets.randbelow(5000) + 2000
+
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    """INSERT INTO deployments 
-                       (project_id, environment, status, version, commit_hash, deployed_by, duration_ms) 
+                    """INSERT INTO deployments
+                           (project_id, environment, status, version,
+                            commit_hash, deployed_by, duration_ms)
                        VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-                    (project_id, environment, 'success', version, commit_hash, deployed_by, duration_ms)
+                    (project_id, environment, 'success', version,
+                     commit_hash, current_user.username, duration_ms)
                 )
                 deployment_id = cursor.fetchone()[0]
                 conn.commit()
-        
-        log_activity('deployment_redeployed', f"Project {project_id} redeployed - Deployment ID: {deployment_id}")
-        
+
+        log_activity('deployment_redeployed',
+                     f"Project {project_id} redeployed – Deployment ID: {deployment_id}")
         return jsonify({
-            'success': True, 
+            'success': True,
             'deployment_id': deployment_id,
             'message': 'Deployment completed successfully',
             'deployment': {
-                'id': deployment_id,
-                'status': 'success',
-                'version': version,
-                'commit_hash': commit_hash,
-                'deployed_by': deployed_by,
+                'id': deployment_id, 'status': 'success', 'version': version,
+                'commit_hash': commit_hash, 'deployed_by': current_user.username,
                 'duration_ms': duration_ms
             }
         }), 201
@@ -437,18 +642,20 @@ def redeploy():
         logger.error(f"Redeploy error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+# ── API: METRICS / ACTIVITIES (tenant-isolated) ────────────────────────────────
+
 @app.route('/api/metrics')
+@login_required
 def api_metrics():
-    """Real-time system metrics API"""
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
                 cursor.execute("""
-                    SELECT metric_name, metric_value, unit, recorded_at 
-                    FROM system_metrics 
+                    SELECT metric_name, metric_value, unit, recorded_at
+                    FROM system_metrics
                     WHERE recorded_at > NOW() - INTERVAL '1 hour'
-                    ORDER BY recorded_at DESC
-                    LIMIT 100
+                    ORDER BY recorded_at DESC LIMIT 100
                 """)
                 metrics = cursor.fetchall()
         return jsonify(metrics)
@@ -456,159 +663,111 @@ def api_metrics():
         logger.error(f"Metrics API error: {e}")
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/activities')
+@login_required
 def api_activities():
-    """Activity logs API"""
+    """Return only the current user's activity logs."""
     try:
-        limit = request.args.get('limit', 50, type=int)
+        limit    = request.args.get('limit', 50, type=int)
         severity = request.args.get('severity', None)
-        
+
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
                 if severity:
                     cursor.execute("""
-                        SELECT * FROM activity_logs 
-                        WHERE severity = %s
+                        SELECT * FROM activity_logs
+                        WHERE user_id = %s AND severity = %s
                         ORDER BY created_at DESC LIMIT %s
-                    """, (severity, limit))
+                    """, (current_user.id, severity, limit))
                 else:
                     cursor.execute("""
-                        SELECT * FROM activity_logs 
+                        SELECT * FROM activity_logs
+                        WHERE user_id = %s
                         ORDER BY created_at DESC LIMIT %s
-                    """, (limit,))
+                    """, (current_user.id, limit))
                 activities = cursor.fetchall()
         return jsonify(activities)
     except Exception as e:
         logger.error(f"Activities API error: {e}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/dbtest')
-def test_database():
-    """Enhanced database connectivity test"""
-    log_activity('database_test', 'connection_test')
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor(row_factory=dict_row) as cursor:
-                cursor.execute("SELECT version()")
-                db_version = cursor.fetchone()['version']
-                
-                cursor.execute("SELECT COUNT(*) as total_projects FROM projects")
-                project_count = cursor.fetchone()['total_projects']
-                
-                cursor.execute("SELECT COUNT(*) as total_logs FROM activity_logs")
-                log_count = cursor.fetchone()['total_logs']
-                
-                cursor.execute("SELECT COUNT(*) as total_deployments FROM deployments")
-                deployment_count = cursor.fetchone()['total_deployments']
-        
-        return render_template('db_success.html',
-                             db_version=db_version,
-                             project_count=project_count,
-                             log_count=log_count,
-                             deployment_count=deployment_count)
-    except Exception as e:
-        logger.error(f"Database test error: {e}")
-        return render_template('db_error.html', error=str(e)), 500
 
-@app.route('/health')
-def health_check():
-    """Comprehensive health check endpoint"""
-    health_status = {
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'service': 'CloudX Platform',
-        'version': '2.1.0',
-        'components': {}
-    }
-    
-    # Check database
+# ── API: CONTAINERS (tenant-isolated) ─────────────────────────────────────────
+
+def _get_user_project_ids():
+    """Return a set of project IDs that belong to the current user."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
-                cursor.execute("SELECT 1")
-        health_status['components']['database'] = {'status': 'healthy', 'response_time': '< 100ms'}
+                cursor.execute(
+                    "SELECT id FROM projects WHERE owner_id = %s",
+                    (current_user.id,)
+                )
+                return {row[0] for row in cursor.fetchall()}
     except Exception as e:
-        logger.error(f"Health check database error: {e}")
-        health_status['components']['database'] = {'status': 'unhealthy', 'error': str(e)}
-        health_status['status'] = 'degraded'
-    
-    # Check WebSocket
-    health_status['components']['websocket'] = {'status': 'healthy'}
-    
-    return jsonify(health_status)
+        logger.error(f"Error fetching user project IDs: {e}")
+        return set()
 
-def get_dashboard_stats():
-    """Get comprehensive dashboard statistics"""
-    stats = {
-        'total_projects': 0,
-        'active_deployments': 0,
-        'total_activities': 0,
-        'recent_activities': [],
-        'system_health': 'healthy',
-        'deployment_success_rate': 0
-    }
-    
+
+def _container_belongs_to_user(container_name, user_project_ids):
+    """
+    Container names follow the pattern: cloudx-project-{project_id}-{token}.
+    Returns True if the embedded project_id is in the user's project set.
+    """
     try:
-        with get_db_connection() as conn:
-            with conn.cursor(row_factory=dict_row) as cursor:
-                cursor.execute("SELECT COUNT(*) as count FROM projects")
-                stats['total_projects'] = cursor.fetchone()['count']
-                
-                cursor.execute("SELECT COUNT(*) as count FROM deployments WHERE status = 'active'")
-                stats['active_deployments'] = cursor.fetchone()['count']
-                
-                cursor.execute("SELECT COUNT(*) as count FROM activity_logs")
-                stats['total_activities'] = cursor.fetchone()['count']
-                
-                cursor.execute("""
-                    SELECT action, details, created_at 
-                    FROM activity_logs 
-                    ORDER BY created_at DESC 
-                    LIMIT 15
-                """)
-                stats['recent_activities'] = cursor.fetchall()
-    except Exception as e:
-        logger.error(f"Dashboard stats error: {e}")
-    
-    return stats
+        parts = container_name.split('-')
+        # pattern: cloudx-project-<id>-<token>  → parts[2] is the id
+        if len(parts) >= 4 and parts[0] == 'cloudx' and parts[1] == 'project':
+            project_id = int(parts[2])
+            return project_id in user_project_ids
+    except (ValueError, IndexError):
+        pass
+    return False
 
-# --- NEW: Container Management APIs ---
 
 @app.route('/api/containers', methods=['GET'])
-@require_session
+@login_required
 def list_containers():
-    """List all CloudX containers"""
+    """List only the containers that belong to the current user's projects."""
     try:
+        user_project_ids = _get_user_project_ids()
         client = docker.from_env()
-        containers = client.containers.list(all=True, filters={"name": "cloudx-project"})
-        
+        all_containers = client.containers.list(all=True, filters={"name": "cloudx-project"})
+
         container_list = []
-        for c in containers:
-            container_list.append({
-                'id': c.short_id,
-                'name': c.name,
-                'status': c.status, 
-                'image': c.image.tags[0] if c.image.tags else 'unknown',
-                'created': c.attrs['Created'],
-                'ports': c.ports 
-            })
-            
+        for c in all_containers:
+            if _container_belongs_to_user(c.name, user_project_ids):
+                container_list.append({
+                    'id':      c.short_id,
+                    'name':    c.name,
+                    'status':  c.status,
+                    'image':   c.image.tags[0] if c.image.tags else 'unknown',
+                    'created': c.attrs['Created'],
+                    'ports':   c.ports
+                })
+
         return jsonify({'success': True, 'containers': container_list})
     except Exception as e:
         logger.error(f"Error listing containers: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @app.route('/api/containers/<container_id>/action', methods=['POST'])
-@require_session
+@login_required
 def container_action(container_id):
-    """Handle Stop/Restart/Delete actions"""
-    data = request.json
+    """Allow stop/restart/delete only for containers the user owns."""
+    data   = request.json
     action = data.get('action')
-    
+
     try:
-        client = docker.from_env()
+        user_project_ids = _get_user_project_ids()
+        client    = docker.from_env()
         container = client.containers.get(container_id)
-        
+
+        if not _container_belongs_to_user(container.name, user_project_ids):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+
         if action == 'stop':
             container.stop()
             msg = "Container stopped successfully"
@@ -620,55 +779,70 @@ def container_action(container_id):
             msg = "Container deleted successfully"
         else:
             return jsonify({'success': False, 'error': 'Invalid action'}), 400
-            
+
         return jsonify({'success': True, 'message': msg})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @app.route('/api/containers/<container_id>/logs', methods=['GET'])
-@require_session
+@login_required
 def container_logs(container_id):
-    """Fetch recent logs"""
     try:
-        client = docker.from_env()
+        user_project_ids = _get_user_project_ids()
+        client    = docker.from_env()
         container = client.containers.get(container_id)
+
+        if not _container_belongs_to_user(container.name, user_project_ids):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+
         logs = container.logs(tail=100).decode('utf-8')
         return jsonify({'success': True, 'logs': logs})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @app.route('/api/projects/<int:project_id>/launch', methods=['POST'])
-@require_session
+@login_required
 def launch_workspace(project_id):
-    """Orchestrator Endpoint"""
+    """Orchestrator – verify project ownership before launching."""
     try:
-        client = docker.from_env()
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id FROM projects WHERE id = %s AND owner_id = %s",
+                    (project_id, current_user.id)
+                )
+                if not cursor.fetchone():
+                    return jsonify({'success': False, 'error': 'Project not found'}), 404
+
+        client           = docker.from_env()
         session_password = secrets.token_hex(4)
-        container_name = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
-        
+        container_name   = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
+
         container = client.containers.run(
             image="cloudx-workspace:latest",
             detach=True,
             environment={"PASSWORD": session_password},
-            ports={'8080/tcp': None, '22/tcp': None}, 
+            ports={'8080/tcp': None, '22/tcp': None},
             name=container_name
         )
-        
+
         time.sleep(2)
         container.reload()
-        
+
         web_port = container.attrs['NetworkSettings']['Ports']['8080/tcp'][0]['HostPort']
         ssh_port = container.attrs['NetworkSettings']['Ports']['22/tcp'][0]['HostPort']
-        
+
         log_activity('workspace_provisioned', f"Launched {container_name}")
-        
+
         return jsonify({
             'success': True,
             'status': 'provisioned',
             'connection': {
-                'web_url': f"http://localhost:{web_port}",
+                'web_url':     f"http://localhost:{web_port}",
                 'ssh_command': f"ssh root@localhost -p {ssh_port}",
-                'password': session_password
+                'password':    session_password
             }
         })
 
@@ -676,7 +850,119 @@ def launch_workspace(project_id):
         logger.error(f"Provisioning Failure: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# WebSocket events
+
+# ── MISC ROUTES ────────────────────────────────────────────────────────────────
+
+@app.route('/dbtest')
+@login_required
+def test_database():
+    log_activity('database_test', 'connection_test')
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cursor:
+                cursor.execute("SELECT version()")
+                db_version = cursor.fetchone()['version']
+
+                cursor.execute(
+                    "SELECT COUNT(*) as total_projects FROM projects WHERE owner_id = %s",
+                    (current_user.id,)
+                )
+                project_count = cursor.fetchone()['total_projects']
+
+                cursor.execute(
+                    "SELECT COUNT(*) as total_logs FROM activity_logs WHERE user_id = %s",
+                    (current_user.id,)
+                )
+                log_count = cursor.fetchone()['total_logs']
+
+                cursor.execute("SELECT COUNT(*) as total_deployments FROM deployments")
+                deployment_count = cursor.fetchone()['total_deployments']
+
+        return render_template('db_success.html',
+                               db_version=db_version,
+                               project_count=project_count,
+                               log_count=log_count,
+                               deployment_count=deployment_count)
+    except Exception as e:
+        logger.error(f"Database test error: {e}")
+        return render_template('db_error.html', error=str(e)), 500
+
+
+@app.route('/health')
+def health_check():
+    health_status = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'CloudX Platform',
+        'version': '2.1.0',
+        'components': {}
+    }
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+        health_status['components']['database'] = {
+            'status': 'healthy', 'response_time': '< 100ms'
+        }
+    except Exception as e:
+        health_status['components']['database'] = {
+            'status': 'unhealthy', 'error': str(e)
+        }
+        health_status['status'] = 'degraded'
+
+    health_status['components']['websocket'] = {'status': 'healthy'}
+    return jsonify(health_status)
+
+
+def get_dashboard_stats():
+    stats = {
+        'total_projects': 0,
+        'active_deployments': 0,
+        'total_activities': 0,
+        'recent_activities': [],
+        'system_health': 'healthy',
+        'deployment_success_rate': 0
+    }
+    if not current_user.is_authenticated:
+        return stats
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    "SELECT COUNT(*) as count FROM projects WHERE owner_id = %s",
+                    (current_user.id,)
+                )
+                stats['total_projects'] = cursor.fetchone()['count']
+
+                cursor.execute("""
+                    SELECT COUNT(*) as count FROM deployments d
+                    JOIN projects p ON d.project_id = p.id
+                    WHERE d.status = 'active' AND p.owner_id = %s
+                """, (current_user.id,))
+                stats['active_deployments'] = cursor.fetchone()['count']
+
+                cursor.execute(
+                    "SELECT COUNT(*) as count FROM activity_logs WHERE user_id = %s",
+                    (current_user.id,)
+                )
+                stats['total_activities'] = cursor.fetchone()['count']
+
+                cursor.execute("""
+                    SELECT action, details, created_at
+                    FROM activity_logs
+                    WHERE user_id = %s
+                    ORDER BY created_at DESC LIMIT 15
+                """, (current_user.id,))
+                stats['recent_activities'] = cursor.fetchall()
+    except Exception as e:
+        logger.error(f"Dashboard stats error: {e}")
+
+    return stats
+
+
+# ── WEBSOCKET EVENTS ───────────────────────────────────────────────────────────
+
 @socketio.on('connect')
 def handle_connect():
     session_id = secrets.token_hex(16)
@@ -687,14 +973,16 @@ def handle_connect():
     })
     log_activity('websocket_connect', f'Session: {session_id}')
 
+
 @socketio.on('disconnect')
 def handle_disconnect():
     log_activity('websocket_disconnect', 'Client disconnected')
 
+
 @socketio.on('request_metrics')
 def handle_metrics_request():
-    # Fallback if monitor isn't running
-    pass 
+    pass
+
 
 @socketio.on('join')
 def handle_join(data):
@@ -702,15 +990,18 @@ def handle_join(data):
     join_room(room)
     emit('status', {'msg': f'Joined room {room}'})
 
+
 @socketio.on('leave')
 def handle_leave(data):
     room = data.get('room')
     leave_room(room)
     emit('status', {'msg': f'Left room {room}'})
 
+
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({'error': 'Resource not found'}), 404
+
 
 @app.errorhandler(500)
 def server_error(error):
@@ -718,53 +1009,66 @@ def server_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 
+# ── TERMINAL SESSIONS ──────────────────────────────────────────────────────────
+
 terminal_sessions = {}
+
 
 @socketio.on('terminal_join')
 def on_terminal_join(data):
-    """Start a terminal session for a specific container"""
     container_id = data.get('container_id')
     sid = request.sid
-    
+
+    # Verify ownership before opening a shell
     try:
-        client = docker.from_env()
+        user_project_ids = _get_user_project_ids()
+        client    = docker.from_env()
+        container = client.containers.get(container_id)
+        if not _container_belongs_to_user(container.name, user_project_ids):
+            emit('terminal_output', {
+                'output': '\r\n\x1b[31mAccess denied.\x1b[0m\r\n'
+            })
+            return
+    except Exception as e:
+        emit('terminal_output', {
+            'output': f"\r\n\x1b[31mError: {e}\x1b[0m\r\n"
+        })
+        return
+
+    try:
         exec_inst = client.api.exec_create(
-            container_id, 
-            "/bin/bash", 
-            stdin=True, 
-            tty=True, 
-            stdout=True, 
-            stderr=True
+            container_id, "/bin/bash",
+            stdin=True, tty=True, stdout=True, stderr=True
         )
-        exec_id = exec_inst['Id']
-        
-        sock = client.api.exec_start(exec_id, detach=False, tty=True, socket=True)
-        
+        sock = client.api.exec_start(exec_inst['Id'], detach=False, tty=True, socket=True)
         terminal_sessions[sid] = sock
-        
+
         def read_docker_output():
             try:
                 raw_sock = sock._sock if hasattr(sock, '_sock') else sock
-                
                 while True:
                     data = raw_sock.recv(1024)
                     if not data:
                         break
-                    socketio.emit('terminal_output', {'output': data.decode('utf-8', errors='ignore')}, room=sid)
+                    socketio.emit(
+                        'terminal_output',
+                        {'output': data.decode('utf-8', errors='ignore')},
+                        room=sid
+                    )
             except Exception as e:
                 logger.error(f"Terminal read error: {e}")
-            finally:
-                pass
 
         socketio.start_background_task(target=read_docker_output)
-        
+
     except Exception as e:
         logger.error(f"Terminal connect error: {e}")
-        emit('terminal_output', {'output': f"\r\n\x1b[31mError connecting to container: {str(e)}\x1b[0m\r\n"})
+        emit('terminal_output', {
+            'output': f"\r\n\x1b[31mError connecting to container: {e}\x1b[0m\r\n"
+        })
+
 
 @socketio.on('terminal_input')
 def on_terminal_input(data):
-    """Write keystrokes from browser to Docker socket"""
     sid = request.sid
     if sid in terminal_sessions:
         sock = terminal_sessions[sid]
@@ -774,18 +1078,21 @@ def on_terminal_input(data):
         except Exception as e:
             logger.error(f"Terminal write error: {e}")
 
+
 @socketio.on('disconnect')
 def on_disconnect_cleanup():
-    """Cleanup socket when user closes tab"""
     sid = request.sid
     if sid in terminal_sessions:
         try:
             sock = terminal_sessions[sid]
             raw_sock = sock._sock if hasattr(sock, '_sock') else sock
             raw_sock.close()
-        except:
+        except Exception:
             pass
         del terminal_sessions[sid]
+
+
+# ── ENTRY POINT ────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     if SystemMonitor:
@@ -793,5 +1100,11 @@ if __name__ == '__main__':
         monitor.daemon = True
         monitor.start()
         logger.info("Background SystemMonitor started")
-    
-    socketio.run(app, host='0.0.0.0', port=5000, debug=os.getenv('FLASK_DEBUG', False), allow_unsafe_werkzeug=True)
+
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=5000,
+        debug=os.getenv('FLASK_DEBUG', False),
+        allow_unsafe_werkzeug=True
+    )

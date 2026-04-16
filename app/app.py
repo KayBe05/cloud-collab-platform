@@ -400,61 +400,57 @@ def instances():
 @app.route('/api/projects', methods=['GET', 'POST'])
 @login_required
 def api_projects():
+    """API endpoint for project management with Strict Tenant Isolation"""
     if request.method == 'POST':
         data = request.get_json()
         if not data or 'name' not in data:
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-
+        
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
+                    # NOTICE: We are now saving current_user.id as the owner_id
                     cursor.execute(
-                        """INSERT INTO projects
-                               (name, description, repository_url, status, tags, owner_id)
+                        """INSERT INTO projects (name, description, repository_url, status, owner_id, tags) 
                            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
-                        (data.get('name'), data.get('description'),
-                         data.get('repository_url'), 'active',
-                         data.get('tags'), current_user.id)   # ← tenant scoped
+                        (data.get('name'), data.get('description'), 
+                         data.get('repository_url'), 'active', current_user.id, data.get('tags'))
                     )
                     project_id = cursor.fetchone()[0]
                     conn.commit()
-
-            log_activity('project_created', f"Project: {data.get('name')}")
-            return jsonify({
-                'success': True,
-                'project_id': project_id,
-                'message': 'Project created successfully'
-            }), 201
+            
+            log_activity('project_created', f"Project: {data.get('name')} by User: {current_user.username}")
+            return jsonify({'success': True, 'project_id': project_id, 'message': 'Project created successfully'}), 201
         except Exception as e:
             logger.error(f"Project creation error: {e}")
             return jsonify({'success': False, 'error': str(e)}), 400
-
-    # GET – only this user's projects
+    
+    # GET request: ONLY fetch projects belonging to the logged-in user
     try:
-        page   = request.args.get('page', 1, type=int)
-        limit  = request.args.get('limit', 10, type=int)
+        page = request.args.get('page', 1, type=int)
+        limit = request.args.get('limit', 10, type=int)
         offset = (page - 1) * limit
-
+        
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
+                # FIX: Passed current_user.id directly as an integer
                 cursor.execute("""
-                    SELECT * FROM projects
+                    SELECT * FROM projects 
                     WHERE owner_id = %s
-                    ORDER BY created_at DESC
+                    ORDER BY created_at DESC 
                     LIMIT %s OFFSET %s
                 """, (current_user.id, limit, offset))
                 projects_list = cursor.fetchall()
-
-                cursor.execute(
-                    "SELECT COUNT(*) as total FROM projects WHERE owner_id = %s",
-                    (current_user.id,)
-                )
+                
+                # FIX: Passed current_user.id directly as an integer
+                cursor.execute("SELECT COUNT(*) as total FROM projects WHERE owner_id = %s", (current_user.id,))
                 total = cursor.fetchone()['total']
-
+        
         return jsonify({
             'data': projects_list,
             'pagination': {
-                'page': page, 'limit': limit,
+                'page': page,
+                'limit': limit,
                 'total': total,
                 'pages': (total + limit - 1) // limit
             }
@@ -805,51 +801,60 @@ def container_logs(container_id):
 @app.route('/api/projects/<int:project_id>/launch', methods=['POST'])
 @login_required
 def launch_workspace(project_id):
-    """Orchestrator – verify project ownership before launching."""
+    """Orchestrator Endpoint - Secured with Tenant Isolation & Persistent Storage"""
+    
+    # 1. Security Check: Does the current user own this project?
     try:
         with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id FROM projects WHERE id = %s AND owner_id = %s",
-                    (project_id, current_user.id)
-                )
+            with conn.cursor(row_factory=dict_row) as cursor:
+                cursor.execute("SELECT id FROM projects WHERE id = %s AND owner_id = %s", 
+                               (project_id, current_user.id))
                 if not cursor.fetchone():
-                    return jsonify({'success': False, 'error': 'Project not found'}), 404
+                    return jsonify({'success': False, 'error': 'Unauthorized: You do not own this project.'}), 403
+    except Exception as e:
+         return jsonify({'success': False, 'error': 'Database error during authorization check.'}), 500
 
-        client           = docker.from_env()
+    try:
+        client = docker.from_env()
         session_password = secrets.token_hex(4)
-        container_name   = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
-
+        
+        # Container naming logic
+        container_name = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
+        
+        # 2. THE NEW FEATURE: Create a unique, permanent storage drive for this specific project
+        volume_name = f"cloudx_data_u{current_user.id}_p{project_id}"
+        
+        # 3. Launch the container and attach the hard drive to the /workspace folder
         container = client.containers.run(
             image="cloudx-workspace:latest",
             detach=True,
             environment={"PASSWORD": session_password},
-            ports={'8080/tcp': None, '22/tcp': None},
-            name=container_name
+            ports={'8080/tcp': None, '22/tcp': None}, 
+            name=container_name,
+            volumes={volume_name: {'bind': '/workspace', 'mode': 'rw'}} # <-- THIS SAVES THE CODE
         )
-
+        
         time.sleep(2)
         container.reload()
-
+        
         web_port = container.attrs['NetworkSettings']['Ports']['8080/tcp'][0]['HostPort']
         ssh_port = container.attrs['NetworkSettings']['Ports']['22/tcp'][0]['HostPort']
-
-        log_activity('workspace_provisioned', f"Launched {container_name}")
-
+        
+        log_activity('workspace_provisioned', f"Launched {container_name} by {current_user.username}")
+        
         return jsonify({
             'success': True,
             'status': 'provisioned',
             'connection': {
-                'web_url':     f"http://localhost:{web_port}",
+                'web_url': f"http://localhost:{web_port}",
                 'ssh_command': f"ssh root@localhost -p {ssh_port}",
-                'password':    session_password
+                'password': session_password
             }
         })
 
     except Exception as e:
         logger.error(f"Provisioning Failure: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
-
 
 # ── MISC ROUTES ────────────────────────────────────────────────────────────────
 

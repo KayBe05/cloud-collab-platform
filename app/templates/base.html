@@ -76,6 +76,23 @@
       transform: rotate(180deg);
     }
 
+    .user-menu:hover .user-dropdown {
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: translateY(0) scale(1) !important;
+    }
+
+    /* 2. Prevent the parent header from clipping or hiding the dropdown */
+    .top-header,
+    .header-right {
+      overflow: visible !important;
+    }
+
+    /* 3. Ensure the dropdown sits on top of all other elements */
+    .user-dropdown {
+      z-index: 999999 !important;
+    }
+
     /* Dropdown panel */
     .user-dropdown {
       position: absolute;
@@ -342,20 +359,38 @@
             </div>
 
             <div class="user-dropdown-body">
-              <a href="/settings" class="dropdown-item" role="menuitem">
-                <i class="fas fa-user-cog"></i> Account Settings
-              </a>
               <a href="/dashboard" class="dropdown-item" role="menuitem">
-                <i class="fas fa-chart-line"></i> My Dashboard
+                <i class="fas fa-chart-line"></i> Dashboard
               </a>
               <a href="/projects" class="dropdown-item" role="menuitem">
                 <i class="fas fa-folder"></i> My Projects
               </a>
+
               <div class="dropdown-divider"></div>
-              <a href="/health" target="_blank" class="dropdown-item" role="menuitem">
-                <i class="fas fa-heartbeat"></i> Platform Health
+
+              <div
+                style="padding: 0.4rem 0.75rem 0.2rem; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px;">
+                Settings Shortcuts
+              </div>
+
+              <a href="/settings#profile" class="dropdown-item" role="menuitem">
+                <i class="fas fa-user-circle"></i> Profile
               </a>
+              <a href="/settings#appearance" class="dropdown-item" role="menuitem">
+                <i class="fas fa-paint-brush"></i> Appearance
+              </a>
+              <a href="/settings#security" class="dropdown-item" role="menuitem">
+                <i class="fas fa-shield-alt"></i> Security
+              </a>
+              <a href="/settings#notifications" class="dropdown-item" role="menuitem">
+                <i class="fas fa-bell"></i> Notifications
+              </a>
+              <a href="/settings#billing" class="dropdown-item" role="menuitem">
+                <i class="fas fa-credit-card"></i> Billing
+              </a>
+
               <div class="dropdown-divider"></div>
+
               <a href="{{ url_for('logout') }}" class="dropdown-item danger" role="menuitem">
                 <i class="fas fa-sign-out-alt"></i> Sign Out
               </a>

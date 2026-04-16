@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In — CloudX Platform</title>
+  <title>Sign Up — CloudX Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
@@ -40,14 +40,12 @@
       background: var(--bg-dark);
     }
 
-    /* ── LAYOUT ─────────────────────────────────────────────────────────── */
     .auth-shell {
       display: grid;
       grid-template-columns: 1fr 1fr;
       min-height: 100vh;
     }
 
-    /* ── LEFT — HERO ────────────────────────────────────────────────────── */
     .hero-panel {
       position: relative;
       background: var(--bg-dark);
@@ -58,14 +56,11 @@
       overflow: hidden;
     }
 
-    /* animated grid */
     .hero-panel::before {
       content: '';
       position: absolute;
       inset: 0;
-      background-image:
-        linear-gradient(rgba(14, 165, 233, .07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(14, 165, 233, .07) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(14, 165, 233, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 165, 233, .07) 1px, transparent 1px);
       background-size: 48px 48px;
       animation: grid-drift 20s linear infinite;
     }
@@ -76,7 +71,6 @@
       }
     }
 
-    /* glowing orbs */
     .orb {
       position: absolute;
       border-radius: 50%;
@@ -143,7 +137,7 @@
     }
 
     .logo-name {
-      font-family: 'Syne', sans-serif;
+      font-family: 'Roboto', sans-serif;
       font-size: 1.6rem;
       font-weight: 800;
       color: #fff;
@@ -239,7 +233,6 @@
       font-size: 0.8rem;
     }
 
-    /* ── RIGHT — FORM ───────────────────────────────────────────────────── */
     .form-panel {
       background: #F8FAFC;
       display: flex;
@@ -247,6 +240,7 @@
       align-items: center;
       justify-content: center;
       padding: 3rem 4rem;
+      overflow-y: auto;
     }
 
     .form-card {
@@ -255,12 +249,12 @@
     }
 
     .form-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 1.85rem;
+      font-family: 'Roboto', sans-serif;
+      font-size: 2rem;
       font-weight: 800;
       color: #0F172A;
-      letter-spacing: -0.75px;
-      margin-bottom: 0.5rem;
+      letter-spacing: 1.75px;
+      margin-bottom: 0.75rem;
     }
 
     .form-subtitle {
@@ -269,7 +263,6 @@
       margin-bottom: 2rem;
     }
 
-    /* Flash messages */
     .flash-list {
       list-style: none;
       margin-bottom: 1.25rem;
@@ -306,7 +299,6 @@
       border: 1px solid #93C5FD;
     }
 
-    /* Form groups */
     .form-group {
       margin-bottom: 1.25rem;
     }
@@ -378,44 +370,6 @@
       color: var(--primary);
     }
 
-    /* Remember / Forgot row */
-    .form-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-    }
-
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      font-size: .875rem;
-      color: #475569;
-      cursor: pointer;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      border-radius: 4px;
-      accent-color: var(--primary);
-      padding: 0;
-    }
-
-    .forgot-link {
-      font-size: .875rem;
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
-      transition: color .2s;
-    }
-
-    .forgot-link:hover {
-      color: var(--primary-dark);
-    }
-
-    /* Submit button */
     .btn-submit {
       width: 100%;
       padding: 1rem;
@@ -430,6 +384,7 @@
       cursor: pointer;
       transition: transform .2s, box-shadow .2s, opacity .2s;
       box-shadow: 0 4px 20px rgba(14, 165, 233, .35);
+      margin-top: 1rem;
     }
 
     .btn-submit:hover {
@@ -441,7 +396,6 @@
       transform: translateY(0);
     }
 
-    /* Divider */
     .divider {
       display: flex;
       align-items: center;
@@ -459,7 +413,6 @@
       background: #E2E8F0;
     }
 
-    /* Switch link */
     .switch-link {
       text-align: center;
       font-size: .9rem;
@@ -477,7 +430,6 @@
       text-decoration: underline;
     }
 
-    /* ── RESPONSIVE ─────────────────────────────────────────────────────── */
     @media (max-width: 900px) {
       .auth-shell {
         grid-template-columns: 1fr;
@@ -498,7 +450,6 @@
 
   <div class="auth-shell">
 
-    <!-- ── LEFT HERO ────────────────────────────────────────────────────────── -->
     <div class="hero-panel">
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
@@ -533,12 +484,11 @@
       <div class="hero-footer">© 2026 CloudX Platform · Apache 2.0</div>
     </div>
 
-    <!-- ── RIGHT FORM ────────────────────────────────────────────────────────── -->
     <div class="form-panel">
       <div class="form-card">
 
-        <h2 class="form-title">Welcome back</h2>
-        <p class="form-subtitle">Sign in to your CloudX workspace</p>
+        <h2 class="form-title">Join CloudX</h2>
+        <p class="form-subtitle">Create an account to deploy your workspaces</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -554,21 +504,28 @@
         {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('login') }}" novalidate>
+        <form method="POST" action="{{ url_for('signup') }}" novalidate>
+
           <div class="form-group">
             <label for="username">Username</label>
             <div class="input-wrap">
-              <input type="text" id="username" name="username" placeholder="your_username" autocomplete="username"
-                required>
+              <input type="text" id="username" name="username" placeholder="your_username" required>
               <i class="fas fa-user"></i>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <div class="input-wrap">
+              <input type="email" id="email" name="email" placeholder="you@example.com" required>
+              <i class="fas fa-envelope"></i>
             </div>
           </div>
 
           <div class="form-group">
             <label for="password">Password</label>
             <div class="input-wrap">
-              <input type="password" id="password" name="password" placeholder="••••••••"
-                autocomplete="current-password" required>
+              <input type="password" id="password" name="password" placeholder="••••••••" required>
               <i class="fas fa-lock"></i>
               <button type="button" class="toggle-pw" onclick="togglePw('password', this)"
                 aria-label="Toggle password visibility">
@@ -577,20 +534,25 @@
             </div>
           </div>
 
-          <div class="form-meta">
-            <label class="checkbox-label">
-              <input type="checkbox" name="remember"> Remember me
-            </label>
-            <a href="#" class="forgot-link">Forgot password?</a>
+          <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <div class="input-wrap">
+              <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
+              <i class="fas fa-lock"></i>
+              <button type="button" class="toggle-pw" onclick="togglePw('confirm_password', this)"
+                aria-label="Toggle password visibility">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
           </div>
 
           <button type="submit" class="btn-submit">
-            <i class="fas fa-sign-in-alt" style="margin-right:.5rem"></i>Sign In
+            <i class="fas fa-user-plus" style="margin-right:.5rem"></i>Create Account
           </button>
         </form>
 
         <div class="divider">or</div>
-        <p class="switch-link">Don't have an account?<a href="{{ url_for('signup') }}">Create one</a></p>
+        <p class="switch-link">Already have an account? <a href="{{ url_for('login') }}">Sign In</a></p>
 
       </div>
     </div>

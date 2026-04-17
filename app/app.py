@@ -692,10 +692,8 @@ def api_activities():
 # ── API: CONTAINERS (tenant-isolated) ─────────────────────────────────────────
 
 def _get_user_project_ids():
-    """Return a set of project IDs (as STRINGS) that belong to the current user."""
     try:
         with get_db_connection() as conn:
-            # FIX: Forced row_factory=dict_row so row['id'] never throws a Tuple error
             with conn.cursor(row_factory=dict_row) as cursor: 
                 cursor.execute("SELECT id FROM projects WHERE owner_id = %s", (current_user.id,))
                 return {str(row['id']) for row in cursor.fetchall()}
@@ -706,10 +704,8 @@ def _get_user_project_ids():
 
 def _container_belongs_to_user(container_name, user_project_ids):
     try:
-        # Strip hidden slashes
         name = container_name.lstrip('/')
         
-        # Must start with our exact prefix
         if name.startswith('cloudx-project-'):
             parts = name.split('-')
             if len(parts) >= 3:
@@ -723,12 +719,10 @@ def _container_belongs_to_user(container_name, user_project_ids):
 @app.route('/api/containers', methods=['GET'])
 @login_required
 def list_containers():
-    """List only the containers that belong to the current user's projects."""
     try:
         user_project_ids = _get_user_project_ids()
         client = docker.from_env()
         
-        # FIX: Removed the buggy Docker-side name filter. We fetch all and filter in Python safely.
         all_containers = client.containers.list(all=True)
 
         container_list = []

@@ -479,12 +479,11 @@
   }
 
   function updateResourceMetrics() {
-    // Request metrics from WebSocket
-    if (socket && socket.connected) {
+
+    if (typeof socket !== 'undefined' && socket !== null && socket.connected) {
       socket.emit('request_metrics');
     }
 
-    // Simulate metric updates (replace with actual data)
     const cpu = (Math.random() * 30 + 40).toFixed(1);
     const memory = (Math.random() * 20 + 60).toFixed(1);
     const disk = (Math.random() * 10 + 50).toFixed(1);

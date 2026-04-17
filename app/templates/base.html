@@ -12,7 +12,7 @@
   <title>{% block title %}CloudX Platform v2.1{% endblock %}</title>
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5">
   {% if request.path == '/settings' %}
   <link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}">
   {% endif %}
@@ -20,12 +20,9 @@
 
   <!-- WebSocket & Chart Libraries -->
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"
-    integrity="sha512-FBgHy/gvlKQCjvjLpYxJYT6ZZ5OPe/m0l0Y71ygSzVZ1nh8kVHWpIzlKy8G7NzQVxDzqb+jfkSz6pbkAhKe8A=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
   <style>
-    /* ── User menu dropdown ──────────────────────────────────────────────── */
     .user-menu {
       position: relative;
     }

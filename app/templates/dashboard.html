@@ -32,8 +32,10 @@
   <div class="metrics-grid">
     <div class="metric-card animate-in" style="animation-delay: 0.1s;">
       <div class="metric-header">
-        <div class="metric-icon blue">
-          <i class="fas fa-project-diagram"></i>
+        <div class="metric-icon-glow blue">
+          <div class="metric-icon blue">
+            <i class="fas fa-project-diagram"></i>
+          </div>
         </div>
         <div class="metric-trend positive">
           <i class="fas fa-arrow-up"></i> 12%
@@ -319,91 +321,134 @@
   function initPerformanceChart() {
     const ctx = document.getElementById('performanceChart').getContext('2d');
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(14, 165, 233, 0.3)');
-    gradient.addColorStop(1, 'rgba(14, 165, 233, 0.01)');
+    // Read CSS variables for theme sync
+    const style = getComputedStyle(document.documentElement);
+    const primary = style.getPropertyValue('--primary').trim() || '#0EA5E9';
+    const accent = style.getPropertyValue('--accent').trim() || '#8B5CF6';
+    const gridColor = style.getPropertyValue('--border-color').trim() || '#E2E8F0';
+    const textMuted = style.getPropertyValue('--text-tertiary').trim() || '#94A3B8';
+
+    // Gradient fills
+    const gradientCPU = ctx.createLinearGradient(0, 0, 0, 320);
+    gradientCPU.addColorStop(0, 'rgba(14, 165, 233, 0.28)');
+    gradientCPU.addColorStop(0.5, 'rgba(14, 165, 233, 0.08)');
+    gradientCPU.addColorStop(1, 'rgba(14, 165, 233, 0.00)');
+
+    const gradientMem = ctx.createLinearGradient(0, 0, 0, 320);
+    gradientMem.addColorStop(0, 'rgba(139, 92, 246, 0.22)');
+    gradientMem.addColorStop(0.5, 'rgba(139, 92, 246, 0.06)');
+    gradientMem.addColorStop(1, 'rgba(139, 92, 246, 0.00)');
+
+    const monoFont = "'JetBrains Mono', monospace";
+    const sansFont = "'Inter', sans-serif";
 
     performanceChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
-        datasets: [{
-          label: 'CPU Usage',
-          data: [45, 52, 48, 65, 58, 70, 62],
-          borderColor: '#0EA5E9',
-          backgroundColor: gradient,
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true,
-          pointBackgroundColor: '#0EA5E9',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }, {
-          label: 'Memory Usage',
-          data: [62, 68, 65, 72, 70, 75, 68],
-          borderColor: '#8B5CF6',
-          backgroundColor: 'rgba(139, 92, 246, 0.1)',
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true,
-          pointBackgroundColor: '#8B5CF6',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }]
+        datasets: [
+          {
+            label: 'CPU Usage',
+            data: [45, 52, 48, 65, 58, 70, 62],
+            borderColor: primary,
+            backgroundColor: gradientCPU,
+            borderWidth: 2,
+            tension: 0.45,
+            fill: true,
+            pointBackgroundColor: primary,
+            pointBorderColor: 'var(--bg-card)',
+            pointBorderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointHoverBorderWidth: 2.5,
+            pointHoverBackgroundColor: primary,
+          },
+          {
+            label: 'Memory',
+            data: [62, 68, 65, 72, 70, 75, 68],
+            borderColor: accent,
+            backgroundColor: gradientMem,
+            borderWidth: 2,
+            tension: 0.45,
+            fill: true,
+            pointBackgroundColor: accent,
+            pointBorderColor: 'var(--bg-card)',
+            pointBorderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointHoverBorderWidth: 2.5,
+            pointHoverBackgroundColor: accent,
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 900,
+          easing: 'easeOutQuart',
+        },
         plugins: {
           legend: {
-            display: true,
             position: 'top',
+            align: 'end',
             labels: {
-              color: '#64748B',
-              font: { size: 12, family: 'Inter' },
+              color: textMuted,
+              font: { size: 12, family: sansFont, weight: '500' },
               usePointStyle: true,
-              padding: 15
+              pointStyleWidth: 8,
+              padding: 20,
+              boxHeight: 6,
             }
           },
           tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            enabled: true,
+            backgroundColor: 'rgba(15, 23, 42, 0.92)',
             titleColor: '#F1F5F9',
-            bodyColor: '#CBD5E1',
-            borderColor: '#334155',
+            bodyColor: '#94A3B8',
+            borderColor: 'rgba(255,255,255,0.08)',
             borderWidth: 1,
-            padding: 12,
+            padding: { top: 10, right: 14, bottom: 10, left: 14 },
+            cornerRadius: 10,
             displayColors: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            usePointStyle: true,
+            titleFont: { size: 11, family: monoFont, weight: '500' },
+            bodyFont: { size: 12, family: sansFont, weight: '400' },
             callbacks: {
-              label: function (context) {
-                return context.dataset.label + ': ' + context.parsed.y + '%';
-              }
+              title: (items) => items[0].label,
+              label: (ctx) => `  ${ctx.dataset.label}: ${ctx.parsed.y}%`,
             }
           }
         },
         scales: {
           x: {
-            grid: { color: '#E2E8F0', drawBorder: false },
-            ticks: { color: '#94A3B8', font: { size: 11 } }
+            border: { display: false },
+            grid: { color: gridColor, drawTicks: false },
+            ticks: {
+              color: textMuted,
+              font: { size: 11, family: monoFont },
+              padding: 8,
+            }
           },
           y: {
-            beginAtZero: true,
+            beginAtZero: false,
+            min: 20,
             max: 100,
-            grid: { color: '#E2E8F0', drawBorder: false },
+            border: { display: false, dash: [4, 4] },
+            grid: { color: gridColor, drawTicks: false },
             ticks: {
-              color: '#94A3B8',
-              font: { size: 11 },
-              callback: function (value) { return value + '%'; }
+              color: textMuted,
+              font: { size: 11, family: monoFont },
+              padding: 10,
+              stepSize: 20,
+              callback: (v) => v + '%',
             }
           }
         },
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        }
+        interaction: { intersect: false, mode: 'index' },
+        elements: { line: { capBezierPoints: true } }
       }
     });
   }
@@ -411,67 +456,122 @@
   function initDeploymentChart() {
     const ctx = document.getElementById('deploymentChart').getContext('2d');
 
+    const style = getComputedStyle(document.documentElement);
+    const gridColor = style.getPropertyValue('--border-color').trim() || '#E2E8F0';
+    const textMuted = style.getPropertyValue('--text-tertiary').trim() || '#94A3B8';
+
+    const successColor = 'rgba(16, 185, 129, 0.85)';
+    const failColor = 'rgba(239,  68,  68, 0.80)';
+    const successBorder = '#10B981';
+    const failBorder = '#EF4444';
+
+    const monoFont = "'JetBrains Mono', monospace";
+    const sansFont = "'Inter', sans-serif";
+
     deploymentChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [{
-          label: 'Successful',
-          data: [12, 15, 10, 18, 14, 8, 6],
-          backgroundColor: 'rgba(16, 185, 129, 0.8)',
-          borderColor: '#10B981',
-          borderWidth: 1,
-          borderRadius: 6
-        }, {
-          label: 'Failed',
-          data: [1, 0, 2, 1, 0, 1, 0],
-          backgroundColor: 'rgba(239, 68, 68, 0.8)',
-          borderColor: '#EF4444',
-          borderWidth: 1,
-          borderRadius: 6
-        }]
+        datasets: [
+          {
+            label: 'Successful',
+            data: [12, 15, 10, 18, 14, 8, 6],
+            backgroundColor: successColor,
+            borderColor: successBorder,
+            borderWidth: 0,
+            borderRadius: { topLeft: 5, topRight: 5 },
+            borderSkipped: 'bottom',
+            hoverBackgroundColor: '#10B981',
+          },
+          {
+            label: 'Failed',
+            data: [1, 0, 2, 1, 0, 1, 0],
+            backgroundColor: failColor,
+            borderColor: failBorder,
+            borderWidth: 0,
+            borderRadius: { topLeft: 5, topRight: 5 },
+            borderSkipped: 'bottom',
+            hoverBackgroundColor: '#EF4444',
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 700,
+          easing: 'easeOutCubic',
+          delay: (ctx) => ctx.dataIndex * 60,
+        },
         plugins: {
           legend: {
-            display: true,
             position: 'top',
+            align: 'end',
             labels: {
-              color: '#64748B',
-              font: { size: 12, family: 'Inter' },
+              color: textMuted,
+              font: { size: 12, family: sansFont, weight: '500' },
               usePointStyle: true,
-              padding: 15
+              pointStyle: 'rectRounded',
+              pointStyleWidth: 10,
+              padding: 20,
+              boxHeight: 7,
             }
           },
           tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            backgroundColor: 'rgba(15, 23, 42, 0.92)',
             titleColor: '#F1F5F9',
-            bodyColor: '#CBD5E1',
-            borderColor: '#334155',
+            bodyColor: '#94A3B8',
+            borderColor: 'rgba(255,255,255,0.08)',
             borderWidth: 1,
-            padding: 12
+            padding: { top: 10, right: 14, bottom: 10, left: 14 },
+            cornerRadius: 10,
+            displayColors: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            titleFont: { size: 11, family: monoFont, weight: '500' },
+            bodyFont: { size: 12, family: sansFont },
+            callbacks: {
+              title: (items) => items[0].label,
+              label: (ctx) => `  ${ctx.dataset.label}: ${ctx.parsed.y} deploys`,
+              afterBody: (items) => {
+                const s = items.find(i => i.dataset.label === 'Successful')?.parsed.y ?? 0;
+                const f = items.find(i => i.dataset.label === 'Failed')?.parsed.y ?? 0;
+                const total = s + f;
+                const rate = total ? ((s / total) * 100).toFixed(1) : '—';
+                return [`  Success rate: ${rate}%`];
+              }
+            }
           }
         },
         scales: {
           x: {
+            border: { display: false },
             grid: { display: false },
-            ticks: { color: '#94A3B8', font: { size: 11 } }
+            ticks: {
+              color: textMuted,
+              font: { size: 11, family: monoFont },
+              padding: 8,
+            }
           },
           y: {
             beginAtZero: true,
-            grid: { color: '#E2E8F0', drawBorder: false },
+            border: { display: false, dash: [4, 4] },
+            grid: { color: gridColor, drawTicks: false },
             ticks: {
-              color: '#94A3B8',
-              font: { size: 11 },
-              stepSize: 5
+              color: textMuted,
+              font: { size: 11, family: monoFont },
+              padding: 10,
+              stepSize: 5,
             }
           }
-        }
+        },
+        interaction: { intersect: false, mode: 'index' }
       }
     });
   }
+
 
   // Real-time metrics update
   function startMetricsUpdate() {

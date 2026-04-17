@@ -108,24 +108,27 @@
     return labels;
   }
 
-  // ── RESOURCE UTILIZATION LINE CHART ───────────────────────
   function initResourceChart() {
     const canvas = document.getElementById('resourceTrendsChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // Gradient fills
+    const font = { family: "'Inter', sans-serif" };
+    const gridColor = 'rgba(226, 232, 240, 0.28)';
+    const gray500 = '#64748B';
+
     const cpuGrad = ctx.createLinearGradient(0, 0, 0, 260);
-    cpuGrad.addColorStop(0, 'rgba(14, 165, 233, 0.28)');
-    cpuGrad.addColorStop(1, 'rgba(14, 165, 233, 0.02)');
+    cpuGrad.addColorStop(0, 'rgba(14, 165, 233, 0.24)');
+    cpuGrad.addColorStop(0.65, 'rgba(14, 165, 233, 0.06)');
+    cpuGrad.addColorStop(1, 'rgba(14, 165, 233, 0.00)');
 
     const memGrad = ctx.createLinearGradient(0, 0, 0, 260);
-    memGrad.addColorStop(0, 'rgba(139, 92, 246, 0.22)');
-    memGrad.addColorStop(1, 'rgba(139, 92, 246, 0.02)');
+    memGrad.addColorStop(0, 'rgba(139, 92, 246, 0.20)');
+    memGrad.addColorStop(0.65, 'rgba(139, 92, 246, 0.04)');
+    memGrad.addColorStop(1, 'rgba(139, 92, 246, 0.00)');
 
-    // Dummy 24-hour data
-    var cpuData = [38, 42, 45, 40, 55, 60, 58, 52, 48, 65, 70, 62, 57, 63, 68, 72, 65, 59, 54, 61, 66, 70, 63, 58];
-    var memData = [60, 62, 63, 61, 64, 67, 66, 63, 62, 68, 71, 69, 67, 70, 72, 74, 71, 68, 66, 69, 72, 74, 70, 67];
+    const cpuData = [38, 42, 45, 40, 55, 60, 58, 52, 48, 65, 70, 62, 57, 63, 68, 72, 65, 59, 54, 61, 66, 70, 63, 58];
+    const memData = [60, 62, 63, 61, 64, 67, 66, 63, 62, 68, 71, 69, 67, 70, 72, 74, 71, 68, 66, 69, 72, 74, 70, 67];
 
     new Chart(ctx, {
       type: 'line',
@@ -137,60 +140,108 @@
             data: cpuData,
             borderColor: '#0EA5E9',
             backgroundColor: cpuGrad,
-            borderWidth: 2.5,
-            tension: 0.38,
+            borderWidth: 1.75,
+            tension: 0.4,
             fill: true,
             pointRadius: 0,
+            pointHitRadius: 20,
             pointHoverRadius: 5,
             pointHoverBackgroundColor: '#0EA5E9',
-            pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 2
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 2,
           },
           {
             label: 'Memory',
             data: memData,
             borderColor: '#8B5CF6',
             backgroundColor: memGrad,
-            borderWidth: 2.5,
-            tension: 0.38,
+            borderWidth: 1.75,
+            tension: 0.4,
             fill: true,
             pointRadius: 0,
+            pointHitRadius: 20,
             pointHoverRadius: 5,
             pointHoverBackgroundColor: '#8B5CF6',
-            pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 2
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 2,
           }
         ]
       },
-      options: (function () {
-        var o = chartDefaults();
-        o.scales.y.max = 100;
-        o.scales.y.ticks.callback = function (v) { return v + '%'; };
-        o.plugins.tooltip.callbacks = {
-          label: function (ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y + '%'; }
-        };
-        return o;
-      })()
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(15, 23, 42, 0.90)',
+            titleColor: '#F1F5F9',
+            bodyColor: '#94A3B8',
+            borderColor: 'rgba(255,255,255,0.07)',
+            borderWidth: 1,
+            padding: { top: 10, right: 14, bottom: 10, left: 14 },
+            cornerRadius: 10,
+            titleFont: { ...font, size: 11, weight: '600' },
+            bodyFont: { ...font, size: 12 },
+            callbacks: {
+              label: (ctx) => `  ${ctx.dataset.label}:  ${ctx.parsed.y}%`
+            }
+          }
+        },
+        scales: {
+          x: {
+            border: { display: false },
+            grid: { display: false },            /* X-axis grid hidden */
+            ticks: {
+              color: gray500,
+              font: { ...font, size: 11 },
+              maxTicksLimit: 7,
+              padding: 8,
+            }
+          },
+          y: {
+            beginAtZero: false,
+            min: 20,
+            max: 100,
+            border: { display: false, dash: [4, 4] },
+            grid: { color: gridColor, drawTicks: false },
+            ticks: {
+              color: gray500,
+              font: { ...font, size: 11 },
+              maxTicksLimit: 5,
+              padding: 12,
+              callback: (v) => v + '%',
+            }
+          }
+        },
+        interaction: { mode: 'index', intersect: false },
+      }
     });
   }
 
-  // ── NETWORK TRAFFIC AREA CHART ────────────────────────────
   function initNetworkChart() {
     const canvas = document.getElementById('networkTrafficChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
+    const font = { family: "'Inter', sans-serif" };
+    const gridColor = 'rgba(226, 232, 240, 0.28)';
+    const gray500 = '#64748B';
+
     const inGrad = ctx.createLinearGradient(0, 0, 0, 260);
-    inGrad.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
-    inGrad.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
+    inGrad.addColorStop(0, 'rgba(16, 185, 129, 0.26)');
+    inGrad.addColorStop(0.65, 'rgba(16, 185, 129, 0.05)');
+    inGrad.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
 
     const outGrad = ctx.createLinearGradient(0, 0, 0, 260);
-    outGrad.addColorStop(0, 'rgba(245, 158, 11, 0.28)');
-    outGrad.addColorStop(1, 'rgba(245, 158, 11, 0.02)');
+    outGrad.addColorStop(0, 'rgba(245, 158, 11, 0.24)');
+    outGrad.addColorStop(0.65, 'rgba(245, 158, 11, 0.05)');
+    outGrad.addColorStop(1, 'rgba(245, 158, 11, 0.00)');
 
-    // Dummy 24-hour KB/s data
-    var inbound = [42, 38, 55, 60, 72, 85, 78, 90, 105, 112, 98, 88, 95, 102, 118, 125, 110, 96, 88, 102, 115, 120, 108, 95];
-    var outbound = [25, 22, 30, 35, 42, 48, 45, 52, 58, 62, 55, 50, 54, 60, 68, 72, 65, 57, 52, 60, 66, 70, 63, 55];
+    const inbound = [42, 38, 55, 60, 72, 85, 78, 90, 105, 112, 98, 88, 95, 102, 118, 125, 110, 96, 88, 102, 115, 120, 108, 95];
+    const outbound = [25, 22, 30, 35, 42, 48, 45, 52, 58, 62, 55, 50, 54, 60, 68, 72, 65, 57, 52, 60, 66, 70, 63, 55];
 
     new Chart(ctx, {
       type: 'line',
@@ -202,44 +253,86 @@
             data: inbound,
             borderColor: '#10B981',
             backgroundColor: inGrad,
-            borderWidth: 2.5,
+            borderWidth: 1.75,
             tension: 0.4,
             fill: true,
             pointRadius: 0,
+            pointHitRadius: 20,
             pointHoverRadius: 5,
             pointHoverBackgroundColor: '#10B981',
-            pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 2
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 2,
           },
           {
             label: 'Outbound',
             data: outbound,
             borderColor: '#F59E0B',
             backgroundColor: outGrad,
-            borderWidth: 2.5,
+            borderWidth: 1.75,
             tension: 0.4,
             fill: true,
             pointRadius: 0,
+            pointHitRadius: 20,
             pointHoverRadius: 5,
             pointHoverBackgroundColor: '#F59E0B',
-            pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 2
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 2,
           }
         ]
       },
-      options: (function () {
-        var o = chartDefaults();
-        o.scales.y.ticks.callback = function (v) { return v + ' KB/s'; };
-        o.plugins.tooltip.callbacks = {
-          label: function (ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y + ' KB/s'; }
-        };
-        return o;
-      })()
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(15, 23, 42, 0.90)',
+            titleColor: '#F1F5F9',
+            bodyColor: '#94A3B8',
+            borderColor: 'rgba(255,255,255,0.07)',
+            borderWidth: 1,
+            padding: { top: 10, right: 14, bottom: 10, left: 14 },
+            cornerRadius: 10,
+            titleFont: { ...font, size: 11, weight: '600' },
+            bodyFont: { ...font, size: 12 },
+            callbacks: {
+              label: (ctx) => `  ${ctx.dataset.label}:  ${ctx.parsed.y} KB/s`
+            }
+          }
+        },
+        scales: {
+          x: {
+            border: { display: false },
+            grid: { display: false },
+            ticks: {
+              color: gray500,
+              font: { ...font, size: 11 },
+              maxTicksLimit: 7,
+              padding: 8,
+            }
+          },
+          y: {
+            beginAtZero: true,
+            border: { display: false, dash: [4, 4] },
+            grid: { color: gridColor, drawTicks: false },
+            ticks: {
+              color: gray500,
+              font: { ...font, size: 11 },
+              maxTicksLimit: 5,
+              padding: 12,
+              callback: (v) => v + ' KB/s',
+            }
+          }
+        },
+        interaction: { mode: 'index', intersect: false },
+      }
     });
   }
 
   // ── LIVE KPI TICKER ──────────────────────────────────────
-  // Jitters values every 4 s to simulate a live dashboard.
   function rand(min, max) {
     return +(Math.random() * (max - min) + min).toFixed(1);
   }
@@ -303,7 +396,6 @@
   }
 
   // ── TIME-RANGE SELECTOR (stub) ────────────────────────────
-  // Placeholder — connect to real API in Phase 5.
   function initTimeRange() {
     var sel = document.getElementById('timeRangeSelect');
     if (!sel) return;
@@ -329,15 +421,15 @@
 
 })();
 
-/**
- * ── BULLETPROOF TOPOLOGY MAP (WITH AUTO-SYNC) ───────────────────────────
- */
 (function () {
   'use strict';
 
   let network = null;
   let nodes = null;
   let edges = null;
+
+  // ── TOPOLOGY: high-tech dark theme + pulse + animated dashes ──────
+  let dashOffset = 0;
 
   function initLiveTopology() {
     const container = document.getElementById('topology-network');
@@ -353,20 +445,112 @@
     edges = new vis.DataSet([]);
 
     const options = {
-      nodes: { shape: 'dot', size: 18, font: { color: '#CBD5E1', face: 'DM Sans' }, borderWidth: 2 },
-      edges: { width: 2, color: { color: '#3E5A74', opacity: 0.5 }, dashes: true, smooth: { type: 'continuous' } },
-      physics: { enabled: true, barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3 } },
-      interaction: { hover: true }
+      nodes: {
+        shape: 'dot',
+        size: 20,
+        font: {
+          color: '#CBD5E1',
+          face: "'Inter', sans-serif",
+          size: 13,
+          bold: { face: "'Inter', sans-serif", color: '#F1F5F9' },
+        },
+        borderWidth: 2,
+        borderWidthSelected: 3,
+        shadow: {
+          enabled: true,
+          color: 'rgba(14, 165, 233, 0.35)',
+          size: 14,
+          x: 0,
+          y: 0,
+        },
+        color: {
+          background: '#0EA5E9',
+          border: '#0284C7',
+          highlight: { background: '#38BDF8', border: '#0EA5E9' },
+          hover: { background: '#38BDF8', border: '#0EA5E9' },
+        },
+      },
+
+      edges: {
+        width: 1.5,
+        color: {
+          color: 'rgba(56, 189, 248, 0.30)',
+          highlight: '#38BDF8',
+          hover: '#0EA5E9',
+        },
+        dashes: [6, 5],
+        smooth: { type: 'curvedCW', roundness: 0.15 },
+        shadow: {
+          enabled: true,
+          color: 'rgba(14, 165, 233, 0.20)',
+          size: 6,
+          x: 0,
+          y: 0,
+        },
+        selectionWidth: 2.5,
+        hoverWidth: 2,
+      },
+
+      physics: {
+        enabled: true,
+        barnesHut: {
+          gravitationalConstant: -2800,
+          centralGravity: 0.25,
+          springLength: 160,
+          springConstant: 0.04,
+          damping: 0.12,
+        },
+        stabilization: { iterations: 120, fit: true },
+      },
+
+      interaction: {
+        hover: true,
+        tooltipDelay: 120,
+        zoomView: true,
+        dragView: true,
+        navigationButtons: false,
+        keyboard: false,
+      },
     };
 
     network = new vis.Network(container, { nodes, edges }, options);
 
-    // Start the Auto-Sync loop (Checks every 3 seconds)
+    // ── Orchestrator pulse ─────────
+    let pulseUp = true;
+    let pulseWidth = 2;
+    setInterval(function () {
+      pulseWidth = pulseUp
+        ? Math.min(pulseWidth + 0.5, 6)
+        : Math.max(pulseWidth - 0.5, 2);
+      if (pulseWidth >= 6 || pulseWidth <= 2) pulseUp = !pulseUp;
+
+      nodes.update({
+        id: 'orchestrator',
+        borderWidth: pulseWidth,
+        shadow: {
+          enabled: true,
+          color: `rgba(139, 92, 246, ${0.20 + (pulseWidth - 2) * 0.08})`,
+          size: 8 + (pulseWidth - 2) * 3,
+          x: 0, y: 0,
+        },
+      });
+    }, 80);
+
+    // ── Dash-flow animation ─────────
+    (function animateDashes() {
+      dashOffset -= 0.4;
+      network.setOptions({
+        edges: { dashes: [6, 5, dashOffset] }
+      });
+      requestAnimationFrame(animateDashes);
+    })();
+
+    // Existing sync loop
     syncContainers();
     setInterval(syncContainers, 3000);
   }
 
-function syncContainers() {
+  function syncContainers() {
     const cacheBuster = new Date().getTime();
     fetch('/api/containers?t=' + cacheBuster)
       .then(r => r.json())

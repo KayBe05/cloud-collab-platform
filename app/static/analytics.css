@@ -119,14 +119,21 @@
 
 .kpi-card {
   background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow:
+    0 4px 24px rgba(14, 165, 233, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.08);
   padding: 1.25rem;
   display: flex;
   gap: 1rem;
   align-items: flex-start;
-  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
 }
 
 .kpi-card:hover {

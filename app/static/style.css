@@ -1754,9 +1754,7 @@ body {
 }
 
 .activity-feed-item:hover {
-  background: var(--bg-hover);
   border-left-color: var(--primary);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   transform: translateX(2px);
   box-shadow: -3px 0 12px rgba(14, 165, 233, 0.1), var(--shadow-sm);
 }

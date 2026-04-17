@@ -10,6 +10,11 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='analytics.css') }}">
+
+<!-- vis-network — lightweight network graph renderer -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/dist/vis-network.min.js"
+  integrity="sha512-LnMHsyNFsN1KQSMrVEeCNqjH8bVCjUdBM8/1vRHdT6bHr0pFJwMfg7oAkroN0B8OwMT1hS+LlmW2EjDSz5Ow=="
+  crossorigin="anonymous"></script>
 {% endblock %}
 
 {% block content %}
@@ -194,8 +199,58 @@
   </div>
 </section>
 
+<section class="analytics-card analytics-card--full topology-section" style="margin-top: 1.75rem;">
+  <div class="analytics-card__header">
+    <div>
+      <h3 class="analytics-card__title">Live Container Topology</h3>
+      <p class="analytics-card__subtitle">Real-time orchestrator &amp; container network graph</p>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <span class="live-badge">
+        <span class="live-badge__dot"></span>
+        Live
+      </span>
+      <button class="btn btn-secondary" id="topologyRefreshBtn" title="Refresh topology">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="topology-legend">
+    <span class="topology-legend__item">
+      <span class="topology-legend__dot" style="background:#8B5CF6; box-shadow: 0 0 8px #8B5CF6;"></span>
+      Orchestrator
+    </span>
+    <span class="topology-legend__item">
+      <span class="topology-legend__dot" style="background:#0EA5E9; box-shadow: 0 0 8px #0EA5E9;"></span>
+      Running
+    </span>
+    <span class="topology-legend__item">
+      <span class="topology-legend__dot" style="background:#F59E0B; box-shadow: 0 0 8px #F59E0B;"></span>
+      Stopped
+    </span>
+    <span class="topology-legend__item">
+      <span class="topology-legend__dot" style="background:#EF4444; box-shadow: 0 0 8px #EF4444;"></span>
+      Error
+    </span>
+    <span class="topology-legend__item topology-legend__item--divider"></span>
+    <span class="topology-legend__item topology-legend__edge-sample"></span>
+    <span class="topology-legend__item" style="color: var(--text-tertiary); font-size:0.78rem;">Data stream</span>
+  </div>
+
+  <!-- Network canvas -->
+  <div id="topology-network"
+    style="height: 500px; width: 100%; border-radius: 14px; background: var(--bg-card); overflow: hidden; position: relative; border: 1px solid var(--border-light);">
+  </div>
+
+  <!-- Custom HTML tooltip (rendered by JS) -->
+  <div id="topology-tooltip" class="topology-tooltip" role="tooltip" aria-hidden="true"></div>
+
+</section>
+
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='analytics.js') }}"></script>
+<script src="{{ url_for('static', filename='analytics.js') }}?v=2"></script>
 {% endblock %}

@@ -1,9 +1,3 @@
-/**
- * analytics.js
- * Initialises charts, populates the logs table, and simulates
- * periodic KPI updates.  All data is placeholder — wire real
- * API responses in Phase 5.
- */
 (function () {
   'use strict';
 
@@ -333,4 +327,90 @@
     setInterval(tickKPIs, 4000);
   });
 
+})();
+
+/**
+ * ── BULLETPROOF TOPOLOGY MAP (WITH AUTO-SYNC) ───────────────────────────
+ */
+(function () {
+  'use strict';
+
+  let network = null;
+  let nodes = null;
+  let edges = null;
+
+  function initLiveTopology() {
+    const container = document.getElementById('topology-network');
+    if (!container) return;
+    if (typeof vis === 'undefined') {
+      setTimeout(initLiveTopology, 500);
+      return;
+    }
+
+    nodes = new vis.DataSet([
+      { id: 'orchestrator', label: 'CloudX\nOrchestrator', shape: 'box', color: { background: '#8B5CF6', border: '#7C3AED' }, font: { color: 'white', face: 'DM Sans', size: 16 }, shadow: true }
+    ]);
+    edges = new vis.DataSet([]);
+
+    const options = {
+      nodes: { shape: 'dot', size: 18, font: { color: '#CBD5E1', face: 'DM Sans' }, borderWidth: 2 },
+      edges: { width: 2, color: { color: '#3E5A74', opacity: 0.5 }, dashes: true, smooth: { type: 'continuous' } },
+      physics: { enabled: true, barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3 } },
+      interaction: { hover: true }
+    };
+
+    network = new vis.Network(container, { nodes, edges }, options);
+
+    // Start the Auto-Sync loop (Checks every 3 seconds)
+    syncContainers();
+    setInterval(syncContainers, 3000);
+  }
+
+function syncContainers() {
+    const cacheBuster = new Date().getTime();
+    fetch('/api/containers?t=' + cacheBuster)
+      .then(r => r.json())
+      .then(result => {
+        if (!result.success || !result.containers) return;
+
+        const activeIds = ['orchestrator'];
+        let hasContainers = false;
+
+        result.containers.forEach(c => {
+          hasContainers = true;
+          activeIds.push(c.id);
+          const isRunning = c.status === 'running';
+          const nodeColor = isRunning ? '#0EA5E9' : '#F59E0B';
+          const borderColor = isRunning ? '#0284C7' : '#D97706';
+
+          let cName = (c.name || 'Unknown').replace(/^\//, '').replace('cloudx-project-', 'Project ').substring(0, 18);
+
+          if (nodes.get(c.id)) {
+            nodes.update({ id: c.id, label: cName, title: `Status: ${c.status.toUpperCase()}`, color: { background: nodeColor, border: borderColor } });
+          } else {
+            nodes.add({ id: c.id, label: cName, title: `Status: ${c.status.toUpperCase()}`, color: { background: nodeColor, border: borderColor } });
+            edges.add({ id: `edge-${c.id}`, from: 'orchestrator', to: c.id });
+          }
+        });
+
+        if (!hasContainers) {
+          activeIds.push('empty-node');
+          if (!nodes.get('empty-node')) {
+            nodes.add({ id: 'empty-node', label: 'API returned\n0 containers', shape: 'dot', size: 12, color: { background: '#334155', border: '#475569' } });
+            edges.add({ id: 'edge-empty', from: 'orchestrator', to: 'empty-node', dashes: true });
+          }
+        }
+
+        nodes.getIds().forEach(nodeId => {
+          if (!activeIds.includes(nodeId)) {
+            nodes.remove(nodeId);
+          }
+        });
+      })
+      .catch(e => console.error("Fetch Error:", e));
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(initLiveTopology, 500);
+  });
 })();

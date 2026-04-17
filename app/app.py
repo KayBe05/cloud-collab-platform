@@ -692,32 +692,30 @@ def api_activities():
 # ── API: CONTAINERS (tenant-isolated) ─────────────────────────────────────────
 
 def _get_user_project_ids():
-    """Return a set of project IDs that belong to the current user."""
+    """Return a set of project IDs (as STRINGS) that belong to the current user."""
     try:
         with get_db_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id FROM projects WHERE owner_id = %s",
-                    (current_user.id,)
-                )
-                return {row[0] for row in cursor.fetchall()}
+            # FIX: Forced row_factory=dict_row so row['id'] never throws a Tuple error
+            with conn.cursor(row_factory=dict_row) as cursor: 
+                cursor.execute("SELECT id FROM projects WHERE owner_id = %s", (current_user.id,))
+                return {str(row['id']) for row in cursor.fetchall()}
     except Exception as e:
         logger.error(f"Error fetching user project IDs: {e}")
         return set()
 
 
 def _container_belongs_to_user(container_name, user_project_ids):
-    """
-    Container names follow the pattern: cloudx-project-{project_id}-{token}.
-    Returns True if the embedded project_id is in the user's project set.
-    """
     try:
-        parts = container_name.split('-')
-        # pattern: cloudx-project-<id>-<token>  → parts[2] is the id
-        if len(parts) >= 4 and parts[0] == 'cloudx' and parts[1] == 'project':
-            project_id = int(parts[2])
-            return project_id in user_project_ids
-    except (ValueError, IndexError):
+        # Strip hidden slashes
+        name = container_name.lstrip('/')
+        
+        # Must start with our exact prefix
+        if name.startswith('cloudx-project-'):
+            parts = name.split('-')
+            if len(parts) >= 3:
+                project_id_str = str(parts[2])  # The ID is the 3rd element
+                return project_id_str in user_project_ids
+    except Exception:
         pass
     return False
 
@@ -729,7 +727,9 @@ def list_containers():
     try:
         user_project_ids = _get_user_project_ids()
         client = docker.from_env()
-        all_containers = client.containers.list(all=True, filters={"name": "cloudx-project"})
+        
+        # FIX: Removed the buggy Docker-side name filter. We fetch all and filter in Python safely.
+        all_containers = client.containers.list(all=True)
 
         container_list = []
         for c in all_containers:
@@ -831,7 +831,7 @@ def launch_workspace(project_id):
             environment={"PASSWORD": session_password},
             ports={'8080/tcp': None, '22/tcp': None}, 
             name=container_name,
-            volumes={volume_name: {'bind': '/workspace', 'mode': 'rw'}} # <-- THIS SAVES THE CODE
+            volumes={volume_name: {'bind': '/workspace', 'mode': 'rw'}} 
         )
         
         time.sleep(2)

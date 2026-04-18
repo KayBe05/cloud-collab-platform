@@ -11,10 +11,25 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='analytics.css') }}">
 
-<!-- vis-network — lightweight network graph renderer -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/dist/vis-network.min.js"
-  integrity="sha512-LnMHsyNFsN1KQSMrVEeCNqjH8bVCjUdBM8/1vRHdT6bHr0pFJwMfg7oAkroN0B8OwMT1hS+LlmW2EjDSz5Ow=="
-  crossorigin="anonymous"></script>
+<style>
+  .logs-table-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,
+        rgba(0, 0, 0, 0.04) 0px,
+        rgba(0, 0, 0, 0.04) 1px,
+        transparent 1px,
+        transparent 3px);
+    pointer-events: none;
+    border-radius: var(--radius-md);
+    z-index: 2;
+  }
+
+  .logs-table-wrap {
+    position: relative;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -237,12 +252,14 @@
     <span class="topology-legend__item topology-legend__item--divider"></span>
     <span class="topology-legend__item topology-legend__edge-sample"></span>
     <span class="topology-legend__item" style="color: var(--text-tertiary); font-size:0.78rem;">Data stream</span>
+    <span class="topology-node-count" id="topoNodeCount">
+      <span class="topology-node-count__dot"></span>
+      <span>1 node</span>
+    </span>
   </div>
 
   <!-- Network canvas -->
-  <div id="topology-network"
-    style="height: 500px; width: 100%; border-radius: 14px; background: var(--bg-card); overflow: hidden; position: relative; border: 1px solid var(--border-light);">
-  </div>
+  <div id="topology-network"></div>
 
   <!-- Custom HTML tooltip (rendered by JS) -->
   <div id="topology-tooltip" class="topology-tooltip" role="tooltip" aria-hidden="true"></div>

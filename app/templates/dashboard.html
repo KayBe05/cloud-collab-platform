@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - CloudX Platform{% endblock %}
+{% block title %}Dashboard · CloudX{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='cloudx.css') }}">
+{# marked.js for AI markdown rendering #}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+{% endblock %}
 
 {% block breadcrumb %}
 <i class="fas fa-chart-line"></i>
@@ -9,119 +15,143 @@
 {% endblock %}
 
 {% block content %}
-<!-- Dashboard Header -->
-<div class="dashboard-header">
+
+<!-- ── Dashboard Header ─────────────────────────────────────────── -->
+<div class="monitor-dash-header">
   <div>
-    <h2>Dashboard</h2>
-    <p style="color: var(--text-secondary); font-size: 0.95rem; margin-top: 0.5rem;">
-      Welcome back! Here's what's happening with your projects today.
-    </p>
+    <h2 class="monitor-dash-heading">System Monitor</h2>
+    <p class="monitor-dash-sub">Live infrastructure telemetry · auto-refresh every 5 s</p>
   </div>
-  <div class="dashboard-actions">
-    <button class="btn btn-secondary" onclick="refreshDashboard()">
-      <i class="fas fa-sync-alt"></i> Refresh
-    </button>
-    <button class="btn btn-primary" onclick="window.location.href='/projects'">
+  <div class="monitor-dash-actions">
+    <a href="/projects" class="cx-btn cx-btn-primary">
       <i class="fas fa-plus"></i> New Project
+    </a>
+    <button class="cx-btn cx-btn-ghost" onclick="refreshAll()">
+      <i class="fas fa-sync-alt" id="refreshIcon"></i> Refresh
     </button>
   </div>
 </div>
 
-<!-- Key Metrics Grid -->
-<section class="metrics-section">
-  <div class="metrics-grid">
-    <div class="metric-card animate-in" style="animation-delay: 0.1s;">
-      <div class="metric-header">
-        <div class="metric-icon-glow blue">
-          <div class="metric-icon blue">
-            <i class="fas fa-project-diagram"></i>
-          </div>
-        </div>
-        <div class="metric-trend positive">
-          <i class="fas fa-arrow-up"></i> 12%
-        </div>
-      </div>
-      <div class="metric-content">
-        <h3 class="metric-value" id="totalProjects">{{ stats.total_projects }}</h3>
-        <p class="metric-label">Total Projects</p>
-        <div class="metric-footer">
-          <span class="metric-detail">
-            <i class="fas fa-check-circle"></i> {{ stats.total_projects }} active
-          </span>
-        </div>
+<!-- ── Circular Gauge Grid (Host Metrics) ──────────────────────── -->
+<div class="gauge-grid" id="gaugeGrid">
+
+  <!-- CPU -->
+  <div class="gauge-card" data-type="cpu">
+    <div class="gauge-svg-wrap">
+      <svg class="gauge-svg" viewBox="0 0 120 120">
+        <circle class="gauge-track" cx="60" cy="60" r="45" />
+        <circle class="gauge-fill" cx="60" cy="60" r="45" id="gaugeCpuFill" />
+      </svg>
+      <div class="gauge-center">
+        <span class="gauge-value" id="gaugeCpuVal">—</span>
+        <span class="gauge-unit">%</span>
       </div>
     </div>
+    <div class="gauge-label">CPU</div>
+    <canvas class="gauge-sparkline" id="sparkCpu" width="160" height="28"></canvas>
+    <div class="gauge-sub" id="gaugeCpuSub">Loading...</div>
+  </div>
 
-    <div class="metric-card animate-in" style="animation-delay: 0.2s;">
-      <div class="metric-header">
-        <div class="metric-icon green">
-          <i class="fas fa-rocket"></i>
-        </div>
-        <div class="metric-trend positive">
-          <i class="fas fa-arrow-up"></i> 8%
-        </div>
-      </div>
-      <div class="metric-content">
-        <h3 class="metric-value" id="activeDeployments">{{ stats.active_deployments }}</h3>
-        <p class="metric-label">Active Deployments</p>
-        <div class="metric-footer">
-          <span class="metric-detail">
-            <i class="fas fa-clock"></i> Last deploy 2h ago
-          </span>
-        </div>
+  <!-- Memory -->
+  <div class="gauge-card" data-type="mem">
+    <div class="gauge-svg-wrap">
+      <svg class="gauge-svg" viewBox="0 0 120 120">
+        <circle class="gauge-track" cx="60" cy="60" r="45" />
+        <circle class="gauge-fill" cx="60" cy="60" r="45" id="gaugeMemFill" />
+      </svg>
+      <div class="gauge-center">
+        <span class="gauge-value" id="gaugeMemVal">—</span>
+        <span class="gauge-unit">%</span>
       </div>
     </div>
+    <div class="gauge-label">RAM</div>
+    <canvas class="gauge-sparkline" id="sparkMem" width="160" height="28"></canvas>
+    <div class="gauge-sub" id="gaugeMemSub">Loading...</div>
+  </div>
 
-    <div class="metric-card animate-in" style="animation-delay: 0.3s;">
-      <div class="metric-header">
-        <div class="metric-icon purple">
-          <i class="fas fa-server"></i>
-        </div>
-        <div class="metric-trend positive">
-          <i class="fas fa-check"></i> 100%
-        </div>
-      </div>
-      <div class="metric-content">
-        <h3 class="metric-value">99.9%</h3>
-        <p class="metric-label">Uptime</p>
-        <div class="metric-footer">
-          <span class="metric-detail">
-            <i class="fas fa-heartbeat"></i> All systems operational
-          </span>
-        </div>
+  <!-- Disk -->
+  <div class="gauge-card" data-type="disk">
+    <div class="gauge-svg-wrap">
+      <svg class="gauge-svg" viewBox="0 0 120 120">
+        <circle class="gauge-track" cx="60" cy="60" r="45" />
+        <circle class="gauge-fill" cx="60" cy="60" r="45" id="gaugeDiskFill" />
+      </svg>
+      <div class="gauge-center">
+        <span class="gauge-value" id="gaugeDiskVal">—</span>
+        <span class="gauge-unit">%</span>
       </div>
     </div>
+    <div class="gauge-label">Disk</div>
+    <canvas class="gauge-sparkline" id="sparkDisk" width="160" height="28"></canvas>
+    <div class="gauge-sub" id="gaugeDiskSub">Loading...</div>
+  </div>
 
-    <div class="metric-card animate-in" style="animation-delay: 0.4s;">
-      <div class="metric-header">
-        <div class="metric-icon orange">
-          <i class="fas fa-history"></i>
-        </div>
-        <div class="metric-trend positive">
-          <i class="fas fa-arrow-up"></i> 24%
-        </div>
+  <!-- Network -->
+  <div class="gauge-card" data-type="net">
+    <div class="gauge-svg-wrap">
+      <svg class="gauge-svg" viewBox="0 0 120 120">
+        <circle class="gauge-track" cx="60" cy="60" r="45" />
+        <circle class="gauge-fill" cx="60" cy="60" r="45" id="gaugeNetFill" />
+      </svg>
+      <div class="gauge-center">
+        <span class="gauge-value" id="gaugeNetVal">—</span>
+        <span class="gauge-unit">KB/s</span>
       </div>
-      <div class="metric-content">
-        <h3 class="metric-value" id="totalActivities">{{ stats.total_activities }}</h3>
-        <p class="metric-label">Total Activities</p>
-        <div class="metric-footer">
-          <span class="metric-detail">
-            <i class="fas fa-bolt"></i> High activity today
-          </span>
-        </div>
-      </div>
+    </div>
+    <div class="gauge-label">Network</div>
+    <canvas class="gauge-sparkline" id="sparkNet" width="160" height="28"></canvas>
+    <div class="gauge-sub" id="gaugeNetSub">Loading...</div>
+  </div>
+
+</div>
+
+<!-- ── Container List ───────────────────────────────────────────── -->
+<div class="monitor-section" id="containerSection">
+  <div class="monitor-header">
+    <div class="monitor-title">
+      <i class="fas fa-cubes"></i>
+      <span>Live Containers</span>
+      <span class="monitor-badge" id="containerCount">0 running</span>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <span style="font-family:var(--cx-mono);font-size:.7rem;color:var(--cx-t3)" id="containerLastSync">—</span>
+      <button class="cx-icon-btn" id="containerRefreshBtn" title="Refresh containers" onclick="syncContainerTable()">
+        <i class="fas fa-sync-alt"></i>
+      </button>
     </div>
   </div>
-</section>
+  <div class="container-table-wrap">
+    <table class="container-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Image</th>
+          <th>CPU %</th>
+          <th>Mem %</th>
+          <th>Ports</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="containerTableBody">
+        <tr class="cx-empty-row">
+          <td colspan="7">
+            <i class="fas fa-circle-notch fa-spin" style="margin-right:.5rem;color:var(--cx-cyan)"></i>
+            Loading containers…
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-<!-- Charts Section -->
+<!-- ── Charts Grid ──────────────────────────────────────────────── -->
 <div class="dashboard-grid">
-  <!-- System Performance Chart -->
   <div class="dashboard-card chart-card">
     <div class="card-header-dash">
       <div>
         <h3>System Performance</h3>
-        <p class="card-subtitle">Real-time system metrics</p>
+        <p class="card-subtitle">CPU & Memory — last 24 h</p>
       </div>
       <div class="chart-controls">
         <button class="chart-btn active" data-range="24h">24h</button>
@@ -129,12 +159,9 @@
         <button class="chart-btn" data-range="30d">30d</button>
       </div>
     </div>
-    <div class="chart-container">
-      <canvas id="performanceChart"></canvas>
-    </div>
+    <div class="chart-container"><canvas id="performanceChart"></canvas></div>
   </div>
 
-  <!-- Deployment Success Rate -->
   <div class="dashboard-card chart-card">
     <div class="card-header-dash">
       <div>
@@ -145,41 +172,32 @@
         <i class="fas fa-check-circle"></i> 98.5%
       </div>
     </div>
-    <div class="chart-container">
-      <canvas id="deploymentChart"></canvas>
-    </div>
+    <div class="chart-container"><canvas id="deploymentChart"></canvas></div>
   </div>
 </div>
 
-<!-- Activity & Resources Grid -->
+<!-- ── Activity + Resources ─────────────────────────────────────── -->
 <div class="dashboard-grid-2">
-  <!-- Recent Activity Feed -->
-  <div class="dashboard-card activity-card">
+  <div class="dashboard-card">
     <div class="card-header-dash">
       <div>
         <h3>Recent Activity</h3>
         <p class="card-subtitle">Latest system events</p>
       </div>
-      <a href="/analytics" class="view-all-link">
-        View All <i class="fas fa-arrow-right"></i>
-      </a>
+      <a href="/analytics" class="view-all-link">View All <i class="fas fa-arrow-right"></i></a>
     </div>
     <div class="activity-feed">
       {% for activity in stats.recent_activities[:10] %}
       <div class="activity-feed-item">
-        <div class="activity-feed-icon">
-          <i class="fas fa-circle"></i>
-        </div>
+        <div class="activity-feed-icon"><i class="fas fa-circle"></i></div>
         <div class="activity-feed-content">
-          <p class="activity-feed-action">{{ activity.action | replace('_', ' ') | title }}</p>
+          <p class="activity-feed-action">{{ activity.action | replace('_',' ') | title }}</p>
           {% if activity.details %}
           <p class="activity-feed-details">{{ activity.details }}</p>
           {% endif %}
           <time class="activity-feed-time">{{ activity.created_at.strftime('%I:%M %p') }}</time>
         </div>
-        <div class="activity-feed-status">
-          <span class="status-dot success"></span>
-        </div>
+        <div class="activity-feed-status"><span class="status-dot success"></span></div>
       </div>
       {% else %}
       <div class="empty-state-small">
@@ -190,476 +208,425 @@
     </div>
   </div>
 
-  <!-- System Resources -->
-  <div class="dashboard-card resources-card">
+  <div class="dashboard-card">
     <div class="card-header-dash">
       <div>
         <h3>System Resources</h3>
         <p class="card-subtitle">Current usage</p>
       </div>
-      <button class="icon-button" onclick="updateResourceMetrics()">
-        <i class="fas fa-sync-alt"></i>
-      </button>
     </div>
     <div class="resources-grid">
       <div class="resource-item">
         <div class="resource-header">
-          <span class="resource-label">
-            <i class="fas fa-microchip"></i> CPU Usage
-          </span>
-          <span class="resource-value" id="cpuValue">45.2%</span>
+          <span class="resource-label"><i class="fas fa-microchip"></i> CPU Usage</span>
+          <span class="resource-value" id="cpuValue">45%</span>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill" id="cpuProgress" style="width: 45.2%;"></div>
+          <div class="progress-fill" id="cpuProgress" style="width:45%"></div>
         </div>
-        <p class="resource-status">Normal load</p>
       </div>
-
       <div class="resource-item">
         <div class="resource-header">
-          <span class="resource-label">
-            <i class="fas fa-memory"></i> Memory Usage
-          </span>
-          <span class="resource-value" id="memoryValue">68.5%</span>
+          <span class="resource-label"><i class="fas fa-memory"></i> Memory</span>
+          <span class="resource-value" id="memoryValue">68%</span>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill warning" id="memoryProgress" style="width: 68.5%;"></div>
+          <div class="progress-fill warning" id="memoryProgress" style="width:68%"></div>
         </div>
-        <p class="resource-status">Moderate usage</p>
       </div>
-
       <div class="resource-item">
         <div class="resource-header">
-          <span class="resource-label">
-            <i class="fas fa-hdd"></i> Disk Usage
-          </span>
-          <span class="resource-value" id="diskValue">52.1%</span>
+          <span class="resource-label"><i class="fas fa-hdd"></i> Disk</span>
+          <span class="resource-value" id="diskValue">52%</span>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill" id="diskProgress" style="width: 52.1%;"></div>
+          <div class="progress-fill" id="diskProgress" style="width:52%"></div>
         </div>
-        <p class="resource-status">Healthy</p>
-      </div>
-
-      <div class="resource-item">
-        <div class="resource-header">
-          <span class="resource-label">
-            <i class="fas fa-network-wired"></i> Network I/O
-          </span>
-          <span class="resource-value" id="networkValue">3.2 MB/s</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill success" id="networkProgress" style="width: 32%;"></div>
-        </div>
-        <p class="resource-status">Low traffic</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Quick Stats Row -->
-<div class="quick-stats-grid">
-  <div class="quick-stat-card">
-    <div class="quick-stat-icon blue">
-      <i class="fas fa-code-branch"></i>
+<!-- ── Metric Cards Row ─────────────────────────────────────────── -->
+<div class="metrics-grid" style="margin-top:1.5rem">
+  <div class="metric-card animate-in" style="animation-delay:.1s">
+    <div class="metric-header">
+      <div class="metric-icon blue"><i class="fas fa-project-diagram"></i></div>
+      <div class="metric-trend positive"><i class="fas fa-arrow-up"></i> 12%</div>
     </div>
-    <div class="quick-stat-content">
-      <h4>156</h4>
-      <p>Commits Today</p>
+    <div class="metric-content">
+      <h3 class="metric-value">{{ stats.total_projects }}</h3>
+      <p class="metric-label">Total Projects</p>
     </div>
-    <div class="quick-stat-trend positive">+18%</div>
   </div>
-
-  <div class="quick-stat-card">
-    <div class="quick-stat-icon green">
-      <i class="fas fa-check-double"></i>
+  <div class="metric-card animate-in" style="animation-delay:.2s">
+    <div class="metric-header">
+      <div class="metric-icon green"><i class="fas fa-rocket"></i></div>
+      <div class="metric-trend positive"><i class="fas fa-arrow-up"></i> 8%</div>
     </div>
-    <div class="quick-stat-content">
-      <h4>23</h4>
-      <p>Tests Passed</p>
+    <div class="metric-content">
+      <h3 class="metric-value">{{ stats.active_deployments }}</h3>
+      <p class="metric-label">Active Deployments</p>
     </div>
-    <div class="quick-stat-trend positive">+5%</div>
   </div>
-
-  <div class="quick-stat-card">
-    <div class="quick-stat-icon purple">
-      <i class="fas fa-users"></i>
+  <div class="metric-card animate-in" style="animation-delay:.3s">
+    <div class="metric-header">
+      <div class="metric-icon purple"><i class="fas fa-server"></i></div>
+      <div class="metric-trend positive"><i class="fas fa-check"></i> 100%</div>
     </div>
-    <div class="quick-stat-content">
-      <h4>8</h4>
-      <p>Active Users</p>
+    <div class="metric-content">
+      <h3 class="metric-value">99.9%</h3>
+      <p class="metric-label">Uptime</p>
     </div>
-    <div class="quick-stat-trend positive">+2</div>
   </div>
-
-  <div class="quick-stat-card">
-    <div class="quick-stat-icon orange">
-      <i class="fas fa-clock"></i>
+  <div class="metric-card animate-in" style="animation-delay:.4s">
+    <div class="metric-header">
+      <div class="metric-icon orange"><i class="fas fa-history"></i></div>
+      <div class="metric-trend positive"><i class="fas fa-arrow-up"></i> 24%</div>
     </div>
-    <div class="quick-stat-content">
-      <h4>2.3s</h4>
-      <p>Avg Deploy Time</p>
+    <div class="metric-content">
+      <h3 class="metric-value">{{ stats.total_activities }}</h3>
+      <p class="metric-label">Total Activities</p>
     </div>
-    <div class="quick-stat-trend negative">-12%</div>
   </div>
 </div>
 
 {% endblock %}
 
+{# ── AI Sidebar + FAB injected after main content ── #}
 {% block scripts %}
-<script>
-  // Initialize charts
-  let performanceChart, deploymentChart;
 
-  document.addEventListener('DOMContentLoaded', function () {
+<!-- AI Overlay -->
+<div class="ai-overlay" id="aiOverlay" onclick="toggleAI()"></div>
+
+<!-- AI Sidebar Panel -->
+<div class="ai-sidebar" id="aiSidebar" role="complementary" aria-label="AI Code Assistant">
+
+  <!-- Header -->
+  <div class="ai-header">
+    <div class="ai-header-icon"><i class="fas fa-robot"></i></div>
+    <div class="ai-header-title">
+      <h3>AI Assistant</h3>
+      <span>Powered by Gemini</span>
+    </div>
+    <span class="ai-header-model" id="aiModelBadge">gemini-1.5-flash</span>
+    <button class="cx-icon-btn" onclick="toggleAI()" title="Close" style="margin-left:.25rem">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <!-- Context toggle -->
+  <div class="ai-context-bar">
+    <span class="ai-context-label">
+      <i class="fas fa-code" style="margin-right:.4rem;color:var(--cx-cyan)"></i>
+      Send IDE context with messages
+    </span>
+    <label class="cx-toggle">
+      <input type="checkbox" id="aiContextToggle">
+      <span class="cx-toggle-track"></span>
+    </label>
+  </div>
+
+  <!-- Messages -->
+  <div class="ai-messages" id="aiMessages">
+    <!-- Welcome message -->
+    <div class="ai-msg assistant">
+      <div class="ai-msg-bubble">
+        <p>👋 Hi! I'm your CloudX AI assistant. I can help you:</p>
+        <ul>
+          <li>Debug and fix code errors</li>
+          <li>Review architecture decisions</li>
+          <li>Explain deployment configurations</li>
+          <li>Suggest performance improvements</li>
+        </ul>
+        <p>Enable <strong>IDE Context</strong> above to share your current code with me.</p>
+      </div>
+      <span class="ai-msg-time">Now</span>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="ai-input-area">
+    <textarea class="ai-textarea" id="aiQuery" placeholder="Ask about your code, errors, or architecture…"
+      rows="3"></textarea>
+    <div class="ai-input-actions">
+      <span class="ai-hint">Shift+Enter for new line · Enter to send</span>
+      <button class="ai-send-btn" id="aiSendBtn" onclick="sendAIQuery()">
+        <i class="fas fa-paper-plane"></i> Send
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating AI Button -->
+<button class="ai-fab" id="aiFab" onclick="toggleAI()" title="Open AI Assistant">
+  <i class="fas fa-robot"></i>
+  <span class="ai-fab-badge"></span>
+</button>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    /* Charts */
     initPerformanceChart();
     initDeploymentChart();
-    startMetricsUpdate();
-    initAnimations();
+
+    /* Gauges + containers */
+    if (typeof CloudXMonitor !== 'undefined') {
+      CloudXMonitor.init();
+    }
+
+    /* Animations */
+    const obs = new IntersectionObserver(entries =>
+      entries.forEach(e => e.isIntersecting && e.target.classList.add('animate-in')),
+      { threshold: 0.1 }
+    );
+    document.querySelectorAll('.metric-card, .gauge-card').forEach(el => obs.observe(el));
   });
 
+  /* ── Refresh all ───────────────────────────────────────────────── */
+  function refreshAll() {
+    const icon = document.getElementById('refreshIcon');
+    icon.classList.add('fa-spin');
+    if (typeof CloudXMonitor !== 'undefined') CloudXMonitor.syncContainers();
+    setTimeout(() => {
+      icon.classList.remove('fa-spin');
+      showToast('Dashboard refreshed', 'success');
+    }, 800);
+  }
+
+  /* ── AI Sidebar ───────────────────────────────────────────────── */
+  function toggleAI() {
+    const sidebar = document.getElementById('aiSidebar');
+    const overlay = document.getElementById('aiOverlay');
+    const isOpen = sidebar.classList.toggle('open');
+    overlay.classList.toggle('visible', isOpen);
+    if (isOpen) {
+      document.getElementById('aiQuery').focus();
+    }
+  }
+
+  async function sendAIQuery() {
+    const queryEl = document.getElementById('aiQuery');
+    const sendBtn = document.getElementById('aiSendBtn');
+    const messages = document.getElementById('aiMessages');
+    const useContext = document.getElementById('aiContextToggle').checked;
+
+    const query = queryEl.value.trim();
+    if (!query) return;
+
+    /* Append user bubble */
+    appendMessage('user', query);
+    queryEl.value = '';
+    sendBtn.disabled = true;
+
+    /* Show typing indicator */
+    const typingId = 'ai-typing-' + Date.now();
+    messages.insertAdjacentHTML('beforeend', `
+    <div class="ai-msg assistant" id="${typingId}">
+      <div class="ai-typing">
+        <div class="ai-typing-dots">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>`);
+    messages.scrollTop = messages.scrollHeight;
+
+    /* Optional context */
+    let codeContext = '';
+    if (useContext) {
+      codeContext = window.__ideContext || '// No IDE context available. Activate a workspace to send code.';
+    }
+
+    try {
+      const resp = await fetch('/api/ai/assist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_query: query, code_context: codeContext })
+      });
+      const data = await resp.json();
+
+      /* Remove typing indicator */
+      document.getElementById(typingId)?.remove();
+
+      if (data.success) {
+        appendMessage('assistant', data.suggestion, true);
+        /* Update model badge */
+        if (data.model) {
+          document.getElementById('aiModelBadge').textContent = data.model;
+        }
+      } else {
+        appendMessage('assistant',
+          `⚠️ **Error:** ${data.error || 'Unknown error occurred.'}`, true);
+      }
+    } catch (err) {
+      document.getElementById(typingId)?.remove();
+      appendMessage('assistant', `⚠️ **Connection error:** ${err.message}`, true);
+    } finally {
+      sendBtn.disabled = false;
+      messages.scrollTop = messages.scrollHeight;
+    }
+  }
+
+  function appendMessage(role, text, isMarkdown = false) {
+    const messages = document.getElementById('aiMessages');
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    let content = isMarkdown && typeof marked !== 'undefined'
+      ? marked.parse(text)
+      : escapeHtml(text).replace(/\n/g, '<br>');
+
+    const div = document.createElement('div');
+    div.className = `ai-msg ${role}`;
+    div.innerHTML = `
+    <div class="ai-msg-bubble">${content}</div>
+    <span class="ai-msg-time">${now}</span>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  /* ── Keyboard shortcut: Enter to send (Shift+Enter = newline) ──── */
+  document.addEventListener('DOMContentLoaded', () => {
+    const ta = document.getElementById('aiQuery');
+    if (ta) {
+      ta.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendAIQuery();
+        }
+      });
+    }
+  });
+
+  /* ── Chart inits (kept from original dashboard) ────────────────── */
+  let performanceChart, deploymentChart;
+
   function initPerformanceChart() {
-    const ctx = document.getElementById('performanceChart').getContext('2d');
-    const style = getComputedStyle(document.documentElement);
-
-    const primary = '#0EA5E9';
-    const accent = '#8B5CF6';
-    const gray500 = '#64748B';
-    const gridColor = 'rgba(226, 232, 240, 0.35)';
-    const font = { family: "'Inter', sans-serif" };
-
-    /* ── Gradient fills ─────────────────────────────────────────────── */
-    const gCPU = ctx.createLinearGradient(0, 0, 0, 300);
-    gCPU.addColorStop(0, 'rgba(14, 165, 233, 0.22)');
-    gCPU.addColorStop(0.6, 'rgba(14, 165, 233, 0.05)');
-    gCPU.addColorStop(1, 'rgba(14, 165, 233, 0.00)');
-
-    const gMem = ctx.createLinearGradient(0, 0, 0, 300);
-    gMem.addColorStop(0, 'rgba(139, 92, 246, 0.18)');
-    gMem.addColorStop(0.6, 'rgba(139, 92, 246, 0.04)');
-    gMem.addColorStop(1, 'rgba(139, 92, 246, 0.00)');
-
+    const ctx = document.getElementById('performanceChart')?.getContext('2d');
+    if (!ctx) return;
+    const g = ctx.createLinearGradient(0, 0, 0, 280);
+    g.addColorStop(0, 'rgba(0,204,255,0.18)');
+    g.addColorStop(1, 'rgba(0,204,255,0)');
+    const g2 = ctx.createLinearGradient(0, 0, 0, 280);
+    g2.addColorStop(0, 'rgba(157,111,255,0.14)');
+    g2.addColorStop(1, 'rgba(157,111,255,0)');
+    const font = { family: "'DM Mono',monospace" };
+    const gray = '#3d5870';
     performanceChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
         datasets: [
           {
-            label: 'CPU Usage',
-            data: [45, 52, 48, 65, 58, 70, 62],
-            borderColor: primary,
-            backgroundColor: gCPU,
-            borderWidth: 1.75,
-            tension: 0.4,
-            fill: true,
-            /* ── Points: invisible at rest, appear on hover ── */
-            pointRadius: 0,
-            pointHitRadius: 20,
-            pointHoverRadius: 5,
-            pointHoverBackgroundColor: primary,
-            pointHoverBorderColor: '#ffffff',
-            pointHoverBorderWidth: 2,
+            label: 'CPU', data: [45, 52, 48, 65, 58, 70, 62],
+            borderColor: '#00ccff', backgroundColor: g, borderWidth: 1.75,
+            tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 20,
+            pointHoverRadius: 5, pointHoverBackgroundColor: '#00ccff', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
           },
           {
-            label: 'Memory',
-            data: [62, 68, 65, 72, 70, 75, 68],
-            borderColor: accent,
-            backgroundColor: gMem,
-            borderWidth: 1.75,
-            tension: 0.4,
-            fill: true,
-            pointRadius: 0,
-            pointHitRadius: 20,
-            pointHoverRadius: 5,
-            pointHoverBackgroundColor: accent,
-            pointHoverBorderColor: '#ffffff',
-            pointHoverBorderWidth: 2,
+            label: 'Memory', data: [62, 68, 65, 72, 70, 75, 68],
+            borderColor: '#9d6fff', backgroundColor: g2, borderWidth: 1.75,
+            tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 20,
+            pointHoverRadius: 5, pointHoverBackgroundColor: '#9d6fff', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
           }
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 800, easing: 'easeOutQuart' },
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 700, easing: 'easeOutQuart' },
         plugins: {
           legend: {
-            position: 'top',
-            align: 'end',
-            labels: {
-              color: gray500,
-              font: { ...font, size: 12, weight: '500' },
-              usePointStyle: true,
-              pointStyle: 'circle',
-              pointStyleWidth: 7,
-              boxHeight: 6,
-              padding: 20,
-            }
+            position: 'top', align: 'end',
+            labels: { color: gray, font: { ...font, size: 12, weight: '500' }, usePointStyle: true, pointStyle: 'circle', boxHeight: 6, padding: 20 }
           },
           tooltip: {
-            mode: 'index',
-            intersect: false,
-            backgroundColor: 'rgba(15, 23, 42, 0.88)',
-            titleColor: '#F1F5F9',
-            bodyColor: '#94A3B8',
-            borderColor: 'rgba(255, 255, 255, 0.07)',
-            borderWidth: 1,
-            padding: { top: 10, right: 14, bottom: 10, left: 14 },
-            cornerRadius: 10,
-            usePointStyle: true,
-            boxWidth: 7,
-            boxHeight: 7,
-            titleFont: { ...font, size: 11, weight: '600' },
-            bodyFont: { ...font, size: 12, weight: '400' },
-            callbacks: {
-              label: (ctx) => `  ${ctx.dataset.label}:  ${ctx.parsed.y}%`,
-            }
+            mode: 'index', intersect: false, backgroundColor: 'rgba(5,11,20,0.95)',
+            titleColor: '#dbeaff', bodyColor: gray, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+            padding: { top: 10, right: 14, bottom: 10, left: 14 }, cornerRadius: 8,
+            titleFont: { ...font, size: 11, weight: '600' }, bodyFont: { ...font, size: 11 },
+            callbacks: { label: c => `  ${c.dataset.label}:  ${c.parsed.y}%` }
           }
         },
         scales: {
-          x: {
-            border: { display: false },
-            grid: { display: false },          /* ← X grid fully hidden */
-            ticks: {
-              color: gray500,
-              font: { ...font, size: 11 },
-              padding: 8,
-            }
-          },
+          x: { border: { display: false }, grid: { display: false }, ticks: { color: gray, font: { ...font, size: 11 }, padding: 8 } },
           y: {
-            min: 20,
-            max: 100,
-            border: { display: false, dash: [4, 4] },
-            grid: {
-              color: gridColor,
-              drawTicks: false,
-            },
-            ticks: {
-              color: gray500,
-              font: { ...font, size: 11 },
-              padding: 12,
-              stepSize: 20,
-              callback: (v) => v + '%',
-            }
+            min: 20, max: 100, border: { display: false, dash: [4, 4] },
+            grid: { color: 'rgba(255,255,255,0.05)', drawTicks: false },
+            ticks: { color: gray, font: { ...font, size: 11 }, padding: 12, stepSize: 20, callback: v => v + '%' }
           }
         },
-        interaction: { mode: 'index', intersect: false },
+        interaction: { mode: 'index', intersect: false }
       }
     });
   }
 
-
   function initDeploymentChart() {
-    const ctx = document.getElementById('deploymentChart').getContext('2d');
-
-    const gray500 = '#64748B';
-    const gridColor = 'rgba(226, 232, 240, 0.35)';
-    const font = { family: "'Inter', sans-serif" };
-
+    const ctx = document.getElementById('deploymentChart')?.getContext('2d');
+    if (!ctx) return;
+    const font = { family: "'DM Mono',monospace" };
+    const gray = '#3d5870';
     deploymentChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         datasets: [
           {
-            label: 'Successful',
-            data: [12, 15, 10, 18, 14, 8, 6],
-            backgroundColor: 'rgba(16, 185, 129, 0.80)',
-            hoverBackgroundColor: '#10B981',
-            borderWidth: 0,
-            borderRadius: 4,               /* ← modern pill-like tops */
-            borderSkipped: 'bottom',
-            barPercentage: 0.58,           /* ← slimmer bars */
-            categoryPercentage: 0.75,
+            label: 'Successful', data: [12, 15, 10, 18, 14, 8, 6],
+            backgroundColor: 'rgba(0,232,122,0.75)', hoverBackgroundColor: '#00e87a',
+            borderWidth: 0, borderRadius: 4, borderSkipped: 'bottom', barPercentage: 0.58, categoryPercentage: 0.75
           },
           {
-            label: 'Failed',
-            data: [1, 0, 2, 1, 0, 1, 0],
-            backgroundColor: 'rgba(239, 68, 68, 0.75)',
-            hoverBackgroundColor: '#EF4444',
-            borderWidth: 0,
-            borderRadius: 4,
-            borderSkipped: 'bottom',
-            barPercentage: 0.58,
-            categoryPercentage: 0.75,
+            label: 'Failed', data: [1, 0, 2, 1, 0, 1, 0],
+            backgroundColor: 'rgba(255,68,85,0.7)', hoverBackgroundColor: '#ff4455',
+            borderWidth: 0, borderRadius: 4, borderSkipped: 'bottom', barPercentage: 0.58, categoryPercentage: 0.75
           }
         ]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: {
-          duration: 700,
-          easing: 'easeOutCubic',
-          delay: (ctx) => ctx.dataIndex * 55,
-        },
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 700, easing: 'easeOutCubic', delay: c => c.dataIndex * 55 },
         plugins: {
           legend: {
-            position: 'top',
-            align: 'end',
-            labels: {
-              color: gray500,
-              font: { ...font, size: 12, weight: '500' },
-              usePointStyle: true,
-              pointStyle: 'rectRounded',
-              pointStyleWidth: 10,
-              boxHeight: 7,
-              padding: 20,
-            }
+            position: 'top', align: 'end',
+            labels: { color: gray, font: { ...font, size: 12, weight: '500' }, usePointStyle: true, pointStyle: 'rectRounded', boxHeight: 7, padding: 20 }
           },
           tooltip: {
-            mode: 'index',
-            intersect: false,
-            backgroundColor: 'rgba(15, 23, 42, 0.88)',
-            titleColor: '#F1F5F9',
-            bodyColor: '#94A3B8',
-            borderColor: 'rgba(255, 255, 255, 0.07)',
-            borderWidth: 1,
-            padding: { top: 10, right: 14, bottom: 10, left: 14 },
-            cornerRadius: 10,
-            usePointStyle: true,
-            pointStyle: 'rectRounded',
-            boxWidth: 8,
-            boxHeight: 8,
-            titleFont: { ...font, size: 11, weight: '600' },
-            bodyFont: { ...font, size: 12, weight: '400' },
+            mode: 'index', intersect: false, backgroundColor: 'rgba(5,11,20,0.95)',
+            titleColor: '#dbeaff', bodyColor: gray, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+            padding: { top: 10, right: 14, bottom: 10, left: 14 }, cornerRadius: 8,
             callbacks: {
-              label: (ctx) => `  ${ctx.dataset.label}:  ${ctx.parsed.y} deploys`,
-              afterBody: (items) => {
+              label: c => `  ${c.dataset.label}:  ${c.parsed.y} deploys`,
+              afterBody: items => {
                 const s = items.find(i => i.dataset.label === 'Successful')?.parsed.y ?? 0;
                 const f = items.find(i => i.dataset.label === 'Failed')?.parsed.y ?? 0;
-                const total = s + f;
-                return total
-                  ? [`  Success rate:  ${((s / total) * 100).toFixed(1)}%`]
-                  : [];
+                const t = s + f;
+                return t ? [`  Success rate:  ${((s / t) * 100).toFixed(1)}%`] : [];
               }
             }
           }
         },
         scales: {
-          x: {
-            border: { display: false },
-            grid: { display: false },         
-            ticks: {
-              color: gray500,
-              font: { ...font, size: 11 },
-              padding: 8,
-            }
-          },
+          x: { border: { display: false }, grid: { display: false }, ticks: { color: gray, font: { ...font, size: 11 }, padding: 8 } },
           y: {
-            beginAtZero: true,
-            border: { display: false, dash: [4, 4] },
-            grid: {
-              color: gridColor,
-              drawTicks: false,
-            },
-            ticks: {
-              color: gray500,
-              font: { ...font, size: 11 },
-              padding: 12,
-              stepSize: 5,
-            }
+            beginAtZero: true, border: { display: false, dash: [4, 4] },
+            grid: { color: 'rgba(255,255,255,0.05)', drawTicks: false },
+            ticks: { color: gray, font: { ...font, size: 11 }, padding: 12, stepSize: 5 }
           }
         },
-        interaction: { mode: 'index', intersect: false },
+        interaction: { mode: 'index', intersect: false }
       }
     });
   }
 
-
-  // Real-time metrics update
-  function startMetricsUpdate() {
-    setInterval(updateResourceMetrics, 5000);
-  }
-
-  function updateResourceMetrics() {
-
-    if (typeof socket !== 'undefined' && socket !== null && socket.connected) {
-      socket.emit('request_metrics');
-    }
-
-    const cpu = (Math.random() * 30 + 40).toFixed(1);
-    const memory = (Math.random() * 20 + 60).toFixed(1);
-    const disk = (Math.random() * 10 + 50).toFixed(1);
-    const network = (Math.random() * 5 + 1).toFixed(1);
-
-    updateResourceDisplay('cpu', cpu, '%');
-    updateResourceDisplay('memory', memory, '%');
-    updateResourceDisplay('disk', disk, '%');
-    updateResourceDisplay('network', network, ' MB/s');
-  }
-
-  function updateResourceDisplay(type, value, unit) {
-    const valueEl = document.getElementById(type + 'Value');
-    const progressEl = document.getElementById(type + 'Progress');
-
-    if (valueEl) valueEl.textContent = value + unit;
-    if (progressEl) {
-      progressEl.style.width = (unit === ' MB/s' ? parseFloat(value) * 10 : value) + '%';
-
-      // Update color based on value
-      progressEl.className = 'progress-fill';
-      if (parseFloat(value) > 80) {
-        progressEl.classList.add('danger');
-      } else if (parseFloat(value) > 60) {
-        progressEl.classList.add('warning');
-      } else {
-        progressEl.classList.add('success');
-      }
-    }
-  }
-
-  // Listen for WebSocket metrics updates
-  window.addEventListener('metricsUpdate', function (e) {
-    const metrics = e.detail;
-    if (metrics.cpu_usage) updateResourceDisplay('cpu', metrics.cpu_usage, '%');
-    if (metrics.memory_usage) updateResourceDisplay('memory', metrics.memory_usage, '%');
-    if (metrics.disk_usage) updateResourceDisplay('disk', metrics.disk_usage, '%');
-  });
-
-  // Chart time range controls
+  /* Chart time-range controls */
   document.querySelectorAll('.chart-btn').forEach(btn => {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
       this.classList.add('active');
-
-      // Update chart data based on selected range
-      const range = this.dataset.range;
-      console.log('Updating chart for range:', range);
-      // Implement range-based data fetching here
+      showToast('Range: ' + this.dataset.range, 'info');
     });
   });
-
-  // Refresh dashboard
-  function refreshDashboard() {
-    showToast('Refreshing dashboard...', 'info');
-
-    // Simulate refresh
-    setTimeout(() => {
-      updateResourceMetrics();
-      performanceChart.update();
-      deploymentChart.update();
-      showToast('Dashboard refreshed successfully', 'success');
-    }, 1000);
-  }
-
-  // Animations
-  function initAnimations() {
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('animate-in');
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('.metric-card, .dashboard-card, .quick-stat-card').forEach(el => {
-      observer.observe(el);
-    });
-  }
 </script>
+
+<!-- Load analytics module -->
+<script src="{{ url_for('static', filename='analytics.js') }}"></script>
 {% endblock %}

@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workspace · CloudX</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
+    rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+
+  <!-- CloudX CSS -->
+  <link rel="stylesheet" href="/static/cloudx.css">
+
+  <!-- marked.js for AI markdown -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--cx-0);
+      color: var(--cx-t1);
+    }
+
+    /* ── Top toolbar ─────────────────────────────── */
+    .ws-toolbar {
+      height: 44px;
+      background: var(--cx-1);
+      border-bottom: 1px solid var(--cx-border);
+      display: flex;
+      align-items: center;
+      padding: 0 0.75rem;
+      gap: 0.75rem;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .ws-toolbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--cx-ui);
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--cx-cyan);
+      text-decoration: none;
+      padding-right: 0.75rem;
+      border-right: 1px solid var(--cx-border);
+    }
+
+    .ws-toolbar-sep {
+      width: 1px;
+      height: 22px;
+      background: var(--cx-border);
+    }
+
+    .ws-toolbar-project {
+      font-family: var(--cx-mono);
+      font-size: 0.78rem;
+      color: var(--cx-t2);
+      background: var(--cx-2);
+      border: 1px solid var(--cx-border);
+      border-radius: 5px;
+      padding: 0.25rem 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .ws-toolbar-spacer {
+      flex: 1;
+    }
+
+    .ws-toolbar-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 5px;
+      font-family: var(--cx-ui);
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: 1px solid var(--cx-border);
+      background: var(--cx-2);
+      color: var(--cx-t2);
+      cursor: pointer;
+      transition: all 0.14s;
+    }
+
+    .ws-toolbar-btn:hover {
+      background: var(--cx-3);
+      color: var(--cx-t1);
+      border-color: var(--cx-border-hi);
+    }
+
+    .ws-toolbar-btn.primary {
+      background: var(--cx-cyan-mid);
+      border-color: rgba(0, 204, 255, 0.3);
+      color: var(--cx-cyan);
+    }
+
+    .ws-toolbar-btn.primary:hover {
+      background: rgba(0, 204, 255, 0.25);
+    }
+
+    .ws-toolbar-btn.active-ai {
+      background: rgba(157, 111, 255, 0.18);
+      border-color: rgba(157, 111, 255, 0.35);
+      color: #9d6fff;
+    }
+
+    .ws-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cx-green);
+      box-shadow: 0 0 6px var(--cx-green);
+      flex-shrink: 0;
+    }
+
+    .ws-status-dot.disconnected {
+      background: var(--cx-red);
+      box-shadow: 0 0 6px var(--cx-red);
+    }
+
+    /* ── 3-pane body ─────────────────────────────── */
+    .ws-body {
+      display: flex;
+      height: calc(100vh - 44px);
+      overflow: hidden;
+    }
+
+    /* Resizable handle */
+    .ws-resize-v {
+      width: 4px;
+      flex-shrink: 0;
+      background: var(--cx-border);
+      cursor: col-resize;
+      transition: background 0.15s;
+      position: relative;
+      z-index: 10;
+    }
+
+    .ws-resize-v:hover,
+    .ws-resize-v.dragging {
+      background: var(--cx-cyan);
+    }
+
+    /* ── File tree ───────────────────────────────── */
+    .ws-filetree {
+      width: 240px;
+      min-width: 140px;
+      max-width: 380px;
+    }
+
+    /* ── Center panel ────────────────────────────── */
+    .ws-center {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Vertical resize (editor ↔ terminal) */
+    .ws-resize-h {
+      height: 4px;
+      flex-shrink: 0;
+      background: var(--cx-border);
+      cursor: ns-resize;
+      transition: background 0.15s;
+    }
+
+    .ws-resize-h:hover {
+      background: var(--cx-cyan);
+    }
+
+    /* ── Right AI panel (in-workspace) ──────────── */
+    .ws-ai-panel {
+      width: 360px;
+      min-width: 280px;
+      max-width: 520px;
+    }
+
+    /* When AI panel collapsed */
+    .ws-ai-panel.collapsed {
+      width: 0 !important;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* ── File items ──────────────────────────────── */
+    .ws-file-group-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.85rem 0.2rem;
+      font-family: var(--cx-ui);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--cx-t3);
+    }
+
+    /* ── Editor placeholder ──────────────────────── */
+    .ws-editor-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      color: var(--cx-t3);
+      background: var(--cx-0);
+      font-family: var(--cx-ui);
+    }
+
+    .ws-editor-placeholder i {
+      font-size: 3rem;
+      opacity: 0.25;
+    }
+
+    .ws-editor-placeholder p {
+      font-size: 0.85rem;
+    }
+
+    /* Editor frame (Monaco) */
+    #monacoEditor {
+      flex: 1;
+      width: 100%;
+      min-height: 0;
+    }
+
+    /* ── Terminal ────────────────────────────────── */
+    #terminalMount {
+      flex: 1;
+      overflow: hidden;
+      background: #0d1117;
+      padding: 2px 4px;
+    }
+
+    /* Override Xterm.js defaults for clean look */
+    .xterm {
+      height: 100%;
+    }
+
+    .xterm-viewport::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .xterm-viewport::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 3px;
+    }
+
+    /* ── Context aware badge in AI (workspace) ───── */
+    .ws-context-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(0, 204, 255, 0.08);
+      border: 1px solid rgba(0, 204, 255, 0.2);
+      border-radius: 4px;
+      padding: 0.1rem 0.5rem;
+      font-family: var(--cx-mono);
+      font-size: 0.65rem;
+      color: var(--cx-cyan);
+      margin-left: auto;
+    }
+
+    /* ── Tooltip ─────────────────────────────────── */
+    .cx-tooltip {
+      position: absolute;
+      background: var(--cx-1);
+      border: 1px solid var(--cx-border-hi);
+      border-radius: 6px;
+      padding: 0.35rem 0.6rem;
+      font-family: var(--cx-mono);
+      font-size: 0.72rem;
+      color: var(--cx-t1);
+      pointer-events: none;
+      z-index: 9999;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ── Toast ───────────────────────────────────── */
+    .ws-toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    .ws-toast {
+      background: var(--cx-2);
+      border: 1px solid var(--cx-border-hi);
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      font-family: var(--cx-mono);
+      font-size: 0.78rem;
+      color: var(--cx-t1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.28s;
+      white-space: nowrap;
+      pointer-events: auto;
+    }
+
+    .ws-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .ws-toast.success {
+      border-color: rgba(0, 232, 122, 0.3);
+      color: var(--cx-green);
+    }
+
+    .ws-toast.error {
+      border-color: rgba(255, 68, 85, 0.3);
+      color: var(--cx-red);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── Top toolbar ──────────────────────────────────────────────── -->
+  <div class="ws-toolbar">
+    <a href="/" class="ws-toolbar-logo">
+      <i class="fas fa-cloud"></i> CloudX
+    </a>
+
+    <div class="ws-toolbar-project" id="wsProjectLabel">
+      <i class="fas fa-folder-open" style="color:var(--cx-cyan)"></i>
+      <span id="wsProjectName">Loading…</span>
+    </div>
+
+    <div class="ws-toolbar-sep"></div>
+
+    <!-- Connection status -->
+    <div id="wsConnStatus"
+      style="display:flex;align-items:center;gap:.4rem;font-family:var(--cx-mono);font-size:.72rem;color:var(--cx-t2)">
+      <span class="ws-status-dot disconnected" id="wsStatusDot"></span>
+      <span id="wsStatusTxt">Connecting…</span>
+    </div>
+
+    <div class="ws-toolbar-spacer"></div>
+
+    <!-- Terminal controls -->
+    <button class="ws-toolbar-btn" id="termClearBtn" title="Clear terminal">
+      <i class="fas fa-trash-alt"></i> Clear
+    </button>
+    <button class="ws-toolbar-btn" id="termFitBtn" title="Fit terminal">
+      <i class="fas fa-expand"></i> Fit
+    </button>
+
+    <div class="ws-toolbar-sep"></div>
+
+    <!-- AI toggle -->
+    <button class="ws-toolbar-btn active-ai" id="aiToggleBtn" onclick="toggleWsAI()">
+      <i class="fas fa-robot"></i> AI
+    </button>
+
+    <!-- Go to dashboard -->
+    <a href="/dashboard" class="ws-toolbar-btn primary">
+      <i class="fas fa-chart-line"></i> Dashboard
+    </a>
+  </div>
+
+  <!-- ── 3-Pane Body ──────────────────────────────────────────────── -->
+  <div class="ws-body">
+
+    <!-- LEFT: File Explorer -->
+    <div class="ws-filetree" id="wsFiletree">
+      <div class="ws-panel-header">
+        <span class="ws-panel-title">Explorer</span>
+        <div style="display:flex;gap:.3rem">
+          <button class="cx-icon-btn" style="width:24px;height:24px;font-size:.65rem" title="New file">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button class="cx-icon-btn" style="width:24px;height:24px;font-size:.65rem" title="New folder">
+            <i class="fas fa-folder-plus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="ws-filetree-body" id="fileTreeBody">
+        <div class="ws-file-group-label"><i class="fas fa-chevron-down"></i> Workspace</div>
+        <!-- File tree items injected by JS -->
+        <div class="ws-file-item folder active">
+          <i class="fas fa-chevron-down" style="color:var(--cx-cyan);font-size:.6rem"></i>
+          <i class="fas fa-folder-open" style="color:var(--cx-yellow)"></i> src
+        </div>
+        <div class="ws-file-item" style="padding-left:2rem" onclick="selectFile(this,'app.py')">
+          <i class="fas fa-file-code" style="color:#3572A5"></i> app.py
+        </div>
+        <div class="ws-file-item" style="padding-left:2rem" onclick="selectFile(this,'models.py')">
+          <i class="fas fa-file-code" style="color:#3572A5"></i> models.py
+        </div>
+        <div class="ws-file-item" style="padding-left:2rem" onclick="selectFile(this,'requirements.txt')">
+          <i class="fas fa-file-alt" style="color:var(--cx-t3)"></i> requirements.txt
+        </div>
+        <div class="ws-file-item folder"
+          onclick="this.querySelector('.fa-chevron-right').classList.toggle('fa-rotate-90')">
+          <i class="fas fa-chevron-right" style="color:var(--cx-t3);font-size:.6rem"></i>
+          <i class="fas fa-folder" style="color:var(--cx-yellow)"></i> static
+        </div>
+        <div class="ws-file-item folder"
+          onclick="this.querySelector('.fa-chevron-right').classList.toggle('fa-rotate-90')">
+          <i class="fas fa-chevron-right" style="color:var(--cx-t3);font-size:.6rem"></i>
+          <i class="fas fa-folder" style="color:var(--cx-yellow)"></i> templates
+        </div>
+        <div class="ws-file-item" onclick="selectFile(this,'Dockerfile')">
+          <i class="fab fa-docker" style="color:#2496ed"></i> Dockerfile
+        </div>
+        <div class="ws-file-item" onclick="selectFile(this,'docker-compose.yml')">
+          <i class="fas fa-file-code" style="color:var(--cx-orange)"></i> docker-compose.yml
+        </div>
+        <div class="ws-file-item" onclick="selectFile(this,'.env')">
+          <i class="fas fa-lock" style="color:var(--cx-green);font-size:.7rem"></i> .env
+        </div>
+      </div>
+    </div>
+
+    <!-- Vertical resize handle (left ↔ center) -->
+    <div class="ws-resize-v" id="resizeLeft" title="Drag to resize"></div>
+
+    <!-- CENTER: Editor + Terminal -->
+    <div class="ws-center">
+
+      <!-- Tab bar -->
+      <div class="ws-tabs" id="wsTabs">
+        <div class="ws-tab active" data-file="app.py">
+          <i class="fas fa-file-code" style="color:#3572A5;font-size:.7rem"></i>
+          app.py
+          <span class="ws-tab-close" onclick="closeTab(event,this.parentElement)">
+            <i class="fas fa-times"></i>
+          </span>
+        </div>
+      </div>
+
+      <!-- Editor area -->
+      <div class="ws-editor-wrap" id="wsEditorWrap" style="display:flex;flex-direction:column">
+        <!-- Placeholder until Monaco loads -->
+        <div class="ws-editor-placeholder" id="editorPlaceholder">
+          <i class="fas fa-code"></i>
+          <p>Select a file to open it in the editor</p>
+          <button class="cx-btn cx-btn-ghost" onclick="loadMonaco()" style="margin-top:.5rem">
+            <i class="fas fa-plug"></i> Load Editor
+          </button>
+        </div>
+        <div id="monacoEditor" style="flex:1;display:none"></div>
+      </div>
+
+      <!-- Horizontal resize -->
+      <div class="ws-resize-h" id="resizeTerminal"></div>
+
+      <!-- Terminal -->
+      <div class="ws-terminal-wrap" id="wsTerminalWrap" style="height:260px">
+        <div class="ws-terminal-header">
+          <i class="fas fa-terminal" style="color:var(--cx-cyan);font-size:.75rem"></i>
+          <span class="ws-terminal-title">Terminal</span>
+          <span id="termContainerLabel" style="font-family:var(--cx-mono);font-size:.65rem;color:var(--cx-t3)">
+            — no container attached
+          </span>
+          <div style="display:flex;gap:.3rem;margin-left:auto">
+            <button class="cx-icon-btn" style="width:26px;height:26px;font-size:.7rem" id="termClearBtnInner"
+              title="Clear">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            <button class="cx-icon-btn" style="width:26px;height:26px;font-size:.7rem" id="termMaxBtn" title="Maximize"
+              onclick="toggleTermMax()">
+              <i class="fas fa-expand-arrows-alt"></i>
+            </button>
+          </div>
+        </div>
+        <div class="ws-terminal-body">
+          <div id="terminalMount"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vertical resize handle (center ↔ right) -->
+    <div class="ws-resize-v" id="resizeRight" title="Drag to resize"></div>
+
+    <!-- RIGHT: In-workspace AI panel -->
+    <div class="ws-ai-panel" id="wsAiPanel">
+      <div class="ai-header">
+        <div class="ai-header-icon"><i class="fas fa-robot"></i></div>
+        <div class="ai-header-title">
+          <h3>AI Assistant</h3>
+          <span>Gemini · context-aware</span>
+        </div>
+        <span class="ws-context-badge" id="wsContextBadge" style="display:none">
+          <i class="fas fa-link"></i> IDE context on
+        </span>
+        <button class="cx-icon-btn" onclick="toggleWsAI()" style="margin-left:.5rem" title="Collapse">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Context toggle -->
+      <div class="ai-context-bar">
+        <span class="ai-context-label">
+          <i class="fas fa-code" style="margin-right:.4rem;color:var(--cx-cyan)"></i>
+          Include current file
+        </span>
+        <label class="cx-toggle">
+          <input type="checkbox" id="wsContextToggle" onchange="onContextToggle()">
+          <span class="cx-toggle-track"></span>
+        </label>
+      </div>
+
+      <!-- Messages -->
+      <div class="ai-messages" id="wsAiMessages">
+        <div class="ai-msg assistant">
+          <div class="ai-msg-bubble">
+            <p>👋 Ready to help with your code! I can see the files in your workspace — enable <strong>Include current
+                file</strong> to share the active file's content with me.</p>
+          </div>
+          <span class="ai-msg-time">Now</span>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="ai-input-area">
+        <textarea class="ai-textarea" id="wsAiQuery" placeholder="Ask about your code…" rows="3"></textarea>
+        <div class="ai-input-actions">
+          <span class="ai-hint">Enter to send</span>
+          <button class="ai-send-btn" id="wsAiSendBtn" onclick="wsAISend()">
+            <i class="fas fa-paper-plane"></i> Send
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast container -->
+  <div class="ws-toast-container" id="wsToasts"></div>
+
+  <!-- ── Scripts ─────────────────────────────────────────────────── -->
+  <script src="/static/terminal.js"></script>
+  <script>
+    /* ── Global Socket.IO ──────────────────────────────────────────── */
+    const socket = io({
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1500,
+    });
+
+    socket.on('connect', () => {
+      document.getElementById('wsStatusDot').classList.remove('disconnected');
+      document.getElementById('wsStatusTxt').textContent = 'Connected';
+      toast('Connected to CloudX', 'success');
+    });
+
+    socket.on('disconnect', () => {
+      document.getElementById('wsStatusDot').classList.add('disconnected');
+      document.getElementById('wsStatusTxt').textContent = 'Disconnected';
+    });
+
+    /* ── Project info from URL ─────────────────────────────────────── */
+    const params = new URLSearchParams(location.search);
+    const projectId = params.get('project') || '';
+    const containerId = params.get('container') || '';
+
+    if (projectId) {
+      fetch('/api/projects?limit=100')
+        .then(r => r.json())
+        .then(d => {
+          const p = (d.data || []).find(x => String(x.id) === projectId);
+          if (p) document.getElementById('wsProjectName').textContent = p.name;
+          else document.getElementById('wsProjectName').textContent = 'Project ' + projectId;
+        })
+        .catch(() => { document.getElementById('wsProjectName').textContent = 'Project ' + projectId; });
+    } else {
+      document.getElementById('wsProjectName').textContent = 'Untitled Workspace';
+    }
+
+    /* ── Attach terminal ───────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+      const mountEl = document.getElementById('terminalMount');
+      CloudXTerminal.init({ containerId: containerId || null, mountEl, socket });
+
+      if (containerId) {
+        document.getElementById('termContainerLabel').textContent = containerId;
+      }
+
+      /* Terminal inner clear btn */
+      document.getElementById('termClearBtnInner').addEventListener('click', CloudXTerminal.clear);
+    });
+
+    /* ── Toggle AI panel ───────────────────────────────────────────── */
+    function toggleWsAI() {
+      const panel = document.getElementById('wsAiPanel');
+      const btn = document.getElementById('aiToggleBtn');
+      panel.classList.toggle('collapsed');
+      btn.classList.toggle('active-ai', !panel.classList.contains('collapsed'));
+    }
+
+    /* ── Context toggle ────────────────────────────────────────────── */
+    function onContextToggle() {
+      const on = document.getElementById('wsContextToggle').checked;
+      const badge = document.getElementById('wsContextBadge');
+      badge.style.display = on ? 'inline-flex' : 'none';
+    }
+
+    /* ── File selection ────────────────────────────────────────────── */
+    function selectFile(el, filename) {
+      document.querySelectorAll('.ws-file-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+
+      /* Update tabs */
+      const tabs = document.getElementById('wsTabs');
+      const existing = [...tabs.querySelectorAll('.ws-tab')].find(t => t.dataset.file === filename);
+      if (!existing) {
+        const icon = getFileIcon(filename);
+        const tab = document.createElement('div');
+        tab.className = 'ws-tab active';
+        tab.dataset.file = filename;
+        tab.innerHTML = `<i class="fas ${icon.cls}" style="color:${icon.color};font-size:.7rem"></i>
+      ${filename}
+      <span class="ws-tab-close" onclick="closeTab(event,this.parentElement)"><i class="fas fa-times"></i></span>`;
+        tab.addEventListener('click', () => activateTab(tab));
+        tabs.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
+        tabs.appendChild(tab);
+      } else {
+        activateTab(existing);
+      }
+
+      /* Show Monaco placeholder with filename */
+      const ph = document.getElementById('editorPlaceholder');
+      ph.innerHTML = `<i class="fas fa-file-code" style="font-size:3rem;opacity:.2"></i>
+    <p style="color:var(--cx-t2)">${filename}</p>
+    <p style="font-size:.78rem;color:var(--cx-t3)">Monaco editor — attach a running container to edit live files</p>`;
+
+      /* Store as IDE context for AI */
+      window.__ideContext = `// File: ${filename}\n// (Mount a container workspace to load actual content)`;
+    }
+
+    function getFileIcon(name) {
+      if (name.endsWith('.py')) return { cls: 'fa-file-code', color: '#3572A5' };
+      if (name.endsWith('.js')) return { cls: 'fa-file-code', color: '#f1e05a' };
+      if (name.endsWith('.html')) return { cls: 'fa-file-code', color: '#e34c26' };
+      if (name.endsWith('.yml') || name.endsWith('.yaml')) return { cls: 'fa-file-code', color: var_cx_orange() };
+      if (name.startsWith('Docker')) return { cls: 'fa-file-alt', color: '#2496ed' };
+      return { cls: 'fa-file-alt', color: '#7b9db8' };
+    }
+    function var_cx_orange() { return '#ff7c42'; }
+
+    function activateTab(tab) {
+      document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    }
+
+    function closeTab(e, tab) {
+      e.stopPropagation();
+      const wasActive = tab.classList.contains('active');
+      tab.remove();
+      if (wasActive) {
+        const remaining = document.querySelectorAll('.ws-tab');
+        if (remaining.length) remaining[remaining.length - 1].classList.add('active');
+      }
+    }
+
+    /* ── Monaco loader (lazy) ──────────────────────────────────────── */
+    function loadMonaco() {
+      if (window._monacoLoaded) return;
+      window._monacoLoaded = true;
+
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js';
+      s.onload = () => {
+        window.require.config({ paths: { vs: 'https://unpkg.com/monaco-editor@0.45.0/min/vs' } });
+        window.require(['vs/editor/editor.main'], () => {
+          document.getElementById('editorPlaceholder').style.display = 'none';
+          const editorEl = document.getElementById('monacoEditor');
+          editorEl.style.display = 'block';
+          window._monacoEditor = monaco.editor.create(editorEl, {
+            value: '# Open a file from the explorer to start editing\n',
+            language: 'python',
+            theme: 'vs-dark',
+            fontSize: 13,
+            fontFamily: '"JetBrains Mono","DM Mono",monospace',
+            fontLigatures: true,
+            minimap: { enabled: true },
+            scrollBeyondLastLine: false,
+            lineNumbers: 'on',
+            glyphMargin: true,
+            automaticLayout: true,
+          });
+          /* Store editor content as AI context */
+          window._monacoEditor.onDidChangeModelContent(() => {
+            window.__ideContext = window._monacoEditor.getValue();
+          });
+        });
+      };
+      document.head.appendChild(s);
+    }
+
+    /* ── Terminal maximize toggle ──────────────────────────────────── */
+    let _termMaximised = false;
+    function toggleTermMax() {
+      const wrap = document.getElementById('wsTerminalWrap');
+      _termMaximised = !_termMaximised;
+      wrap.style.height = _termMaximised ? 'calc(100% - 44px)' : '260px';
+      setTimeout(CloudXTerminal.fit, 100);
+    }
+
+    /* ── Resize handles ────────────────────────────────────────────── */
+    function initResize(handleId, targetId, axis) {
+      const handle = document.getElementById(handleId);
+      const target = document.getElementById(targetId);
+      if (!handle || !target) return;
+
+      let start, startSize;
+
+      handle.addEventListener('mousedown', e => {
+        start = axis === 'x' ? e.clientX : e.clientY;
+        startSize = axis === 'x' ? target.offsetWidth : target.offsetHeight;
+        handle.classList.add('dragging');
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = axis === 'x' ? 'col-resize' : 'row-resize';
+
+        const onMove = ev => {
+          const delta = (axis === 'x' ? ev.clientX : ev.clientY) - start;
+          const newSize = Math.max(
+            axis === 'x' ? 140 : 80,
+            Math.min(axis === 'x' ? 520 : 600, startSize + delta)
+          );
+          if (axis === 'x') target.style.width = newSize + 'px';
+          else target.style.height = newSize + 'px';
+          CloudXTerminal.fit();
+        };
+
+        const onUp = () => {
+          handle.classList.remove('dragging');
+          document.body.style.userSelect = '';
+          document.body.style.cursor = '';
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        };
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initResize('resizeLeft', 'wsFiletree', 'x');
+      initResize('resizeRight', 'wsAiPanel', 'x');
+      initResize('resizeTerminal', 'wsTerminalWrap', 'y');
+    });
+
+    /* ── AI send (workspace panel) ─────────────────────────────────── */
+    async function wsAISend() {
+      const queryEl = document.getElementById('wsAiQuery');
+      const sendBtn = document.getElementById('wsAiSendBtn');
+      const messages = document.getElementById('wsAiMessages');
+      const useCtx = document.getElementById('wsContextToggle').checked;
+      const query = queryEl.value.trim();
+      if (!query) return;
+
+      wsAppendMsg('user', query);
+      queryEl.value = '';
+      sendBtn.disabled = true;
+
+      const typingId = 'ws-typing-' + Date.now();
+      messages.insertAdjacentHTML('beforeend',
+        `<div class="ai-msg assistant" id="${typingId}">
+       <div class="ai-typing"><div class="ai-typing-dots">
+         <span></span><span></span><span></span>
+       </div></div>
+     </div>`);
+      messages.scrollTop = messages.scrollHeight;
+
+      const codeContext = useCtx ? (window.__ideContext || '') : '';
+
+      try {
+        const resp = await fetch('/api/ai/assist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_query: query, code_context: codeContext })
+        });
+        const data = await resp.json();
+        document.getElementById(typingId)?.remove();
+        wsAppendMsg('assistant', data.success ? data.suggestion : ('⚠️ ' + (data.error || 'Error')), true);
+      } catch (e) {
+        document.getElementById(typingId)?.remove();
+        wsAppendMsg('assistant', '⚠️ **Network error:** ' + e.message, true);
+      } finally {
+        sendBtn.disabled = false;
+        messages.scrollTop = messages.scrollHeight;
+      }
+    }
+
+    function wsAppendMsg(role, text, isMarkdown = false) {
+      const messages = document.getElementById('wsAiMessages');
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const content = isMarkdown && typeof marked !== 'undefined'
+        ? marked.parse(text)
+        : text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\n/g, '<br>');
+      const d = document.createElement('div');
+      d.className = `ai-msg ${role}`;
+      d.innerHTML = `<div class="ai-msg-bubble">${content}</div><span class="ai-msg-time">${now}</span>`;
+      messages.appendChild(d);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('wsAiQuery')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); wsAISend(); }
+      });
+    });
+
+    /* ── Toast helper ──────────────────────────────────────────────── */
+    function toast(msg, type = 'info') {
+      const c = document.getElementById('wsToasts');
+      const el = document.createElement('div');
+      el.className = `ws-toast ${type}`;
+      el.textContent = msg;
+      c.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('show'));
+      setTimeout(() => {
+        el.classList.remove('show');
+        setTimeout(() => el.remove(), 350);
+      }, 3000);
+    }
+
+    window.showToast = toast;
+  </script>
+</body>
+
+</html>

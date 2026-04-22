@@ -1,14 +1,13 @@
 version: '3.9'
 
 services:
-  # PostgreSQL Database
   db:
     image: postgres:16-alpine
     container_name: cloudx-postgres
     environment:
+
       POSTGRES_DB: ${POSTGRES_DB:-cloudx}
       POSTGRES_USER: ${POSTGRES_USER:-cloudx_user}
-      # UPDATED: Hardcoded to match your .env to prevent auth errors
       POSTGRES_PASSWORD: cloudx_9648
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
     ports:
@@ -16,7 +15,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      # Updated test to use the hardcoded password variable if needed
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cloudx_user} -d ${POSTGRES_DB:-cloudx}"]
       interval: 10s
       timeout: 5s
@@ -38,20 +36,24 @@ services:
       FLASK_ENV: ${FLASK_ENV:-production}
       FLASK_DEBUG: ${FLASK_DEBUG:-0}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+      MONITOR_POLL_INTERVAL: ${MONITOR_POLL_INTERVAL:-15}
+      TERMINAL_BUFFER_BYTES: ${TERMINAL_BUFFER_BYTES:-4096}
+      TERMINAL_FLUSH_INTERVAL: ${TERMINAL_FLUSH_INTERVAL:-0.05}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-cloudx}
       POSTGRES_USER: ${POSTGRES_USER:-cloudx_user}
-      # UPDATED: Hardcoded to ensure it matches the DB
       POSTGRES_PASSWORD: cloudx_9648
     ports:
-      - "5001:5000"  # CHANGED: mapped to 5001 to avoid 'Address already in use' errors
+      - "5001:5000"
     volumes:
       - ./app/app.py:/app/app.py:ro
       - ./app/templates:/app/templates:ro
+      - ./app/monitor.py:/app/monitor.py:ro
       - ./app/static:/app/static:ro
       - app_logs:/app/logs
-      # CRITICAL ADDITION: Gives the app permission to control Docker
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db:
@@ -65,8 +67,6 @@ services:
     networks:
       - cloudx-network
     restart: unless-stopped
-    # Note: We keep security_opt here for the app, but it needs access to the socket.
-    # If you get permission errors later, we might need to remove 'no-new-privileges' for the app.
     security_opt:
       - no-new-privileges:true
     cap_drop:

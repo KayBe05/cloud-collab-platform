@@ -18,6 +18,16 @@ import logging
 from functools import wraps
 import docker
 import time
+import threading
+
+# ── Optional: Google Generative AI ────────────────────────────────────────────
+try:
+    import google.generativeai as genai
+    _GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    _GENAI_AVAILABLE = False
+    logging.warning("google-generativeai not installed. AI assistant will be disabled.")
 
 try:
     from monitor import SystemMonitor
@@ -409,7 +419,6 @@ def api_projects():
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
-                    # NOTICE: We are now saving current_user.id as the owner_id
                     cursor.execute(
                         """INSERT INTO projects (name, description, repository_url, status, owner_id, tags) 
                            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
@@ -425,7 +434,7 @@ def api_projects():
             logger.error(f"Project creation error: {e}")
             return jsonify({'success': False, 'error': str(e)}), 400
     
-    # GET request: ONLY fetch projects belonging to the logged-in user
+    # GET: only fetch projects belonging to the logged-in user
     try:
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
@@ -433,7 +442,6 @@ def api_projects():
         
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
-                # FIX: Passed current_user.id directly as an integer
                 cursor.execute("""
                     SELECT * FROM projects 
                     WHERE owner_id = %s
@@ -442,7 +450,6 @@ def api_projects():
                 """, (current_user.id, limit, offset))
                 projects_list = cursor.fetchall()
                 
-                # FIX: Passed current_user.id directly as an integer
                 cursor.execute("SELECT COUNT(*) as total FROM projects WHERE owner_id = %s", (current_user.id,))
                 total = cursor.fetchone()['total']
         
@@ -466,7 +473,6 @@ def delete_project(project_id):
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
-                # Ensure the project belongs to the current user
                 cursor.execute(
                     "SELECT name FROM projects WHERE id = %s AND owner_id = %s",
                     (project_id, current_user.id)
@@ -509,7 +515,6 @@ def api_deployments():
     if request.method == 'POST':
         data = request.get_json()
         try:
-            # Verify the project belongs to current user
             with get_db_connection() as conn:
                 with conn.cursor(row_factory=dict_row) as cursor:
                     cursor.execute(
@@ -562,7 +567,6 @@ def get_project_deployments(project_id):
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
-                # Verify ownership before returning deployment data
                 cursor.execute(
                     "SELECT id FROM projects WHERE id = %s AND owner_id = %s",
                     (project_id, current_user.id)
@@ -689,6 +693,138 @@ def api_activities():
         return jsonify({'error': str(e)}), 500
 
 
+# ── API: AI CODE ASSISTANT ─────────────────────────────────────────────────────
+
+# Gemini model name – override via env var if needed
+_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
+# System prompt that keeps responses focused and structured
+_AI_SYSTEM_PROMPT = """You are an expert software engineering assistant embedded in CloudX,
+a cloud collaborative IDE. Your role is to help developers understand, debug, and improve code.
+
+Guidelines:
+- Be concise but thorough. Lead with the fix or answer, then explain.
+- When suggesting code changes, provide complete, runnable snippets.
+- Highlight potential security issues, performance bottlenecks, or anti-patterns.
+- Wrap all code blocks in markdown fences with the correct language tag.
+- Never refuse a reasonable engineering request. If a task is ambiguous, ask one clarifying question.
+"""
+
+
+def _get_gemini_client():
+    """
+    Lazily configure and return the Gemini GenerativeModel.
+    Raises RuntimeError with a clear message if the API key is absent or the
+    library is not installed.
+    """
+    if not _GENAI_AVAILABLE:
+        raise RuntimeError(
+            "google-generativeai is not installed. "
+            "Add it to requirements.txt and rebuild the container."
+        )
+
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "AI assistant is not configured. "
+            "Set the GEMINI_API_KEY environment variable."
+        )
+
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel(
+        model_name=_GEMINI_MODEL,
+        system_instruction=_AI_SYSTEM_PROMPT,
+    )
+
+
+@app.route('/api/ai/assist', methods=['POST'])
+@login_required
+def ai_assist():
+    """
+    AI Code Assistant endpoint.
+
+    Expected JSON body:
+        {
+            "code_context": "<the relevant source code>",
+            "user_query":   "<what the user wants to do / fix / understand>"
+        }
+
+    Returns:
+        {
+            "success":    true,
+            "suggestion": "<markdown-formatted response from Gemini>",
+            "model":      "gemini-1.5-flash",
+            "usage":      { "prompt_tokens": N, "candidates_tokens": N }
+        }
+    """
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Request body must be JSON.'}), 400
+
+    code_context = (data.get('code_context') or '').strip()
+    user_query   = (data.get('user_query')   or '').strip()
+
+    if not user_query:
+        return jsonify({'success': False, 'error': "'user_query' is required."}), 400
+
+    # Build the prompt sent to Gemini
+    prompt_parts = []
+    if code_context:
+        prompt_parts.append(
+            f"### Code Context\n```\n{code_context}\n```\n"
+        )
+    prompt_parts.append(f"### Question / Task\n{user_query}")
+    full_prompt = "\n".join(prompt_parts)
+
+    try:
+        model = _get_gemini_client()
+    except RuntimeError as exc:
+        logger.warning("AI assist – configuration error: %s", exc)
+        return jsonify({'success': False, 'error': str(exc)}), 503
+
+    try:
+        response = model.generate_content(full_prompt)
+
+        # Extract text safely – Gemini may return multiple candidates/parts
+        suggestion = ""
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if hasattr(part, 'text'):
+                    suggestion += part.text
+        suggestion = suggestion.strip()
+
+        # Usage metadata (present on most Gemini responses)
+        usage = {}
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            usage = {
+                'prompt_tokens':     getattr(response.usage_metadata, 'prompt_token_count',     None),
+                'candidates_tokens': getattr(response.usage_metadata, 'candidates_token_count', None),
+            }
+
+        log_activity(
+            'ai_assist_request',
+            f"query_len={len(user_query)} ctx_len={len(code_context)} "
+            f"tokens={usage.get('prompt_tokens', '?')}",
+            severity='info'
+        )
+
+        return jsonify({
+            'success':    True,
+            'suggestion': suggestion,
+            'model':      _GEMINI_MODEL,
+            'usage':      usage,
+        })
+
+    except Exception as exc:
+        logger.error("AI assist – Gemini API error: %s", exc, exc_info=True)
+        # Surface a sanitised error; never leak raw API internals to the client
+        return jsonify({
+            'success': False,
+            'error':   'The AI assistant encountered an error. Please try again.',
+            'detail':  str(exc),   # visible in logs; stripped in production if desired
+        }), 502
+
+
 # ── API: CONTAINERS (tenant-isolated) ─────────────────────────────────────────
 
 def _get_user_project_ids():
@@ -709,7 +845,7 @@ def _container_belongs_to_user(container_name, user_project_ids):
         if name.startswith('cloudx-project-'):
             parts = name.split('-')
             if len(parts) >= 3:
-                project_id_str = str(parts[2])  # The ID is the 3rd element
+                project_id_str = str(parts[2])
                 return project_id_str in user_project_ids
     except Exception:
         pass
@@ -797,7 +933,6 @@ def container_logs(container_id):
 def launch_workspace(project_id):
     """Orchestrator Endpoint - Secured with Tenant Isolation & Persistent Storage"""
     
-    # 1. Security Check: Does the current user own this project?
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
@@ -812,13 +947,9 @@ def launch_workspace(project_id):
         client = docker.from_env()
         session_password = secrets.token_hex(4)
         
-        # Container naming logic
         container_name = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
-        
-        # 2. THE NEW FEATURE: Create a unique, permanent storage drive for this specific project
         volume_name = f"cloudx_data_u{current_user.id}_p{project_id}"
         
-        # 3. Launch the container and attach the hard drive to the /workspace folder
         container = client.containers.run(
             image="cloudx-workspace:latest",
             detach=True,
@@ -960,7 +1091,7 @@ def get_dashboard_stats():
     return stats
 
 
-# ── WEBSOCKET EVENTS ───────────────────────────────────────────────────────────
+# ── WEBSOCKET EVENTS 
 
 @socketio.on('connect')
 def handle_connect():
@@ -1008,9 +1139,75 @@ def server_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 
-# ── TERMINAL SESSIONS ──────────────────────────────────────────────────────────
+# ── TERMINAL SESSIONS ───────
 
 terminal_sessions = {}
+
+TERMINAL_BUFFER_BYTES    = int(os.getenv("TERMINAL_BUFFER_BYTES",    4096))   # 4 KiB
+TERMINAL_FLUSH_INTERVAL  = float(os.getenv("TERMINAL_FLUSH_INTERVAL", 0.05))  # 50 ms
+
+
+def _buffered_docker_reader(container_id: str, exec_sock, sid: str):
+    raw_sock = exec_sock._sock if hasattr(exec_sock, '_sock') else exec_sock
+
+    # Set the socket to non-blocking so we can implement the time-based flush
+    # without being stuck waiting for data forever.
+    raw_sock.setblocking(False)
+
+    buf: list[bytes] = []
+    buf_size: int = 0
+    last_flush: float = time.monotonic()
+
+    def flush():
+        nonlocal buf, buf_size, last_flush
+        if not buf:
+            return
+        payload = b"".join(buf).decode("utf-8", errors="ignore")
+        socketio.emit("terminal_output", {"output": payload}, room=sid)
+        buf = []
+        buf_size = 0
+        last_flush = time.monotonic()
+
+    try:
+        import select  # POSIX-only; available on Linux containers
+
+        while True:
+            now = time.monotonic()
+            time_until_flush = TERMINAL_FLUSH_INTERVAL - (now - last_flush)
+
+            # Wait for data with a timeout equal to the remaining flush window.
+            # select() returns immediately if data is already available.
+            readable, _, _ = select.select(
+                [raw_sock], [], [],
+                max(0.0, time_until_flush)
+            )
+
+            if readable:
+                try:
+                    chunk = raw_sock.recv(4096)
+                except BlockingIOError:
+                    chunk = b""
+
+                if not chunk:
+                    # EOF – the container exec session ended
+                    break
+
+                buf.append(chunk)
+                buf_size += len(chunk)
+
+                # Size-based flush
+                if buf_size >= TERMINAL_BUFFER_BYTES:
+                    flush()
+            else:
+                # Timeout expired with no data – time-based flush
+                flush()
+
+    except Exception as exc:
+        logger.error("Terminal reader error (sid=%s): %s", sid, exc)
+    finally:
+        # Drain any remaining bytes so the user sees the last line
+        flush()
+        logger.debug("Terminal reader exited (sid=%s)", sid)
 
 
 @socketio.on('terminal_join')
@@ -1042,22 +1239,14 @@ def on_terminal_join(data):
         sock = client.api.exec_start(exec_inst['Id'], detach=False, tty=True, socket=True)
         terminal_sessions[sid] = sock
 
-        def read_docker_output():
-            try:
-                raw_sock = sock._sock if hasattr(sock, '_sock') else sock
-                while True:
-                    data = raw_sock.recv(1024)
-                    if not data:
-                        break
-                    socketio.emit(
-                        'terminal_output',
-                        {'output': data.decode('utf-8', errors='ignore')},
-                        room=sid
-                    )
-            except Exception as e:
-                logger.error(f"Terminal read error: {e}")
-
-        socketio.start_background_task(target=read_docker_output)
+        # Launch the buffered reader as a SocketIO background task so it runs
+        # inside the same async context as the rest of the application.
+        socketio.start_background_task(
+            target=_buffered_docker_reader,
+            container_id=container_id,
+            exec_sock=sock,
+            sid=sid,
+        )
 
     except Exception as e:
         logger.error(f"Terminal connect error: {e}")

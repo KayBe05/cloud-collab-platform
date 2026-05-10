@@ -63,3 +63,17 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+
+# --- CloudX Specific Additions ---
+# Flask instance folder (contains local DBs)
+instance/
+
+# Security: Catch all variations of environment files
+.env*
+!.env.example
+
+# Docker local state
+.docker/
+
+# Large data/volumes (if you map volumes locally)
+cloudx_data_*/

@@ -4,13 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up — CloudX Platform</title>
+  <title>Create Account — CloudX Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
   <style>
+    /* ── Reset & Variables ─────────────────────────────────────────────── */
     *,
     *::before,
     *::after {
@@ -21,38 +22,60 @@
 
     :root {
       --primary: #0EA5E9;
-      --primary-dark: #0284C7;
+      --primary-hover: #0284C7;
+      --primary-light: #38BDF8;
       --secondary: #06B6D4;
       --accent: #8B5CF6;
       --success: #10B981;
       --error: #EF4444;
-      --bg-dark: #0A1628;
+      --warning: #F59E0B;
+
       --bg-card: #FFFFFF;
-      --text-muted: #94A3B8;
-      --border: #E2E8F0;
-      --radius: 14px;
+      --bg-secondary: #F8FAFC;
+      --bg-sidebar: #0F172A;
+
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-tertiary: #94A3B8;
+      --border-color: #E2E8F0;
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -2px rgba(0, 0, 0, .1);
+
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+
+      --transition-fast: 150ms cubic-bezier(.4, 0, .2, 1);
+      --transition-base: 200ms cubic-bezier(.4, 0, .2, 1);
     }
 
     html,
     body {
       height: 100%;
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg-dark);
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-sidebar);
     }
 
+    /* ── Two-Column Shell ──────────────────────────────────────────────── */
     .auth-shell {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1.1fr 1fr;
       min-height: 100vh;
     }
 
+    /* ══════════════════════════════════════════════════════════════
+       LEFT PANEL — Hero / Brand
+    ══════════════════════════════════════════════════════════════ */
     .hero-panel {
       position: relative;
-      background: var(--bg-dark);
+      background: #060E1C;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 3rem;
+      padding: 3rem 3.5rem;
       overflow: hidden;
     }
 
@@ -60,164 +83,244 @@
       content: '';
       position: absolute;
       inset: 0;
-      background-image: linear-gradient(rgba(14, 165, 233, .07) 1px, transparent 1px), linear-gradient(90deg, rgba(14, 165, 233, .07) 1px, transparent 1px);
-      background-size: 48px 48px;
-      animation: grid-drift 20s linear infinite;
+      background-image:
+        linear-gradient(rgba(14, 165, 233, .06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14, 165, 233, .06) 1px, transparent 1px);
+      background-size: 52px 52px;
+      animation: grid-drift 25s linear infinite;
     }
 
     @keyframes grid-drift {
       to {
-        background-position: 48px 48px;
+        background-position: 52px 52px;
       }
     }
 
     .orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.25;
-      animation: orb-pulse 8s ease-in-out infinite alternate;
+      filter: blur(90px);
+      pointer-events: none;
     }
 
     .orb-1 {
-      width: 380px;
-      height: 380px;
+      width: 420px;
+      height: 420px;
       background: var(--primary);
-      top: -100px;
-      left: -100px;
+      opacity: .14;
+      top: -120px;
+      left: -120px;
+      animation: orb-drift 12s ease-in-out infinite alternate;
     }
 
     .orb-2 {
-      width: 300px;
-      height: 300px;
+      width: 320px;
+      height: 320px;
       background: var(--accent);
-      bottom: 0;
-      right: -80px;
-      animation-delay: 3s;
+      opacity: .12;
+      bottom: -60px;
+      right: -60px;
+      animation: orb-drift 9s ease-in-out infinite alternate-reverse;
     }
 
     .orb-3 {
-      width: 200px;
-      height: 200px;
+      width: 220px;
+      height: 220px;
       background: var(--secondary);
-      top: 50%;
-      left: 40%;
-      animation-delay: 6s;
+      opacity: .10;
+      top: 45%;
+      left: 38%;
+      animation: orb-drift 15s ease-in-out infinite alternate;
     }
 
-    @keyframes orb-pulse {
+    @keyframes orb-drift {
       from {
-        transform: scale(1) rotate(0deg);
+        transform: translate(0, 0) scale(1);
       }
 
       to {
-        transform: scale(1.2) rotate(15deg);
+        transform: translate(20px, 30px) scale(1.15);
       }
     }
 
+    /* Logo */
     .hero-logo {
       position: relative;
-      z-index: 1;
+      z-index: 2;
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: .9rem;
     }
 
     .logo-mark {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 14px;
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       color: #fff;
-      box-shadow: 0 0 32px rgba(14, 165, 233, .5);
+      box-shadow: 0 0 28px rgba(14, 165, 233, .5);
     }
 
-    .logo-name {
-      font-family: 'Roboto', sans-serif;
-      font-size: 1.6rem;
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.5rem;
       font-weight: 800;
       color: #fff;
-      letter-spacing: -0.5px;
+      letter-spacing: -.5px;
     }
 
-    .logo-name span {
+    .logo-text span {
       color: var(--primary);
     }
 
+    /* Hero body */
     .hero-body {
       position: relative;
-      z-index: 1;
+      z-index: 2;
     }
 
-    .hero-eyebrow {
+    .hero-tag {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.78rem;
-      font-weight: 500;
+      gap: .5rem;
+      font-size: .72rem;
+      font-weight: 600;
       letter-spacing: 2px;
       text-transform: uppercase;
       color: var(--primary);
       background: rgba(14, 165, 233, .1);
       border: 1px solid rgba(14, 165, 233, .25);
-      border-radius: 100px;
-      padding: 0.375rem 1rem;
-      margin-bottom: 1.5rem;
+      border-radius: var(--radius-full);
+      padding: .35rem 1rem;
+      margin-bottom: 1.75rem;
     }
 
     .hero-headline {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(2.2rem, 3.5vw, 3.4rem);
+      font-size: clamp(2rem, 2.8vw, 3rem);
       font-weight: 800;
-      line-height: 1.08;
+      line-height: 1.1;
       color: #fff;
       letter-spacing: -1.5px;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     .hero-headline .grad {
-      background: linear-gradient(100deg, var(--primary), var(--secondary));
+      background: linear-gradient(110deg, var(--primary-light), var(--secondary));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
     .hero-sub {
-      font-size: 1.05rem;
+      font-size: 1rem;
       color: #7E9BB5;
-      line-height: 1.75;
-      max-width: 420px;
+      line-height: 1.8;
+      max-width: 400px;
+      margin-bottom: 2rem;
+    }
+
+    /* Network graphic (same as login) */
+    .network-graphic {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
       margin-bottom: 2.5rem;
     }
 
+    .network-graphic svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Step indicators — signup-specific benefit list */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: .9rem 1rem;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(8px);
+      transition: all var(--transition-base);
+    }
+
+    .step:hover {
+      background: rgba(14, 165, 233, .07);
+      border-color: rgba(14, 165, 233, .2);
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .step-text {
+      flex: 1;
+    }
+
+    .step-text strong {
+      display: block;
+      color: #E2E8F0;
+      font-size: .88rem;
+      font-weight: 600;
+      margin-bottom: .2rem;
+    }
+
+    .step-text span {
+      color: #64849E;
+      font-size: .8rem;
+      line-height: 1.5;
+    }
+
+    /* Feature badges */
     .hero-badges {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem;
+      gap: .65rem;
     }
 
     .badge {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
+      gap: .45rem;
+      padding: .45rem .9rem;
       background: rgba(255, 255, 255, .05);
       border: 1px solid rgba(255, 255, 255, .1);
-      border-radius: 100px;
+      border-radius: var(--radius-full);
       color: #CBD5E1;
-      font-size: 0.85rem;
+      font-size: .8rem;
       font-weight: 500;
       backdrop-filter: blur(8px);
-      transition: all .25s;
+      transition: all var(--transition-base);
     }
 
     .badge i {
       color: var(--primary);
-      font-size: .8rem;
+      font-size: .75rem;
     }
 
     .badge:hover {
@@ -228,44 +331,49 @@
 
     .hero-footer {
       position: relative;
-      z-index: 1;
-      color: #3E5A74;
-      font-size: 0.8rem;
+      z-index: 2;
+      color: #2E4A62;
+      font-size: .78rem;
     }
 
+    /* ══════════════════════════════════════════════════════════════
+       RIGHT PANEL — Form
+    ══════════════════════════════════════════════════════════════ */
     .form-panel {
-      background: #F8FAFC;
+      background: var(--bg-card);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 3rem 4rem;
+      padding: 2.5rem 3.5rem;
+      border-left: 1px solid rgba(255, 255, 255, .05);
       overflow-y: auto;
     }
 
     .form-card {
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
     }
 
     .form-title {
-      font-family: 'Roboto', sans-serif;
-      font-size: 2rem;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.9rem;
       font-weight: 800;
-      color: #0F172A;
-      letter-spacing: 1.75px;
-      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+      letter-spacing: -.75px;
+      margin-bottom: .4rem;
     }
 
     .form-subtitle {
-      color: #64748B;
-      font-size: 0.95rem;
+      color: var(--text-secondary);
+      font-size: .92rem;
       margin-bottom: 2rem;
     }
 
+    /* Flash messages */
     .flash-list {
       list-style: none;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
       display: flex;
       flex-direction: column;
       gap: .5rem;
@@ -274,10 +382,10 @@
     .flash {
       display: flex;
       align-items: center;
-      gap: .625rem;
-      padding: .75rem 1rem;
-      border-radius: 10px;
-      font-size: .875rem;
+      gap: .6rem;
+      padding: .7rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: .85rem;
       font-weight: 500;
     }
 
@@ -299,109 +407,56 @@
       border: 1px solid #93C5FD;
     }
 
-    .form-group {
-      margin-bottom: 1.25rem;
+    /* Social login */
+    .social-row {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      margin-bottom: 1.5rem;
     }
 
-    label {
-      display: block;
-      font-size: .85rem;
+    .btn-social {
+      width: 100%;
+      padding: .8rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .75rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: .92rem;
       font-weight: 600;
-      color: #374151;
-      margin-bottom: .5rem;
-      letter-spacing: .01em;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all var(--transition-base);
+      box-shadow: var(--shadow-sm);
     }
 
-    .input-wrap {
-      position: relative;
-    }
-
-    .input-wrap i {
-      position: absolute;
-      left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94A3B8;
-      font-size: .9rem;
-      pointer-events: none;
-      transition: color .2s;
-    }
-
-    input[type="text"],
-    input[type="email"],
-    input[type="password"] {
-      width: 100%;
-      padding: .875rem 1rem .875rem 2.75rem;
-      border: 1.5px solid #E2E8F0;
-      border-radius: var(--radius);
-      background: #fff;
-      color: #0F172A;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .95rem;
-      transition: border-color .2s, box-shadow .2s;
-      outline: none;
-    }
-
-    input:focus {
+    .btn-social:hover {
+      background: var(--bg-secondary);
       border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(14, 165, 233, .12);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
     }
 
-    input:focus~i,
-    .input-wrap:focus-within i {
-      color: var(--primary);
+    .btn-social .social-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .toggle-pw {
-      position: absolute;
-      right: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: #94A3B8;
-      cursor: pointer;
-      padding: 0;
-      font-size: .9rem;
-      transition: color .2s;
-    }
-
-    .toggle-pw:hover {
-      color: var(--primary);
-    }
-
-    .btn-submit {
-      width: 100%;
-      padding: 1rem;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      font-family: 'Syne', sans-serif;
-      font-size: 1rem;
-      font-weight: 700;
-      letter-spacing: .25px;
-      cursor: pointer;
-      transition: transform .2s, box-shadow .2s, opacity .2s;
-      box-shadow: 0 4px 20px rgba(14, 165, 233, .35);
-      margin-top: 1rem;
-    }
-
-    .btn-submit:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(14, 165, 233, .45);
-    }
-
-    .btn-submit:active {
-      transform: translateY(0);
-    }
-
+    /* Divider */
     .divider {
       display: flex;
       align-items: center;
       gap: 1rem;
-      margin: 1.5rem 0;
-      color: #CBD5E1;
+      margin: 1.25rem 0;
+      color: var(--text-tertiary);
       font-size: .8rem;
     }
 
@@ -410,13 +465,168 @@
       content: '';
       flex: 1;
       height: 1px;
-      background: #E2E8F0;
+      background: var(--border-color);
     }
 
+    /* Form groups */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: .4rem;
+      letter-spacing: .01em;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      font-size: .85rem;
+      pointer-events: none;
+      transition: color var(--transition-fast);
+    }
+
+    .input-wrap:focus-within .input-icon {
+      color: var(--primary);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: .82rem 1rem .82rem 2.75rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: .92rem;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, .12);
+      background: var(--bg-card);
+    }
+
+    input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .toggle-pw {
+      position: absolute;
+      right: .9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: .85rem;
+      transition: color var(--transition-fast);
+    }
+
+    .toggle-pw:hover {
+      color: var(--primary);
+    }
+
+    /* Password strength */
+    .strength-row {
+      display: flex;
+      gap: .3rem;
+      margin-top: .45rem;
+    }
+
+    .strength-bar {
+      flex: 1;
+      height: 3px;
+      background: var(--border-color);
+      border-radius: var(--radius-full);
+      transition: background .3s;
+    }
+
+    .strength-bar.active-weak {
+      background: var(--error);
+    }
+
+    .strength-bar.active-medium {
+      background: var(--warning);
+    }
+
+    .strength-bar.active-strong {
+      background: var(--success);
+    }
+
+    .strength-label {
+      font-size: .75rem;
+      color: var(--text-tertiary);
+      margin-top: .3rem;
+    }
+
+    /* Terms note */
+    .terms-note {
+      font-size: .78rem;
+      color: var(--text-tertiary);
+      text-align: center;
+      margin-top: 1rem;
+      line-height: 1.5;
+    }
+
+    .terms-note a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .terms-note a:hover {
+      text-decoration: underline;
+    }
+
+    /* Submit */
+    .btn-submit {
+      width: 100%;
+      padding: .95rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-family: 'Syne', sans-serif;
+      font-size: .98rem;
+      font-weight: 700;
+      letter-spacing: .25px;
+      cursor: pointer;
+      transition: transform var(--transition-base), box-shadow var(--transition-base);
+      box-shadow: 0 4px 18px rgba(14, 165, 233, .4);
+      margin-top: 1.25rem;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(14, 165, 233, .5);
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    /* Switch link */
     .switch-link {
       text-align: center;
-      font-size: .9rem;
-      color: #64748B;
+      font-size: .88rem;
+      color: var(--text-secondary);
+      margin-top: 1.5rem;
     }
 
     .switch-link a {
@@ -430,6 +640,7 @@
       text-decoration: underline;
     }
 
+    /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 900px) {
       .auth-shell {
         grid-template-columns: 1fr;
@@ -440,7 +651,7 @@
       }
 
       .form-panel {
-        padding: 2.5rem 2rem;
+        padding: 2.5rem 1.5rem;
       }
     }
   </style>
@@ -450,6 +661,7 @@
 
   <div class="auth-shell">
 
+    <!-- ══ LEFT — HERO ══════════════════════════════════════════════════════ -->
     <div class="hero-panel">
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
@@ -457,22 +669,137 @@
 
       <div class="hero-logo">
         <div class="logo-mark"><i class="fas fa-cloud"></i></div>
-        <span class="logo-name">Cloud<span>X</span></span>
+        <span class="logo-text">Cloud<span>X</span></span>
       </div>
 
       <div class="hero-body">
-        <div class="hero-eyebrow">
-          <i class="fas fa-circle" style="font-size:.45rem"></i>
-          Enterprise Cloud Platform
+        <div class="hero-tag">
+          <i class="fas fa-circle" style="font-size:.4rem"></i>
+          Enterprise Cloud Orchestration
         </div>
+
         <h1 class="hero-headline">
-          Build. Deploy.<br>
-          <span class="grad">Scale Infinitely.</span>
+          CloudX: Automating the future<br>
+          of <span class="grad">decentralized computing.</span>
         </h1>
         <p class="hero-sub">
-          A unified workspace for your containers, deployments,
-          and infrastructure — secured by tenant isolation.
+          Your isolated container workspace is one login away.
         </p>
+
+        <!-- Network graphic (shared visual language) -->
+        <div class="network-graphic">
+          <svg viewBox="0 0 480 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <filter id="glow2" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <linearGradient id="edgeGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0EA5E9" stop-opacity=".1" />
+                <stop offset="50%" stop-color="#38BDF8" stop-opacity=".7" />
+                <stop offset="100%" stop-color="#06B6D4" stop-opacity=".1" />
+              </linearGradient>
+              <path id="q1" d="M 60,100 Q 170,50 240,100" fill="none" />
+              <path id="q2" d="M 240,100 Q 330,55 420,75" fill="none" />
+              <path id="q3" d="M 240,100 Q 330,145 420,130" fill="none" />
+              <path id="q4" d="M 60,100 Q 150,150 240,100" fill="none" />
+            </defs>
+
+            <!-- Server rack left -->
+            <g transform="translate(8,60)" opacity=".85">
+              <rect x="0" y="0" width="42" height="80" rx="4" fill="#0F2744" stroke="#1E3A5F" stroke-width="1.2" />
+              <rect x="4" y="5" width="34" height="8" rx="2" fill="#0C3460" />
+              <rect x="4" y="16" width="34" height="8" rx="2" fill="#0C3460" />
+              <rect x="4" y="27" width="34" height="8" rx="2" fill="#0C3460" />
+              <rect x="4" y="38" width="34" height="8" rx="2" fill="#0C3460" />
+              <circle cx="35" cy="9" r="2" fill="#10B981" />
+              <circle cx="35" cy="20" r="2" fill="#0EA5E9" />
+              <circle cx="35" cy="31" r="2" fill="#10B981" />
+              <circle cx="35" cy="42" r="2" fill="#F59E0B" />
+            </g>
+
+            <!-- Edges -->
+            <g stroke="url(#edgeGrad2)" stroke-width="1.2" fill="none" opacity=".8">
+              <path d="M 60,100 Q 170,50 240,100" />
+              <path d="M 60,100 Q 150,150 240,100" />
+              <path d="M 240,100 Q 330,55 420,75" />
+              <path d="M 240,100 Q 330,145 420,130" />
+            </g>
+
+            <!-- Hub node -->
+            <circle cx="240" cy="100" r="22" fill="#0A1F3A" stroke="#0EA5E9" stroke-width="1.8" filter="url(#glow2)" />
+            <circle cx="240" cy="100" r="14" fill="#0EA5E9" opacity=".15" />
+            <text x="240" y="105" text-anchor="middle" font-size="11" fill="#38BDF8"
+              font-family="JetBrains Mono, monospace" font-weight="600">HUB</text>
+
+            <!-- Leaf nodes -->
+            <circle cx="60" cy="100" r="8" fill="#0F2744" stroke="#0EA5E9" stroke-width="1.5" filter="url(#glow2)" />
+            <circle cx="60" cy="100" r="3.5" fill="#0EA5E9" />
+            <rect x="406" y="61" width="28" height="28" rx="5" fill="#0F2744" stroke="#06B6D4" stroke-width="1.5" />
+            <text x="420" y="80" text-anchor="middle" font-size="8" fill="#06B6D4"
+              font-family="JetBrains Mono, monospace">CTR</text>
+            <rect x="406" y="116" width="28" height="28" rx="5" fill="#0F2744" stroke="#8B5CF6" stroke-width="1.5" />
+            <text x="420" y="135" text-anchor="middle" font-size="8" fill="#8B5CF6"
+              font-family="JetBrains Mono, monospace">DB</text>
+
+            <!-- Animated packets -->
+            <circle r="4" fill="#38BDF8" opacity=".9" filter="url(#glow2)">
+              <animateMotion dur="3.5s" repeatCount="indefinite" begin="0s">
+                <mpath href="#q1" />
+              </animateMotion>
+            </circle>
+            <circle r="3.5" fill="#8B5CF6" opacity=".85" filter="url(#glow2)">
+              <animateMotion dur="3s" repeatCount="indefinite" begin="1.2s">
+                <mpath href="#q2" />
+              </animateMotion>
+            </circle>
+            <circle r="3" fill="#10B981" opacity=".9" filter="url(#glow2)">
+              <animateMotion dur="4s" repeatCount="indefinite" begin="2s">
+                <mpath href="#q3" />
+              </animateMotion>
+            </circle>
+            <circle r="3" fill="#F59E0B" opacity=".8" filter="url(#glow2)">
+              <animateMotion dur="3.8s" repeatCount="indefinite" begin=".5s">
+                <mpath href="#q4" />
+              </animateMotion>
+            </circle>
+
+            <!-- Labels -->
+            <text x="60" y="118" text-anchor="middle" font-size="7.5" fill="#7E9BB5"
+              font-family="Inter, sans-serif">Origin</text>
+            <text x="240" y="132" text-anchor="middle" font-size="7.5" fill="#7E9BB5"
+              font-family="Inter, sans-serif">Orchestrator</text>
+          </svg>
+        </div>
+
+        <!-- Three-step onboarding steps -->
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">01</div>
+            <div class="step-text">
+              <strong>Create your account</strong>
+              <span>Set up credentials and get instant access to your isolated tenant.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <div class="step-text">
+              <strong>Provision a workspace</strong>
+              <span>Launch containers, configure networking, and connect your repos.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <div class="step-text">
+              <strong>Deploy & scale</strong>
+              <span>Push changes via Git and let CloudX handle orchestration automatically.</span>
+            </div>
+          </div>
+        </div>
+
         <div class="hero-badges">
           <div class="badge"><i class="fas fa-shield-alt"></i> Isolated Tenants</div>
           <div class="badge"><i class="fas fa-bolt"></i> Real-time Logs</div>
@@ -484,12 +811,14 @@
       <div class="hero-footer">© 2026 CloudX Platform · Apache 2.0</div>
     </div>
 
+    <!-- ══ RIGHT — FORM ══════════════════════════════════════════════════════ -->
     <div class="form-panel">
       <div class="form-card">
 
         <h2 class="form-title">Join CloudX</h2>
-        <p class="form-subtitle">Create an account to deploy your workspaces</p>
+        <p class="form-subtitle">Create your account — free to start, no card required.</p>
 
+        <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <ul class="flash-list">
@@ -504,41 +833,77 @@
         {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('signup') }}" novalidate>
+        <!-- Social sign-up -->
+        <div class="social-row">
+          <a href="{{ url_for('auth.google_login') }}" class="btn-social">
+            <span class="social-icon">
+              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+                  fill="#4285F4" />
+                <path
+                  d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
+                  fill="#34A853" />
+                <path
+                  d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"
+                  fill="#FBBC05" />
+                <path
+                  d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"
+                  fill="#EA4335" />
+              </svg>
+            </span>
+            Continue with Google
+          </a>
+        </div>
+
+        <div class="divider">or create with email</div>
+
+        <!-- Signup form -->
+        <form method="POST" action="{{ url_for('auth.signup') }}" novalidate>
 
           <div class="form-group">
             <label for="username">Username</label>
             <div class="input-wrap">
-              <input type="text" id="username" name="username" placeholder="your_username" required>
-              <i class="fas fa-user"></i>
+              <i class="fas fa-user input-icon"></i>
+              <input type="text" id="username" name="username" placeholder="your_username" autocomplete="username"
+                required>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="email">Email</label>
+            <label for="email">Email address</label>
             <div class="input-wrap">
-              <input type="email" id="email" name="email" placeholder="you@example.com" required>
-              <i class="fas fa-envelope"></i>
+              <i class="fas fa-envelope input-icon"></i>
+              <input type="email" id="email" name="email" placeholder="you@company.com" autocomplete="email" required>
             </div>
           </div>
 
           <div class="form-group">
             <label for="password">Password</label>
             <div class="input-wrap">
-              <input type="password" id="password" name="password" placeholder="••••••••" required>
-              <i class="fas fa-lock"></i>
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="password" name="password" placeholder="Min. 8 characters"
+                autocomplete="new-password" required oninput="updateStrength(this.value)">
               <button type="button" class="toggle-pw" onclick="togglePw('password', this)"
                 aria-label="Toggle password visibility">
                 <i class="fas fa-eye"></i>
               </button>
             </div>
+            <div class="strength-row" id="strengthBars">
+              <div class="strength-bar" id="bar1"></div>
+              <div class="strength-bar" id="bar2"></div>
+              <div class="strength-bar" id="bar3"></div>
+              <div class="strength-bar" id="bar4"></div>
+            </div>
+            <div class="strength-label" id="strengthLabel"></div>
           </div>
 
           <div class="form-group">
-            <label for="confirm_password">Confirm Password</label>
+            <label for="confirm_password">Confirm password</label>
             <div class="input-wrap">
-              <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••" required>
-              <i class="fas fa-lock"></i>
+              <i class="fas fa-lock input-icon"></i>
+              <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••"
+                autocomplete="new-password" required>
               <button type="button" class="toggle-pw" onclick="togglePw('confirm_password', this)"
                 aria-label="Toggle password visibility">
                 <i class="fas fa-eye"></i>
@@ -549,10 +914,14 @@
           <button type="submit" class="btn-submit">
             <i class="fas fa-user-plus" style="margin-right:.5rem"></i>Create Account
           </button>
+
+          <p class="terms-note">
+            By creating an account you agree to the
+            <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+          </p>
         </form>
 
-        <div class="divider">or</div>
-        <p class="switch-link">Already have an account? <a href="{{ url_for('login') }}">Sign In</a></p>
+        <p class="switch-link">Already have an account?<a href="{{ url_for('auth.login_submit') }}">Sign In</a></p>
 
       </div>
     </div>
@@ -563,13 +932,29 @@
     function togglePw(id, btn) {
       const inp = document.getElementById(id);
       const icon = btn.querySelector('i');
-      if (inp.type === 'password') {
-        inp.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-      } else {
-        inp.type = 'password';
-        icon.className = 'fas fa-eye';
-      }
+      if (inp.type === 'password') { inp.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+      else { inp.type = 'password'; icon.className = 'fas fa-eye'; }
+    }
+
+    function updateStrength(val) {
+      const bars = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3'), document.getElementById('bar4')];
+      const label = document.getElementById('strengthLabel');
+
+      bars.forEach(b => { b.className = 'strength-bar'; });
+
+      let score = 0;
+      if (val.length >= 8) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+
+      const classes = ['active-weak', 'active-medium', 'active-medium', 'active-strong'];
+      const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+      const colors = ['', '#EF4444', '#F59E0B', '#0EA5E9', '#10B981'];
+
+      for (let i = 0; i < score; i++) bars[i].classList.add(classes[i] || 'active-strong');
+      label.textContent = labels[score] || '';
+      label.style.color = colors[score] || '';
     }
   </script>
 </body>

@@ -7,7 +7,7 @@
   <title>Sign In — CloudX Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
-    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
   <style>
@@ -21,209 +21,309 @@
 
     :root {
       --primary: #0EA5E9;
-      --primary-dark: #0284C7;
+      --primary-hover: #0284C7;
+      --primary-light: #38BDF8;
       --secondary: #06B6D4;
       --accent: #8B5CF6;
       --success: #10B981;
       --error: #EF4444;
-      --bg-dark: #0A1628;
+      --warning: #F59E0B;
+
       --bg-card: #FFFFFF;
-      --text-muted: #94A3B8;
-      --border: #E2E8F0;
-      --radius: 14px;
+      --bg-secondary: #F8FAFC;
+      --bg-sidebar: #0F172A;
+
+      --text-primary: #0F172A;
+      --text-secondary: #475569;
+      --text-tertiary: #94A3B8;
+      --border-color: #E2E8F0;
+
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -2px rgba(0, 0, 0, .1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -4px rgba(0, 0, 0, .1);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, .1), 0 8px 10px -6px rgba(0, 0, 0, .1);
+
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+
+      --transition-fast: 150ms cubic-bezier(.4, 0, .2, 1);
+      --transition-base: 200ms cubic-bezier(.4, 0, .2, 1);
     }
 
     html,
     body {
       height: 100%;
-      font-family: 'DM Sans', sans-serif;
-      background: var(--bg-dark);
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-sidebar);
     }
 
-    /* ── LAYOUT ─────────────────────────────────────────────────────────── */
+    /* ── Two-Column Shell ──────────────────────────────────────────────── */
     .auth-shell {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1.1fr 1fr;
       min-height: 100vh;
     }
 
-    /* ── LEFT — HERO ────────────────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       LEFT PANEL — Hero / Brand
+    ══════════════════════════════════════════════════════════════ */
     .hero-panel {
       position: relative;
-      background: var(--bg-dark);
+      background: #060E1C;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 3rem;
+      padding: 3rem 3.5rem;
       overflow: hidden;
     }
 
-    /* animated grid */
+    /* Subtle grid lines */
     .hero-panel::before {
       content: '';
       position: absolute;
       inset: 0;
       background-image:
-        linear-gradient(rgba(14, 165, 233, .07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(14, 165, 233, .07) 1px, transparent 1px);
-      background-size: 48px 48px;
-      animation: grid-drift 20s linear infinite;
+        linear-gradient(rgba(14, 165, 233, .06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14, 165, 233, .06) 1px, transparent 1px);
+      background-size: 52px 52px;
+      animation: grid-drift 25s linear infinite;
     }
 
     @keyframes grid-drift {
       to {
-        background-position: 48px 48px;
+        background-position: 52px 52px;
       }
     }
 
-    /* glowing orbs */
+    /* Glow orbs */
     .orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.25;
-      animation: orb-pulse 8s ease-in-out infinite alternate;
+      filter: blur(90px);
+      pointer-events: none;
     }
 
     .orb-1 {
-      width: 380px;
-      height: 380px;
+      width: 420px;
+      height: 420px;
       background: var(--primary);
-      top: -100px;
-      left: -100px;
+      opacity: .14;
+      top: -120px;
+      left: -120px;
+      animation: orb-drift 12s ease-in-out infinite alternate;
     }
 
     .orb-2 {
-      width: 300px;
-      height: 300px;
+      width: 320px;
+      height: 320px;
       background: var(--accent);
-      bottom: 0;
-      right: -80px;
-      animation-delay: 3s;
+      opacity: .12;
+      bottom: -60px;
+      right: -60px;
+      animation: orb-drift 9s ease-in-out infinite alternate-reverse;
     }
 
     .orb-3 {
-      width: 200px;
-      height: 200px;
+      width: 220px;
+      height: 220px;
       background: var(--secondary);
-      top: 50%;
-      left: 40%;
-      animation-delay: 6s;
+      opacity: .10;
+      top: 45%;
+      left: 38%;
+      animation: orb-drift 15s ease-in-out infinite alternate;
     }
 
-    @keyframes orb-pulse {
+    @keyframes orb-drift {
       from {
-        transform: scale(1) rotate(0deg);
+        transform: translate(0, 0) scale(1);
       }
 
       to {
-        transform: scale(1.2) rotate(15deg);
+        transform: translate(20px, 30px) scale(1.15);
       }
     }
 
+    /* Logo */
     .hero-logo {
       position: relative;
-      z-index: 1;
+      z-index: 2;
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: .9rem;
     }
 
     .logo-mark {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-radius: 14px;
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       color: #fff;
-      box-shadow: 0 0 32px rgba(14, 165, 233, .5);
+      box-shadow: 0 0 28px rgba(14, 165, 233, .5);
     }
 
-    .logo-name {
+    .logo-text {
       font-family: 'Syne', sans-serif;
-      font-size: 1.6rem;
+      font-size: 1.5rem;
       font-weight: 800;
       color: #fff;
-      letter-spacing: -0.5px;
+      letter-spacing: -.5px;
     }
 
-    .logo-name span {
+    .logo-text span {
       color: var(--primary);
     }
 
+    /* Hero body */
     .hero-body {
       position: relative;
-      z-index: 1;
+      z-index: 2;
     }
 
-    .hero-eyebrow {
+    .hero-tag {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.78rem;
-      font-weight: 500;
+      gap: .5rem;
+      font-size: .72rem;
+      font-weight: 600;
       letter-spacing: 2px;
       text-transform: uppercase;
       color: var(--primary);
       background: rgba(14, 165, 233, .1);
       border: 1px solid rgba(14, 165, 233, .25);
-      border-radius: 100px;
-      padding: 0.375rem 1rem;
-      margin-bottom: 1.5rem;
+      border-radius: var(--radius-full);
+      padding: .35rem 1rem;
+      margin-bottom: 1.75rem;
     }
 
     .hero-headline {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(2.2rem, 3.5vw, 3.4rem);
+      font-size: clamp(2rem, 2.8vw, 3rem);
       font-weight: 800;
-      line-height: 1.08;
+      line-height: 1.1;
       color: #fff;
       letter-spacing: -1.5px;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
 
     .hero-headline .grad {
-      background: linear-gradient(100deg, var(--primary), var(--secondary));
+      background: linear-gradient(110deg, var(--primary-light), var(--secondary));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
     .hero-sub {
-      font-size: 1.05rem;
+      font-size: 1rem;
       color: #7E9BB5;
-      line-height: 1.75;
-      max-width: 420px;
+      line-height: 1.8;
+      max-width: 400px;
       margin-bottom: 2.5rem;
     }
 
+    /* ── Network SVG graphic ─────────────────────────────────────── */
+    .network-graphic {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 2.5rem;
+    }
+
+    .network-graphic svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* animated nodes */
+    .node-pulse {
+      animation: node-ping 3s ease-in-out infinite;
+    }
+
+    .node-pulse:nth-child(2) {
+      animation-delay: .6s;
+    }
+
+    .node-pulse:nth-child(3) {
+      animation-delay: 1.2s;
+    }
+
+    .node-pulse:nth-child(4) {
+      animation-delay: 1.8s;
+    }
+
+    .node-pulse:nth-child(5) {
+      animation-delay: 2.4s;
+    }
+
+    @keyframes node-ping {
+
+      0%,
+      100% {
+        opacity: 1;
+        r: 6px;
+      }
+
+      50% {
+        opacity: .6;
+        r: 8px;
+      }
+    }
+
+    /* data packets travelling along edges */
+    .packet {
+      animation: travel 4s linear infinite;
+    }
+
+    .packet:nth-child(2) {
+      animation-delay: 1.3s;
+    }
+
+    .packet:nth-child(3) {
+      animation-delay: 2.6s;
+    }
+
+    @keyframes travel {
+      from {
+        offset-distance: 0%;
+      }
+
+      to {
+        offset-distance: 100%;
+      }
+    }
+
+    /* Feature badges */
     .hero-badges {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem;
+      gap: .65rem;
     }
 
     .badge {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
+      gap: .45rem;
+      padding: .45rem .9rem;
       background: rgba(255, 255, 255, .05);
       border: 1px solid rgba(255, 255, 255, .1);
-      border-radius: 100px;
+      border-radius: var(--radius-full);
       color: #CBD5E1;
-      font-size: 0.85rem;
+      font-size: .8rem;
       font-weight: 500;
       backdrop-filter: blur(8px);
-      transition: all .25s;
+      transition: all var(--transition-base);
     }
 
     .badge i {
       color: var(--primary);
-      font-size: .8rem;
+      font-size: .75rem;
     }
 
     .badge:hover {
@@ -234,45 +334,48 @@
 
     .hero-footer {
       position: relative;
-      z-index: 1;
-      color: #3E5A74;
-      font-size: 0.8rem;
+      z-index: 2;
+      color: #2E4A62;
+      font-size: .78rem;
     }
 
-    /* ── RIGHT — FORM ───────────────────────────────────────────────────── */
+    /* ══════════════════════════════════════════════════════════════
+       RIGHT PANEL — Form
+    ══════════════════════════════════════════════════════════════ */
     .form-panel {
-      background: #F8FAFC;
+      background: var(--bg-card);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 3rem 4rem;
+      padding: 3rem 3.5rem;
+      border-left: 1px solid rgba(255, 255, 255, .05);
     }
 
     .form-card {
       width: 100%;
-      max-width: 420px;
+      max-width: 400px;
     }
 
     .form-title {
       font-family: 'Syne', sans-serif;
-      font-size: 1.85rem;
+      font-size: 1.9rem;
       font-weight: 800;
-      color: #0F172A;
-      letter-spacing: -0.75px;
-      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+      letter-spacing: -.75px;
+      margin-bottom: .4rem;
     }
 
     .form-subtitle {
-      color: #64748B;
-      font-size: 0.95rem;
+      color: var(--text-secondary);
+      font-size: .92rem;
       margin-bottom: 2rem;
     }
 
     /* Flash messages */
     .flash-list {
       list-style: none;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1rem;
       display: flex;
       flex-direction: column;
       gap: .5rem;
@@ -281,10 +384,10 @@
     .flash {
       display: flex;
       align-items: center;
-      gap: .625rem;
-      padding: .75rem 1rem;
-      border-radius: 10px;
-      font-size: .875rem;
+      gap: .6rem;
+      padding: .7rem 1rem;
+      border-radius: var(--radius-md);
+      font-size: .85rem;
       font-weight: 500;
     }
 
@@ -306,17 +409,89 @@
       border: 1px solid #93C5FD;
     }
 
+    /* Social login buttons */
+    .social-row {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .btn-social {
+      width: 100%;
+      padding: .8rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .75rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: .92rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all var(--transition-base);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-social:hover {
+      background: var(--bg-secondary);
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .btn-social .social-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-social .google-icon {
+      font-size: 1rem;
+    }
+
+    .google-colors {
+      background: linear-gradient(135deg, #4285F4 25%, #EA4335 25% 50%, #FBBC05 50% 75%, #34A853 75%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 1.25rem 0;
+      color: var(--text-tertiary);
+      font-size: .8rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-color);
+    }
+
     /* Form groups */
     .form-group {
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.1rem;
     }
 
     label {
       display: block;
-      font-size: .85rem;
+      font-size: .82rem;
       font-weight: 600;
-      color: #374151;
-      margin-bottom: .5rem;
+      color: var(--text-secondary);
+      margin-bottom: .45rem;
       letter-spacing: .01em;
     }
 
@@ -324,61 +499,64 @@
       position: relative;
     }
 
-    .input-wrap i {
+    .input-wrap .input-icon {
       position: absolute;
       left: 1rem;
       top: 50%;
       transform: translateY(-50%);
-      color: #94A3B8;
-      font-size: .9rem;
+      color: var(--text-tertiary);
+      font-size: .85rem;
       pointer-events: none;
-      transition: color .2s;
+      transition: color var(--transition-fast);
+    }
+
+    .input-wrap:focus-within .input-icon {
+      color: var(--primary);
     }
 
     input[type="text"],
     input[type="email"],
     input[type="password"] {
       width: 100%;
-      padding: .875rem 1rem .875rem 2.75rem;
-      border: 1.5px solid #E2E8F0;
-      border-radius: var(--radius);
-      background: #fff;
-      color: #0F172A;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .95rem;
-      transition: border-color .2s, box-shadow .2s;
+      padding: .85rem 1rem .85rem 2.75rem;
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: .92rem;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
       outline: none;
     }
 
     input:focus {
       border-color: var(--primary);
-      box-shadow: 0 0 0 4px rgba(14, 165, 233, .12);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, .12);
+      background: var(--bg-card);
     }
 
-    input:focus~i,
-    .input-wrap:focus-within i {
-      color: var(--primary);
+    input::placeholder {
+      color: var(--text-tertiary);
     }
 
     .toggle-pw {
       position: absolute;
-      right: 1rem;
+      right: .9rem;
       top: 50%;
       transform: translateY(-50%);
       background: none;
       border: none;
-      color: #94A3B8;
+      color: var(--text-tertiary);
       cursor: pointer;
-      padding: 0;
-      font-size: .9rem;
-      transition: color .2s;
+      font-size: .85rem;
+      transition: color var(--transition-fast);
     }
 
     .toggle-pw:hover {
       color: var(--primary);
     }
 
-    /* Remember / Forgot row */
+    /* Remember / forgot */
     .form-meta {
       display: flex;
       justify-content: space-between;
@@ -390,80 +568,63 @@
       display: flex;
       align-items: center;
       gap: .5rem;
-      font-size: .875rem;
-      color: #475569;
+      font-size: .85rem;
+      color: var(--text-secondary);
       cursor: pointer;
     }
 
     .checkbox-label input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-      border-radius: 4px;
+      width: 15px;
+      height: 15px;
       accent-color: var(--primary);
       padding: 0;
     }
 
     .forgot-link {
-      font-size: .875rem;
+      font-size: .85rem;
       color: var(--primary);
       text-decoration: none;
       font-weight: 500;
-      transition: color .2s;
+      transition: color var(--transition-fast);
     }
 
     .forgot-link:hover {
-      color: var(--primary-dark);
+      color: var(--primary-hover);
+      text-decoration: underline;
     }
 
-    /* Submit button */
+    /* Primary submit */
     .btn-submit {
       width: 100%;
-      padding: 1rem;
+      padding: .95rem;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: #fff;
       border: none;
-      border-radius: var(--radius);
+      border-radius: var(--radius-lg);
       font-family: 'Syne', sans-serif;
-      font-size: 1rem;
+      font-size: .98rem;
       font-weight: 700;
       letter-spacing: .25px;
       cursor: pointer;
-      transition: transform .2s, box-shadow .2s, opacity .2s;
-      box-shadow: 0 4px 20px rgba(14, 165, 233, .35);
+      transition: transform var(--transition-base), box-shadow var(--transition-base);
+      box-shadow: 0 4px 18px rgba(14, 165, 233, .4);
     }
 
     .btn-submit:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(14, 165, 233, .45);
+      box-shadow: 0 8px 28px rgba(14, 165, 233, .5);
     }
 
     .btn-submit:active {
       transform: translateY(0);
     }
 
-    /* Divider */
-    .divider {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin: 1.5rem 0;
-      color: #CBD5E1;
-      font-size: .8rem;
-    }
-
-    .divider::before,
-    .divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: #E2E8F0;
-    }
-
     /* Switch link */
     .switch-link {
       text-align: center;
-      font-size: .9rem;
-      color: #64748B;
+      font-size: .88rem;
+      color: var(--text-secondary);
+      margin-top: 1.5rem;
     }
 
     .switch-link a {
@@ -477,7 +638,7 @@
       text-decoration: underline;
     }
 
-    /* ── RESPONSIVE ─────────────────────────────────────────────────────── */
+    /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 900px) {
       .auth-shell {
         grid-template-columns: 1fr;
@@ -488,7 +649,7 @@
       }
 
       .form-panel {
-        padding: 2.5rem 2rem;
+        padding: 2.5rem 1.5rem;
       }
     }
   </style>
@@ -498,30 +659,146 @@
 
   <div class="auth-shell">
 
-    <!-- ── LEFT HERO ────────────────────────────────────────────────────────── -->
+    <!-- ══ LEFT — HERO ══════════════════════════════════════════════════════ -->
     <div class="hero-panel">
       <div class="orb orb-1"></div>
       <div class="orb orb-2"></div>
       <div class="orb orb-3"></div>
 
+      <!-- Logo -->
       <div class="hero-logo">
         <div class="logo-mark"><i class="fas fa-cloud"></i></div>
-        <span class="logo-name">Cloud<span>X</span></span>
+        <span class="logo-text">Cloud<span>X</span></span>
       </div>
 
+      <!-- Body -->
       <div class="hero-body">
-        <div class="hero-eyebrow">
-          <i class="fas fa-circle" style="font-size:.45rem"></i>
-          Enterprise Cloud Platform
+        <div class="hero-tag">
+          <i class="fas fa-circle" style="font-size:.4rem"></i>
+          Enterprise Cloud Orchestration
         </div>
+
         <h1 class="hero-headline">
-          Build. Deploy.<br>
-          <span class="grad">Scale Infinitely.</span>
+          CloudX: Automating the future<br>
+          of <span class="grad">decentralized computing.</span>
         </h1>
         <p class="hero-sub">
-          A unified workspace for your containers, deployments,
-          and infrastructure — secured by tenant isolation.
+          Your isolated container workspace is one login away.
         </p>
+
+        <!-- Network SVG graphic -->
+        <div class="network-graphic">
+          <svg viewBox="0 0 480 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <!-- Glow filter -->
+              <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              <!-- Edge gradient -->
+              <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#0EA5E9" stop-opacity=".1" />
+                <stop offset="50%" stop-color="#38BDF8" stop-opacity=".7" />
+                <stop offset="100%" stop-color="#06B6D4" stop-opacity=".1" />
+              </linearGradient>
+              <!-- Packet path definitions for motion -->
+              <path id="p1" d="M 60,110 Q 170,60 240,110" fill="none" />
+              <path id="p2" d="M 240,110 Q 310,60 420,80" fill="none" />
+              <path id="p3" d="M 240,110 Q 310,150 420,140" fill="none" />
+              <path id="p4" d="M 60,110 Q 150,160 240,110" fill="none" />
+              <path id="p5" d="M 150,180 Q 195,145 240,110" fill="none" />
+            </defs>
+
+            <!-- Server rack shapes (left) -->
+            <g transform="translate(8,70)" opacity=".85">
+              <rect x="0" y="0" width="42" height="80" rx="4" fill="#0F2744" stroke="#1E3A5F" stroke-width="1.2" />
+              <rect x="4" y="5" width="34" height="8" rx="2" fill="#0C3460" />
+              <rect x="4" y="16" width="34" height="8" rx="2" fill="#0C3460" />
+              <rect x="4" y="27" width="34" height="8" rx="2" fill="#0C3460" />
+              <rect x="4" y="38" width="34" height="8" rx="2" fill="#0C3460" />
+              <circle cx="35" cy="9" r="2" fill="#10B981" />
+              <circle cx="35" cy="20" r="2" fill="#0EA5E9" />
+              <circle cx="35" cy="31" r="2" fill="#10B981" />
+              <circle cx="35" cy="42" r="2" fill="#F59E0B" />
+            </g>
+
+            <!-- Edges -->
+            <g stroke="url(#edgeGrad)" stroke-width="1.2" fill="none" opacity=".8">
+              <path d="M 60,110 Q 170,60 240,110" />
+              <path d="M 60,110 Q 150,160 240,110" />
+              <path d="M 240,110 Q 310,60 420,80" />
+              <path d="M 240,110 Q 310,150 420,140" />
+              <path d="M 150,180 Q 195,145 240,110" />
+              <path d="M 420,80 L 420,140" stroke="#38BDF8" stroke-width=".8" opacity=".5" />
+            </g>
+
+            <!-- Hub node (center) -->
+            <circle cx="240" cy="110" r="22" fill="#0A1F3A" stroke="#0EA5E9" stroke-width="1.8" filter="url(#glow)" />
+            <circle cx="240" cy="110" r="14" fill="#0EA5E9" opacity=".15" />
+            <text x="240" y="115" text-anchor="middle" font-size="11" fill="#38BDF8"
+              font-family="JetBrains Mono, monospace" font-weight="600">HUB</text>
+
+            <!-- Leaf nodes -->
+            <!-- Node: Origin (server rack exit) -->
+            <circle class="node-pulse" cx="60" cy="110" r="8" fill="#0F2744" stroke="#0EA5E9" stroke-width="1.5"
+              filter="url(#glow)" />
+            <circle cx="60" cy="110" r="3.5" fill="#0EA5E9" />
+
+            <!-- Node: top-right cluster -->
+            <rect x="406" y="66" width="28" height="28" rx="5" fill="#0F2744" stroke="#06B6D4" stroke-width="1.5" />
+            <text x="420" y="85" text-anchor="middle" font-size="8" fill="#06B6D4"
+              font-family="JetBrains Mono, monospace">CTR</text>
+
+            <!-- Node: bottom-right cluster -->
+            <rect x="406" y="126" width="28" height="28" rx="5" fill="#0F2744" stroke="#8B5CF6" stroke-width="1.5" />
+            <text x="420" y="145" text-anchor="middle" font-size="8" fill="#8B5CF6"
+              font-family="JetBrains Mono, monospace">DB</text>
+
+            <!-- Node: bottom-mid -->
+            <circle class="node-pulse" cx="150" cy="180" r="7" fill="#0F2744" stroke="#10B981" stroke-width="1.5"
+              filter="url(#glow)" />
+            <circle cx="150" cy="180" r="3" fill="#10B981" />
+
+            <!-- Data packets travelling along edges -->
+            <circle r="4" fill="#38BDF8" opacity=".9" filter="url(#glow)">
+              <animateMotion dur="3.5s" repeatCount="indefinite" begin="0s">
+                <mpath href="#p1" />
+              </animateMotion>
+            </circle>
+            <circle r="3.5" fill="#8B5CF6" opacity=".85" filter="url(#glow)">
+              <animateMotion dur="3s" repeatCount="indefinite" begin="1.2s">
+                <mpath href="#p2" />
+              </animateMotion>
+            </circle>
+            <circle r="3" fill="#10B981" opacity=".9" filter="url(#glow)">
+              <animateMotion dur="4s" repeatCount="indefinite" begin="2s">
+                <mpath href="#p3" />
+              </animateMotion>
+            </circle>
+            <circle r="3" fill="#F59E0B" opacity=".8" filter="url(#glow)">
+              <animateMotion dur="3.8s" repeatCount="indefinite" begin=".5s">
+                <mpath href="#p4" />
+              </animateMotion>
+            </circle>
+            <circle r="2.5" fill="#38BDF8" opacity=".8" filter="url(#glow)">
+              <animateMotion dur="3.2s" repeatCount="indefinite" begin="1.8s">
+                <mpath href="#p5" />
+              </animateMotion>
+            </circle>
+
+            <!-- Status labels -->
+            <text x="60" y="128" text-anchor="middle" font-size="7.5" fill="#7E9BB5"
+              font-family="Inter, sans-serif">Origin</text>
+            <text x="150" y="197" text-anchor="middle" font-size="7.5" fill="#7E9BB5"
+              font-family="Inter, sans-serif">Worker</text>
+            <text x="240" y="142" text-anchor="middle" font-size="7.5" fill="#7E9BB5"
+              font-family="Inter, sans-serif">Orchestrator</text>
+          </svg>
+        </div>
+
         <div class="hero-badges">
           <div class="badge"><i class="fas fa-shield-alt"></i> Isolated Tenants</div>
           <div class="badge"><i class="fas fa-bolt"></i> Real-time Logs</div>
@@ -533,13 +810,14 @@
       <div class="hero-footer">© 2026 CloudX Platform · Apache 2.0</div>
     </div>
 
-    <!-- ── RIGHT FORM ────────────────────────────────────────────────────────── -->
+    <!-- ══ RIGHT — FORM ══════════════════════════════════════════════════════ -->
     <div class="form-panel">
       <div class="form-card">
 
         <h2 class="form-title">Welcome back</h2>
         <p class="form-subtitle">Sign in to your CloudX workspace</p>
 
+        <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <ul class="flash-list">
@@ -554,22 +832,50 @@
         {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('login') }}" novalidate>
+        <!-- Social login -->
+        <div class="social-row">
+          <a href="{{ url_for('auth.google_login') }}" class="btn-social">
+            <span class="social-icon">
+              <!-- Google SVG logo -->
+              <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
+                  fill="#4285F4" />
+                <path
+                  d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
+                  fill="#34A853" />
+                <path
+                  d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"
+                  fill="#FBBC05" />
+                <path
+                  d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"
+                  fill="#EA4335" />
+              </svg>
+            </span>
+            Continue with Google
+          </a>
+        </div>
+
+        <div class="divider">or sign in with credentials</div>
+
+        <!-- Login form -->
+        <form method="POST" action="{{ url_for('auth.login_submit') }}" novalidate>
+
           <div class="form-group">
             <label for="username">Username</label>
             <div class="input-wrap">
+              <i class="fas fa-user input-icon"></i>
               <input type="text" id="username" name="username" placeholder="your_username" autocomplete="username"
                 required>
-              <i class="fas fa-user"></i>
             </div>
           </div>
 
           <div class="form-group">
             <label for="password">Password</label>
             <div class="input-wrap">
+              <i class="fas fa-lock input-icon"></i>
               <input type="password" id="password" name="password" placeholder="••••••••"
                 autocomplete="current-password" required>
-              <i class="fas fa-lock"></i>
               <button type="button" class="toggle-pw" onclick="togglePw('password', this)"
                 aria-label="Toggle password visibility">
                 <i class="fas fa-eye"></i>
@@ -589,8 +895,7 @@
           </button>
         </form>
 
-        <div class="divider">or</div>
-        <p class="switch-link">Don't have an account?<a href="{{ url_for('signup') }}">Create one</a></p>
+        <p class="switch-link">Don't have an account?<a href="{{ url_for('auth.signup') }}">Create one</a></p>
 
       </div>
     </div>
@@ -601,13 +906,8 @@
     function togglePw(id, btn) {
       const inp = document.getElementById(id);
       const icon = btn.querySelector('i');
-      if (inp.type === 'password') {
-        inp.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-      } else {
-        inp.type = 'password';
-        icon.className = 'fas fa-eye';
-      }
+      if (inp.type === 'password') { inp.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+      else { inp.type = 'password'; icon.className = 'fas fa-eye'; }
     }
   </script>
 </body>

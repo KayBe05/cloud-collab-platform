@@ -1692,6 +1692,9 @@ body {
 .chart-card {
   position: relative;
   border-top: 2px solid transparent;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
   background-image: linear-gradient(var(--bg-card), var(--bg-card)),
     linear-gradient(90deg, var(--primary), var(--accent));
   background-origin: border-box;
@@ -1742,8 +1745,8 @@ body {
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-  border-left: 3px solid transparent;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
   position: relative;
   cursor: default;
   transition:
@@ -1754,9 +1757,8 @@ body {
 }
 
 .activity-feed-item:hover {
-  border-left-color: var(--primary);
   transform: translateX(2px);
-  box-shadow: -3px 0 12px rgba(14, 165, 233, 0.1), var(--shadow-sm);
+  box-shadow: 3px 0 12px rgba(14, 165, 233, 0.1), var(--shadow-sm);
 }
 
 .activity-feed-icon {

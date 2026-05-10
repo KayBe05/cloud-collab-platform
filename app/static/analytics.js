@@ -1,16 +1,9 @@
-/* ================================================================
-   analytics.js — CloudX Real-Time Monitoring Module
-   Circular gauge updates, sparklines, Socket.IO metrics listener,
-   container table sync, topology graph (vis-network)
-   ================================================================ */
-
 (function (window) {
   'use strict';
 
-  /* ── Constants ────────────────────────────────────────────────── */
-  const CIRC = 2 * Math.PI * 45;          // SVG gauge circumference (r=45)
-  const MAX_SPARK = 30;                      // sparkline history length
-  const POLL_MS = 5000;                    // container poll interval
+  const CIRC = 2 * Math.PI * 45;
+  const MAX_SPARK = 30;                  
+  const POLL_MS = 5000;               
   const SPARK_COLORS = {
     cpu: '#00ccff',
     mem: '#9d6fff',
@@ -18,7 +11,6 @@
     net: '#00e87a',
   };
 
-  /* ── Sparkline history buffers ────────────────────────────────── */
   const sparkData = {
     cpu: new Array(MAX_SPARK).fill(0),
     mem: new Array(MAX_SPARK).fill(0),
@@ -26,24 +18,12 @@
     net: new Array(MAX_SPARK).fill(0),
   };
 
-  /* ── Gauge element refs (lazy-resolved) ───────────────────────── */
   const gaugeRefs = {};
   function gauge(id) {
     if (!gaugeRefs[id]) gaugeRefs[id] = document.getElementById(id);
     return gaugeRefs[id];
   }
 
-  /* ================================================================
-     CIRCULAR GAUGE
-     ================================================================ */
-
-  /**
-   * Update a single SVG circular gauge.
-   * @param {string} type  - 'cpu' | 'mem' | 'disk' | 'net'
-   * @param {number} value - 0–100 (for net: treated as 0–100 scaled)
-   * @param {string} display - text shown in centre
-   * @param {string} sub    - subtitle below gauge
-   */
   function updateGauge(type, value, display, sub) {
     const fill = gauge(`gauge${cap(type)}Fill`);
     const valEl = gauge(`gauge${cap(type)}Val`);
@@ -55,7 +35,6 @@
 
     fill.style.strokeDashoffset = offset;
 
-    /* Colour shift: green → orange → red */
     let strokeColor;
     if (type === 'net') {
       strokeColor = SPARK_COLORS.net;
@@ -74,17 +53,12 @@
     if (valEl) valEl.textContent = display ?? Math.round(clamped);
     if (subEl && sub) subEl.textContent = sub;
 
-    /* Push to sparkline */
     sparkData[type].push(clamped);
     if (sparkData[type].length > MAX_SPARK) sparkData[type].shift();
     drawSparkline(`spark${cap(type)}`, sparkData[type], SPARK_COLORS[type]);
   }
 
   function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
-  /* ================================================================
-     SPARKLINES  (minimal Canvas mini-charts)
-     ================================================================ */
 
   function drawSparkline(canvasId, data, color) {
     const canvas = document.getElementById(canvasId);
@@ -93,7 +67,6 @@
     const W = canvas.width;
     const H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-
     if (data.length < 2) return;
 
     const max = Math.max(...data, 1);
@@ -101,7 +74,6 @@
     const range = max - min || 1;
     const stepX = W / (data.length - 1);
 
-    /* Fill gradient */
     const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, color + '55');
     grad.addColorStop(1, color + '00');
@@ -112,14 +84,12 @@
       const y = H - ((v - min) / range) * (H - 4) - 2;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     });
-    /* Close fill */
     ctx.lineTo((data.length - 1) * stepX, H);
     ctx.lineTo(0, H);
     ctx.closePath();
     ctx.fillStyle = grad;
     ctx.fill();
 
-    /* Line */
     ctx.beginPath();
     data.forEach((v, i) => {
       const x = i * stepX;
@@ -131,7 +101,6 @@
     ctx.lineJoin = 'round';
     ctx.stroke();
 
-    /* Last point dot */
     const last = data[data.length - 1];
     const lx = (data.length - 1) * stepX;
     const ly = H - ((last - min) / range) * (H - 4) - 2;
@@ -141,14 +110,64 @@
     ctx.fill();
   }
 
-  /* ================================================================
-     SIMULATED METRICS (fallback while Socket.IO provides nothing)
-     ================================================================ */
+
+  function applyMetrics(m) {
+    /* ── Host-level metrics ── */
+    const cpu = +m.cpu_usage || +m.cpu || 0;
+    const mem = +m.memory_usage || +m.memory || 0;
+    const disk = +m.disk_usage || +m.disk || 0;
+    const netRaw = +m.network_kbps || +m.net || 0;
+    const netPct = Math.min((netRaw / 500) * 100, 100); // 500 KB/s → 100 %
+
+    const loadLabel = v => v >= 80 ? 'High load' : v >= 55 ? 'Moderate' : 'Normal';
+
+    updateGauge('cpu', cpu, Math.round(cpu), loadLabel(cpu));
+    updateGauge('mem', mem, Math.round(mem), `${(mem / 100 * 8).toFixed(1)} / 8 GB`);
+    updateGauge('disk', disk, Math.round(disk), loadLabel(disk));
+    updateGauge('net', netPct, Math.round(netRaw), `${Math.round(netRaw)} KB/s`);
+
+    /* ── Resource bars (Resources card in dashboard) ── */
+    setBar('cpu', cpu);
+    setBar('memory', mem);
+    setBar('disk', disk);
+
+    /* ── KPI cards on analytics page ── */
+    _updateAnalyticsKPIs({ cpu, mem, disk, netRaw });
+
+    /* ── Live System Status badge ── */
+    _updateStatusBadge(cpu, mem);
+  }
+
+  function setBar(type, pct) {
+    const valEl = document.getElementById(type + 'Value');
+    const barEl = document.getElementById(type + 'Progress');
+    if (!valEl || !barEl) return;
+    valEl.textContent = Math.round(pct) + '%';
+    barEl.style.width = pct + '%';
+    barEl.className = 'progress-fill' +
+      (pct >= 80 ? ' danger' : pct >= 60 ? ' warning' : ' success');
+  }
+
+  function _updateStatusBadge(cpu, mem) {
+    const badge = document.getElementById('liveStatusBadge');
+    if (!badge) return;
+    const isWarn = cpu >= 80 || mem >= 85;
+    badge.style.background = isWarn
+      ? 'rgba(255,124,66,0.14)' : 'rgba(0,232,122,0.12)';
+    badge.style.borderColor = isWarn
+      ? 'rgba(255,124,66,0.3)' : 'rgba(0,232,122,0.2)';
+    badge.style.color = isWarn ? 'var(--cx-orange)' : 'var(--cx-green)';
+    badge.querySelector?.('.badge-text') && (
+      badge.querySelector('.badge-text').textContent =
+      isWarn ? 'Elevated load' : 'All systems nominal'
+    );
+  }
 
   let _simCpu = 45;
   let _simMem = 62;
   let _simDisk = 52;
   let _simNet = 40;
+  let _usingRealData = false;
 
   function simulateTick() {
     _simCpu = clamp(_simCpu + jitter(6), 20, 95);
@@ -167,63 +186,88 @@
   function jitter(amp) { return (Math.random() - 0.5) * amp * 2; }
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-  /* ================================================================
-     APPLY METRICS  (called by Socket.IO OR simulator)
-     ================================================================ */
-
-  function applyMetrics(m) {
-    const cpu = +m.cpu_usage || 0;
-    const mem = +m.memory_usage || 0;
-    const disk = +m.disk_usage || 0;
-    const netRaw = +m.network_kbps || 0;
-    const netPct = Math.min((netRaw / 500) * 100, 100); // scale 500 KB/s → 100%
-
-    const loadLabel = v => v >= 80 ? 'High load' : v >= 55 ? 'Moderate' : 'Normal';
-
-    updateGauge('cpu', cpu, Math.round(cpu), loadLabel(cpu));
-    updateGauge('mem', mem, Math.round(mem), `${(mem / 100 * 8).toFixed(1)} / 8 GB`);
-    updateGauge('disk', disk, Math.round(disk), loadLabel(disk));
-    updateGauge('net', netPct, Math.round(netRaw), `${Math.round(netRaw)} KB/s`);
-
-    /* Also update resource bars in the Resources card */
-    setBar('cpu', cpu);
-    setBar('memory', mem);
-    setBar('disk', disk);
-  }
-
-  function setBar(type, pct) {
-    const valEl = document.getElementById(type + 'Value');
-    const barEl = document.getElementById(type + 'Progress');
-    if (!valEl || !barEl) return;
-    valEl.textContent = Math.round(pct) + '%';
-    barEl.style.width = pct + '%';
-    barEl.className = 'progress-fill' +
-      (pct >= 80 ? ' danger' : pct >= 60 ? ' warning' : ' success');
-  }
-
-  /* ================================================================
-     SOCKET.IO  metrics_update listener
-     ================================================================ */
-
-  let _usingRealData = false;
-
   function attachSocketListeners() {
-    if (typeof socket === 'undefined') return;
+    // Use the global `socket` defined in base.html
+    const sock = typeof socket !== 'undefined' ? socket : null;
+    if (!sock) return;
 
-    socket.on('metrics_update', (data) => {
+    /* Primary event emitted by monitor.py's _broadcast() */
+    sock.on('metrics_update', (data) => {
       _usingRealData = true;
       applyMetrics(data);
+
+      /* Container sub-keys: data['container.<name>.cpu'] etc. */
+      _applyContainerMetricsFromBroadcast(data);
     });
 
-    /* Request metrics every 5 s */
+    /* Explicit container list event */
+    sock.on('container_update', (data) => {
+      if (Array.isArray(data)) {
+        renderContainerTable(data);
+      }
+    });
+
+    /* Request an immediate metrics push from the server */
     setInterval(() => {
-      if (socket.connected) socket.emit('request_metrics');
+      if (sock.connected) sock.emit('request_metrics');
     }, POLL_MS);
   }
 
-  /* ================================================================
-     CONTAINER TABLE
-     ================================================================ */
+  /* Parse container.* keys from monitor.py broadcast payload */
+  function _applyContainerMetricsFromBroadcast(data) {
+    // Keys like: "container.cloudx-project-3-abc.cpu_percent"
+    const containers = {};
+    Object.entries(data).forEach(([key, val]) => {
+      if (!key.startsWith('container.')) return;
+      const parts = key.split('.');
+      if (parts.length < 3) return;
+      const name = parts[1];
+      const field = parts.slice(2).join('.');
+      if (!containers[name]) containers[name] = { name };
+      containers[name][field] = val;
+    });
+
+    const list = Object.values(containers);
+    if (list.length > 0) {
+      _mergeContainerMetrics(list);
+    }
+  }
+
+  /* Merge live CPU/mem data into the existing table rows */
+  function _mergeContainerMetrics(liveList) {
+    const tbody = document.getElementById('containerTableBody');
+    if (!tbody) return;
+
+    liveList.forEach(live => {
+      const rows = tbody.querySelectorAll('tr');
+      rows.forEach(row => {
+        const nameEl = row.querySelector('.cx-container-name span');
+        if (!nameEl) return;
+        if (!nameEl.textContent.includes(live.name.substring(0, 15))) return;
+
+        const cpuFill = row.querySelector('.cx-mini-bar-fill:first-of-type');
+        const cpuVal = row.querySelector('.cx-mini-bar-val:first-of-type');
+        const memFill = row.querySelectorAll('.cx-mini-bar-fill')[1];
+        const memVal = row.querySelectorAll('.cx-mini-bar-val')[1];
+
+        const cpu = +(live.cpu_percent || live.cpu || 0).toFixed(1);
+        const mem = +(live.mem_percent || live.mem || 0).toFixed(1);
+
+        if (cpuFill) {
+          cpuFill.style.width = cpu + '%';
+          cpuFill.className = 'cx-mini-bar-fill' +
+            (cpu >= 80 ? ' crit' : cpu >= 55 ? ' warn' : '');
+        }
+        if (cpuVal) cpuVal.textContent = cpu + '%';
+        if (memFill) {
+          memFill.style.width = mem + '%';
+          memFill.className = 'cx-mini-bar-fill' +
+            (mem >= 80 ? ' crit' : mem >= 55 ? ' warn' : '');
+        }
+        if (memVal) memVal.textContent = mem + '%';
+      });
+    });
+  }
 
   let _containerPollTimer = null;
 
@@ -240,7 +284,7 @@
       })
       .catch(err => {
         console.warn('[Monitor] Container fetch error:', err);
-        renderContainerTable([]); // show empty state
+        renderContainerTable([]);
       })
       .finally(() => {
         if (btn) setTimeout(() => btn.classList.remove('is-spinning'), 400);
@@ -272,14 +316,16 @@
       const mem = +(c.mem_percent ?? (Math.random() * 55 + 15)).toFixed(1);
       const name = (c.name || '').replace(/^\//, '');
       const image = (c.image || 'unknown').substring(0, 28);
-      const portsRaw = c.ports ? Object.entries(c.ports)
-        .flatMap(([k, v]) => v ? v.map(p => `${p.HostPort}→${k.split('/')[0]}`) : [])
-        .slice(0, 2).join(', ') : '—';
+      const portsRaw = c.ports
+        ? Object.entries(c.ports)
+          .flatMap(([k, v]) => v ? v.map(p => `${p.HostPort}→${k.split('/')[0]}`) : [])
+          .slice(0, 2).join(', ')
+        : '—';
 
       const cpuClass = cpu >= 80 ? 'crit' : cpu >= 55 ? 'warn' : '';
       const memClass = mem >= 80 ? 'crit' : mem >= 55 ? 'warn' : '';
 
-      return `<tr>
+      return `<tr data-container="${name}">
         <td>
           <div class="cx-container-name">
             <i class="fas fa-cube"></i>
@@ -291,7 +337,7 @@
         <td>
           <div class="cx-mini-bar">
             <div class="cx-mini-bar-track">
-              <div class="cx-mini-bar-fill ${cpuClass}" style="width:${cpu}%"></div>
+              <div class="cx-mini-bar-fill ${cpuClass}" style="width:${cpu}%;transition:width .5s ease"></div>
             </div>
             <span class="cx-mini-bar-val">${cpu}%</span>
           </div>
@@ -299,7 +345,7 @@
         <td>
           <div class="cx-mini-bar">
             <div class="cx-mini-bar-track">
-              <div class="cx-mini-bar-fill ${memClass}" style="width:${mem}%"></div>
+              <div class="cx-mini-bar-fill ${memClass}" style="width:${mem}%;transition:width .5s ease"></div>
             </div>
             <span class="cx-mini-bar-val">${mem}%</span>
           </div>
@@ -318,6 +364,10 @@
             <button class="cx-icon-btn" title="Logs"
               onclick="viewContainerLogs('${c.id}','${name}')">
               <i class="fas fa-file-alt"></i>
+            </button>
+            <button class="cx-icon-btn" title="Open Terminal"
+              onclick="openContainerTerminal('${c.id}','${name}')">
+              <i class="fas fa-terminal"></i>
             </button>
           </div>
         </td>
@@ -344,7 +394,15 @@
           if (typeof showToast === 'function') showToast(d.error || 'Action failed', 'error');
         }
       })
-      .catch(e => { if (typeof showToast === 'function') showToast('Request failed: ' + e.message, 'error'); });
+      .catch(e => {
+        if (typeof showToast === 'function') showToast('Request failed: ' + e.message, 'error');
+      });
+  };
+
+  /* Open terminal for a container (navigates to workspace page) */
+  window.openContainerTerminal = function (containerId, name) {
+    const url = `/workspace?container=${encodeURIComponent(containerId)}`;
+    window.open(url, '_blank');
   };
 
   /* Container logs viewer */
@@ -369,12 +427,12 @@
   };
 
   function escHtml(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
-  /* ================================================================
-     LOG TABLE (analytics page)
-     ================================================================ */
 
   const SEED_LOGS = [
     { ts: '2026-04-22 14:32:07', severity: 'info', service: 'orchestrator', msg: 'Container cloudx-project-3 provisioned successfully.' },
@@ -391,7 +449,11 @@
     { ts: '2026-04-22 14:22:11', severity: 'info', service: 'orchestrator', msg: 'Workspace ws-09 health-check passed.' },
   ];
 
-  const SEV_ICONS = { info: 'fa-info-circle', warning: 'fa-exclamation-triangle', error: 'fa-exclamation-circle' };
+  const SEV_ICONS = {
+    info: 'fa-info-circle',
+    warning: 'fa-exclamation-triangle',
+    error: 'fa-exclamation-circle',
+  };
 
   function renderLogs(filter) {
     const tbody = document.getElementById('logsBody');
@@ -416,25 +478,57 @@
   function initLogFilters() {
     document.querySelectorAll('.logs-filters__btn').forEach(btn => {
       btn.addEventListener('click', function () {
-        document.querySelectorAll('.logs-filters__btn').forEach(b => b.classList.remove('logs-filters__btn--active'));
+        document.querySelectorAll('.logs-filters__btn')
+          .forEach(b => b.classList.remove('logs-filters__btn--active'));
         this.classList.add('logs-filters__btn--active');
         renderLogs(this.dataset.filter);
       });
     });
   }
 
-  /* ================================================================
-     TOPOLOGY GRAPH  (vis-network, existing logic preserved)
-     ================================================================ */
+  function _updateAnalyticsKPIs({ cpu, mem, disk, netRaw }) {
+    const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    const setBarEl = (id, pct) => {
+      const e = document.getElementById(id);
+      if (!e) return;
+      e.style.width = pct + '%';
+      e.className = 'kpi-card__bar-fill' +
+        (pct >= 80 ? ' kpi-card__bar-fill--red'
+          : pct >= 55 ? ' kpi-card__bar-fill--orange'
+            : ' kpi-card__bar-fill--green');
+    };
 
-  function initTopology() {
-    // The existing topology code in the original analytics.js handles this.
-    // CloudXMonitor exposes syncContainers() which the topology can call.
+    if (cpu !== undefined) { setEl('cpuValue', Math.round(cpu) + '%'); setBarEl('cpuBar', cpu); }
+    if (mem !== undefined) {
+      const memUsed = (mem / 100 * 8).toFixed(1);
+      setEl('memValue', memUsed + ' GB / 8 GB');
+      setBarEl('memBar', mem);
+      setEl('memSub', Math.round(mem) + '% utilized');
+    }
+    if (netRaw !== undefined) {
+      const up = (netRaw * 0.6).toFixed(0);
+      const down = (netRaw * 0.4).toFixed(0);
+      setEl('netValue', Math.round(netRaw) + ' KB/s');
+      setEl('netUp', up + ' KB/s');
+      setEl('netDown', down + ' KB/s');
+    }
+    if (cpu !== undefined) {
+      setEl('cpuSub', cpu >= 80 ? 'High load' : cpu >= 55 ? 'Moderate load' : 'Normal load');
+    }
   }
 
-  /* ================================================================
-     RESOURCE CHARTS  (analytics page)
-     ================================================================ */
+  /* Fallback ticker for analytics page (used if no real data yet) */
+  function tickKPIs() {
+    const rand = (lo, hi) => +(Math.random() * (hi - lo) + lo).toFixed(1);
+    _updateAnalyticsKPIs({
+      cpu: rand(30, 85),
+      mem: rand(40, 90),
+      netRaw: rand(40, 320),
+    });
+    const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    setEl('containerValue', Math.round(rand(8, 18)));
+  }
+
 
   function initResourceChart() {
     const canvas = document.getElementById('resourceTrendsChart');
@@ -464,14 +558,16 @@
           {
             label: 'CPU', data: cpuData, borderColor: '#00ccff', backgroundColor: cpuGrad,
             borderWidth: 1.75, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 24,
-            pointHoverRadius: 5, pointHoverBackgroundColor: '#00ccff', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
+            pointHoverRadius: 5, pointHoverBackgroundColor: '#00ccff',
+            pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2,
           },
           {
             label: 'Memory', data: memData, borderColor: '#9d6fff', backgroundColor: memGrad,
             borderWidth: 1.75, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 24,
-            pointHoverRadius: 5, pointHoverBackgroundColor: '#9d6fff', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
-          }
-        ]
+            pointHoverRadius: 5, pointHoverBackgroundColor: '#9d6fff',
+            pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2,
+          },
+        ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -480,22 +576,27 @@
           legend: { display: false },
           tooltip: {
             mode: 'index', intersect: false, backgroundColor: 'rgba(5,11,20,0.95)',
-            titleColor: '#dbeaff', bodyColor: gray, borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1,
+            titleColor: '#dbeaff', bodyColor: gray,
+            borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1,
             padding: { top: 10, right: 14, bottom: 10, left: 14 }, cornerRadius: 10,
             titleFont: { ...font, size: 11, weight: '600' }, bodyFont: { ...font, size: 12 },
-            callbacks: { label: c => `  ${c.dataset.label}:  ${c.parsed.y}%` }
-          }
+            callbacks: { label: c => `  ${c.dataset.label}:  ${c.parsed.y}%` },
+          },
         },
         scales: {
-          x: { border: { display: false }, grid: { display: false }, ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 7, padding: 8 } },
+          x: {
+            border: { display: false }, grid: { display: false },
+            ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 7, padding: 8 },
+          },
           y: {
-            beginAtZero: false, min: 20, max: 100, border: { display: false, dash: [3, 4] },
+            beginAtZero: false, min: 20, max: 100,
+            border: { display: false, dash: [3, 4] },
             grid: { color: gridColor, drawTicks: false },
-            ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 5, padding: 12, callback: v => v + '%' }
-          }
+            ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 5, padding: 12, callback: v => v + '%' },
+          },
         },
-        interaction: { mode: 'index', intersect: false }
-      }
+        interaction: { mode: 'index', intersect: false },
+      },
     });
   }
 
@@ -527,14 +628,16 @@
           {
             label: 'Inbound', data: inbound, borderColor: '#00e87a', backgroundColor: inGrad,
             borderWidth: 1.75, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 24,
-            pointHoverRadius: 5, pointHoverBackgroundColor: '#00e87a', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
+            pointHoverRadius: 5, pointHoverBackgroundColor: '#00e87a',
+            pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2,
           },
           {
             label: 'Outbound', data: outbound, borderColor: '#ff7c42', backgroundColor: outGrad,
             borderWidth: 1.75, tension: 0.4, fill: true, pointRadius: 0, pointHitRadius: 24,
-            pointHoverRadius: 5, pointHoverBackgroundColor: '#ff7c42', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2
-          }
-        ]
+            pointHoverRadius: 5, pointHoverBackgroundColor: '#ff7c42',
+            pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2,
+          },
+        ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -543,21 +646,25 @@
           legend: { display: false },
           tooltip: {
             mode: 'index', intersect: false, backgroundColor: 'rgba(5,11,20,0.95)',
-            titleColor: '#dbeaff', bodyColor: gray, borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1,
+            titleColor: '#dbeaff', bodyColor: gray,
+            borderColor: 'rgba(255,255,255,0.07)', borderWidth: 1,
             padding: { top: 10, right: 14, bottom: 10, left: 14 }, cornerRadius: 10,
-            callbacks: { label: c => `  ${c.dataset.label}:  ${c.parsed.y} KB/s` }
-          }
+            callbacks: { label: c => `  ${c.dataset.label}:  ${c.parsed.y} KB/s` },
+          },
         },
         scales: {
-          x: { border: { display: false }, grid: { display: false }, ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 7, padding: 8 } },
+          x: {
+            border: { display: false }, grid: { display: false },
+            ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 7, padding: 8 },
+          },
           y: {
             beginAtZero: true, border: { display: false, dash: [3, 4] },
             grid: { color: gridColor, drawTicks: false },
-            ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 5, padding: 12, callback: v => v + ' KB/s' }
-          }
+            ticks: { color: gray, font: { ...font, size: 11 }, maxTicksLimit: 5, padding: 12, callback: v => v + ' KB/s' },
+          },
         },
-        interaction: { mode: 'index', intersect: false }
-      }
+        interaction: { mode: 'index', intersect: false },
+      },
     });
   }
 
@@ -570,43 +677,32 @@
     });
   }
 
-  /* Live KPI ticker for analytics page */
-  function tickKPIs() {
-    const rand = (lo, hi) => +(Math.random() * (hi - lo) + lo).toFixed(1);
-    const setEl = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-    const setBarEl = (id, pct) => {
-      const e = document.getElementById(id);
-      if (!e) return;
-      e.style.width = pct + '%';
-      e.className = 'kpi-card__bar-fill' + (pct >= 80 ? ' kpi-card__bar-fill--red' : pct >= 55 ? ' kpi-card__bar-fill--orange' : ' kpi-card__bar-fill--green');
-    };
 
-    const cpu = rand(30, 85); setEl('cpuValue', cpu + '%'); setBarEl('cpuBar', cpu);
-    setEl('cpuSub', cpu >= 80 ? 'High load' : cpu >= 55 ? 'Moderate load' : 'Normal load');
-
-    const memPct = rand(40, 90); const memUsed = (memPct / 100 * 8).toFixed(1);
-    setEl('memValue', memUsed + ' GB / 8 GB'); setBarEl('memBar', memPct);
-    setEl('memSub', memPct.toFixed(0) + '% utilized');
-
-    setEl('containerValue', Math.round(rand(8, 18)));
-    const up = rand(40, 200); const down = rand(20, 120);
-    setEl('netValue', (up + down).toFixed(0) + ' KB/s');
-    setEl('netUp', up + ' KB/s'); setEl('netDown', down + ' KB/s');
+  function initRefreshBtn() {
+    const btn = document.getElementById('refreshBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      btn.classList.add('is-spinning');
+      if (!_usingRealData) tickKPIs();
+      renderLogs('all');
+      document.querySelectorAll('.logs-filters__btn')
+        .forEach(b => b.classList.remove('logs-filters__btn--active'));
+      const allBtn = document.querySelector('.logs-filters__btn[data-filter="all"]');
+      if (allBtn) allBtn.classList.add('logs-filters__btn--active');
+      setTimeout(() => btn.classList.remove('is-spinning'), 600);
+      if (typeof showToast === 'function') showToast('Analytics refreshed', 'success');
+    });
   }
-
-  /* ================================================================
-     PUBLIC API  — CloudXMonitor
-     ================================================================ */
 
   window.CloudXMonitor = {
     init() {
       attachSocketListeners();
 
-      /* Prime gauges immediately, then simulate if no real data arrives */
+      /* Prime gauges immediately */
       simulateTick();
 
-      /* Simulate at 5 s intervals; stops if real Socket.IO data arrives */
-      const simTimer = setInterval(() => {
+      /* Simulate at intervals; naturally stops if real data arrives */
+      setInterval(() => {
         if (!_usingRealData) simulateTick();
       }, POLL_MS);
 
@@ -621,37 +717,29 @@
         initResourceChart();
         initNetworkChart();
         initRefreshBtn();
-        setInterval(tickKPIs, 4000);
+        /* Fallback ticker only if no real data yet */
+        setInterval(() => { if (!_usingRealData) tickKPIs(); }, 4000);
       }
 
-      /* Expose syncContainers for topology */
       this.syncContainers = syncContainerTable;
     },
 
     syncContainers: syncContainerTable,
     updateGauge,
     applyMetrics,
+    renderContainerTable,
   };
 
-  /* Refresh button on analytics page */
-  function initRefreshBtn() {
-    const btn = document.getElementById('refreshBtn');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      btn.classList.add('is-spinning');
-      tickKPIs();
-      renderLogs('all');
-      document.querySelectorAll('.logs-filters__btn').forEach(b => b.classList.remove('logs-filters__btn--active'));
-      const allBtn = document.querySelector('.logs-filters__btn[data-filter="all"]');
-      if (allBtn) allBtn.classList.add('logs-filters__btn--active');
-      setTimeout(() => btn.classList.remove('is-spinning'), 600);
-      if (typeof showToast === 'function') showToast('Analytics refreshed', 'success');
-    });
-  }
+  /* Also expose syncContainerTable globally for inline onclick */
+  window.syncContainerTable = syncContainerTable;
 
-  /* Auto-init on dashboard page */
+  /* Auto-init on dashboard / analytics page */
   document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('gaugeGrid') || document.getElementById('containerSection')) {
+    if (
+      document.getElementById('gaugeGrid') ||
+      document.getElementById('containerSection') ||
+      document.getElementById('logsBody')
+    ) {
       window.CloudXMonitor.init();
     }
   });

@@ -37,7 +37,7 @@ services:
       FLASK_DEBUG: ${FLASK_DEBUG:-0}
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-1.5-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       MONITOR_POLL_INTERVAL: ${MONITOR_POLL_INTERVAL:-15}
       TERMINAL_BUFFER_BYTES: ${TERMINAL_BUFFER_BYTES:-4096}
       TERMINAL_FLUSH_INTERVAL: ${TERMINAL_FLUSH_INTERVAL:-0.05}
@@ -66,6 +66,9 @@ services:
       start_period: 40s
     networks:
       - cloudx-network
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

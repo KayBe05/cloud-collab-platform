@@ -1,8 +1,3 @@
-"""
-Test suite for CloudX Flask application
-Run with: pytest app/test_app.py
-"""
-
 import pytest
 import sys
 import os
@@ -23,7 +18,6 @@ def test_home_page(client):
     """Test the home page loads correctly"""
     response = client.get('/')
     assert response.status_code == 200
-    # CORRECTED: Updated assertion from 'CloudX Prototype' to the current application name 'CloudX Platform'
     assert b'Welcome to CloudX Platform' in response.data 
 
 def test_health_check(client):

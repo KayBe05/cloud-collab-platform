@@ -30,7 +30,7 @@ except ImportError:
     logging.warning("google-generativeai not installed. AI assistant will be disabled.")
 
 try:
-    from monitor import SystemMonitor
+    from app.monitor import SystemMonitor
 except ImportError:
     SystemMonitor = None
     logging.warning("monitor.py not found. Real-time stats will be disabled.")
@@ -127,7 +127,6 @@ cache = {'metrics': {}, 'projects': {}, 'last_update': {}}
 
 
 def get_db_connection():
-    """Get database connection with error handling"""
     try:
         return psycopg.connect(**DB_CONFIG)
     except Exception as e:
@@ -136,7 +135,6 @@ def get_db_connection():
 
 
 def init_db():
-    """Initialize database with required tables"""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
@@ -695,8 +693,7 @@ def api_activities():
 
 # ── API: AI CODE ASSISTANT ─────────────────────────────────────────────────────
 
-# Gemini model name – override via env var if needed
-_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-latest")
 
 # System prompt that keeps responses focused and structured
 _AI_SYSTEM_PROMPT = """You are an expert software engineering assistant embedded in CloudX,
@@ -714,23 +711,17 @@ Guidelines:
 def _get_gemini_client():
     """
     Lazily configure and return the Gemini GenerativeModel.
-    Raises RuntimeError with a clear message if the API key is absent or the
-    library is not installed.
+    Uses 'rest' transport to bypass potential gRPC firewall blocks.
     """
     if not _GENAI_AVAILABLE:
-        raise RuntimeError(
-            "google-generativeai is not installed. "
-            "Add it to requirements.txt and rebuild the container."
-        )
+        raise RuntimeError("google-generativeai is not installed.")
 
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        raise RuntimeError(
-            "AI assistant is not configured. "
-            "Set the GEMINI_API_KEY environment variable."
-        )
+        raise RuntimeError("AI assistant is not configured. Set GEMINI_API_KEY.")
 
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key, transport='rest')
+    
     return genai.GenerativeModel(
         model_name=_GEMINI_MODEL,
         system_instruction=_AI_SYSTEM_PROMPT,
@@ -740,23 +731,6 @@ def _get_gemini_client():
 @app.route('/api/ai/assist', methods=['POST'])
 @login_required
 def ai_assist():
-    """
-    AI Code Assistant endpoint.
-
-    Expected JSON body:
-        {
-            "code_context": "<the relevant source code>",
-            "user_query":   "<what the user wants to do / fix / understand>"
-        }
-
-    Returns:
-        {
-            "success":    true,
-            "suggestion": "<markdown-formatted response from Gemini>",
-            "model":      "gemini-1.5-flash",
-            "usage":      { "prompt_tokens": N, "candidates_tokens": N }
-        }
-    """
     data = request.get_json(silent=True)
     if not data:
         return jsonify({'success': False, 'error': 'Request body must be JSON.'}), 400
@@ -1150,8 +1124,6 @@ TERMINAL_FLUSH_INTERVAL  = float(os.getenv("TERMINAL_FLUSH_INTERVAL", 0.05))  # 
 def _buffered_docker_reader(container_id: str, exec_sock, sid: str):
     raw_sock = exec_sock._sock if hasattr(exec_sock, '_sock') else exec_sock
 
-    # Set the socket to non-blocking so we can implement the time-based flush
-    # without being stuck waiting for data forever.
     raw_sock.setblocking(False)
 
     buf: list[bytes] = []
@@ -1175,8 +1147,6 @@ def _buffered_docker_reader(container_id: str, exec_sock, sid: str):
             now = time.monotonic()
             time_until_flush = TERMINAL_FLUSH_INTERVAL - (now - last_flush)
 
-            # Wait for data with a timeout equal to the remaining flush window.
-            # select() returns immediately if data is already available.
             readable, _, _ = select.select(
                 [raw_sock], [], [],
                 max(0.0, time_until_flush)

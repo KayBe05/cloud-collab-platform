@@ -41,8 +41,8 @@
 
       --shadow-sm: 0 1px 3px rgba(0, 0, 0, .1), 0 1px 2px rgba(0, 0, 0, .06);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, .1), 0 2px 4px -2px rgba(0, 0, 0, .1);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, .1), 0 4px 6px -4px rgba(0, 0, 0, .1);
-      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, .1), 0 8px 10px -6px rgba(0, 0, 0, .1);
+      --shadow-lg: 0 10px 24px -4px rgba(14, 165, 233, .10), 0 4px 10px -4px rgba(14, 165, 233, .08);
+      --shadow-xl: 0 20px 40px -8px rgba(14, 165, 233, .13), 0 8px 16px -8px rgba(14, 165, 233, .09);
 
       --radius-sm: 6px;
       --radius-md: 8px;
@@ -59,6 +59,25 @@
       height: 100%;
       font-family: 'Inter', sans-serif;
       background: var(--bg-sidebar);
+    }
+    
+    button,
+    input,
+    select,
+    textarea,
+    label,
+    .badge,
+    .step-text,
+    .hero-sub,
+    .hero-footer,
+    .form-subtitle,
+    .switch-link,
+    .terms-note,
+    .divider,
+    .flash,
+    .forgot-link,
+    .checkbox-label {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
     /* ── Two-Column Shell ──────────────────────────────────────────────── */
@@ -420,15 +439,21 @@
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
-      transition: all var(--transition-base);
+      transition: transform 200ms cubic-bezier(.4, 0, .2, 1),
+        box-shadow 200ms cubic-bezier(.4, 0, .2, 1),
+        border-color 200ms cubic-bezier(.4, 0, .2, 1),
+        background 200ms cubic-bezier(.4, 0, .2, 1);
       box-shadow: var(--shadow-sm);
     }
 
     .btn-social:hover {
       background: var(--bg-secondary);
       border-color: var(--primary);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-1px);
+      transform: translateY(-2px) scale(1.012);
+      box-shadow:
+        0 0 0 3px rgba(14, 165, 233, .10),
+        0 6px 20px -4px rgba(14, 165, 233, .28),
+        0 2px 8px -2px rgba(6, 182, 212, .18);
     }
 
     .btn-social .social-icon {
@@ -625,6 +650,33 @@
       text-decoration: underline;
     }
 
+    /* ── Strict Typography: targeted, never touches icon elements ─────────── */
+    button:not([class*="fa"]),
+    input,
+    select,
+    textarea,
+    label,
+    .badge,
+    .step-text,
+    .hero-sub,
+    .hero-footer,
+    .form-subtitle,
+    .switch-link,
+    .terms-note,
+    .divider,
+    .flash,
+    .forgot-link,
+    .checkbox-label,
+    .btn-social span:not(.social-icon),
+    p,
+    span:not([class*="fa"]):not([class*="icon"]),
+    .resource-label,
+    .activity-feed-action,
+    .activity-feed-details,
+    .card-subtitle {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 900px) {
       .auth-shell {
@@ -682,9 +734,10 @@
               </filter>
               <!-- Edge gradient -->
               <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#0EA5E9" stop-opacity=".1" />
-                <stop offset="50%" stop-color="#38BDF8" stop-opacity=".7" />
-                <stop offset="100%" stop-color="#06B6D4" stop-opacity=".1" />
+                <stop offset="0%" stop-color="#0EA5E9" stop-opacity=".08" />
+                <stop offset="30%" stop-color="#38BDF8" stop-opacity=".85" />
+                <stop offset="70%" stop-color="#06B6D4" stop-opacity=".85" />
+                <stop offset="100%" stop-color="#8B5CF6" stop-opacity=".08" />
               </linearGradient>
               <!-- Packet path definitions for motion -->
               <path id="p1" d="M 60,110 Q 170,60 240,110" fill="none" />
@@ -708,13 +761,13 @@
             </g>
 
             <!-- Edges -->
-            <g stroke="url(#edgeGrad)" stroke-width="1.2" fill="none" opacity=".8">
-              <path d="M 60,110 Q 170,60 240,110" />
-              <path d="M 60,110 Q 150,160 240,110" />
-              <path d="M 240,110 Q 310,60 420,80" />
-              <path d="M 240,110 Q 310,150 420,140" />
-              <path d="M 150,180 Q 195,145 240,110" />
-              <path d="M 420,80 L 420,140" stroke="#38BDF8" stroke-width=".8" opacity=".5" />
+            <g fill="none" opacity=".9">
+              <path d="M 60,110 Q 170,60 240,110" stroke="url(#edgeGrad)" stroke-width="1.6" />
+              <path d="M 60,110 Q 150,160 240,110" stroke="url(#edgeGrad)" stroke-width="1.6" />
+              <path d="M 240,110 Q 310,60 420,80" stroke="url(#edgeGrad)" stroke-width="1.6" />
+              <path d="M 240,110 Q 310,150 420,140" stroke="url(#edgeGrad)" stroke-width="1.6" />
+              <path d="M 150,180 Q 195,145 240,110" stroke="url(#edgeGrad)" stroke-width="1.4" />
+              <path d="M 420,80 L 420,140" stroke="#38BDF8" stroke-width=".9" opacity=".45" />
             </g>
 
             <!-- Hub node (center) -->

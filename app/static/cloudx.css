@@ -693,7 +693,7 @@
   padding: 0 0.2rem;
 }
 
-.ai-msg-time{
+.ai-msg-time {
   font-size: var(--radius-md);
   color: var(--gray-400);
 }

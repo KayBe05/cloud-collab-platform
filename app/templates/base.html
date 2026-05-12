@@ -79,18 +79,15 @@
       transform: translateY(0) scale(1) !important;
     }
 
-    /* 2. Prevent the parent header from clipping or hiding the dropdown */
     .top-header,
     .header-right {
       overflow: visible !important;
     }
 
-    /* 3. Ensure the dropdown sits on top of all other elements */
     .user-dropdown {
       z-index: 999999 !important;
     }
 
-    /* Dropdown panel */
     .user-dropdown {
       position: absolute;
       top: calc(100% + 0.625rem);
@@ -191,7 +188,6 @@
       color: var(--error);
     }
 
-    /* Login button (unauthenticated state) */
     .btn-login {
       display: inline-flex;
       align-items: center;
@@ -221,8 +217,12 @@
 </head>
 
 <body>
+
+  <!-- ── Sidebar Overlay (click to close) ──────────────────────────────── -->
+  <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
   <!-- Navigation Sidebar -->
-  <aside class="sidebar" role="navigation" aria-label="Main Navigation">
+  <aside class="sidebar" id="mainSidebar" role="navigation" aria-label="Main Navigation">
     <div class="sidebar-header">
       <div class="logo">
         <div class="logo-icon">
@@ -233,6 +233,11 @@
           <span class="logo-subtitle">Platform</span>
         </div>
       </div>
+
+      <!-- Close button inside sidebar (mobile / convenience) -->
+      <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Navigation">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -301,13 +306,19 @@
   </aside>
 
   <!-- Main Content Area -->
-  <main class="main-content" role="main">
+  <main class="main-content" id="mainContent" role="main">
     <!-- Top Header Bar -->
     <header class="top-header" role="banner">
       <div class="header-left">
-        <button class="menu-toggle" id="menuToggle" aria-label="Toggle Navigation Menu">
-          <i class="fas fa-bars"></i>
+
+        <!-- ── Hamburger button ──────────────────────────────────────────── -->
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open Navigation Menu" aria-expanded="false"
+          aria-controls="mainSidebar">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
         </button>
+
         <div class="breadcrumb">
           {% block breadcrumb %}
           <i class="fas fa-home"></i>
@@ -333,10 +344,9 @@
           <span class="notification-badge">3</span>
         </button>
 
-        <!-- ── USER MENU (Flask-Login aware) ─────────────────────────────── -->
+        <!-- ── USER MENU ─────────────────────────────────────────────────── -->
         <div class="user-menu" id="userMenu">
           {% if current_user.is_authenticated %}
-          <!-- Authenticated: avatar + name + dropdown -->
           <div class="user-menu-trigger" id="userMenuTrigger" role="button" tabindex="0" aria-haspopup="true"
             aria-expanded="false">
             <img
@@ -365,8 +375,8 @@
 
               <div class="dropdown-divider"></div>
 
-              <div
-                style="padding: 0.4rem 0.75rem 0.2rem; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px;">
+              <div style="padding: 0.4rem 0.75rem 0.2rem; font-size: 0.65rem; font-weight: 700;
+                text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px;">
                 Settings Shortcuts
               </div>
 
@@ -395,15 +405,12 @@
           </div>
 
           {% else %}
-          <!-- Unauthenticated: simple login button -->
           <a href="{{ url_for('login') }}" class="btn-login">
             <i class="fas fa-sign-in-alt"></i>
             Sign In
           </a>
           {% endif %}
         </div>
-        <!-- ── END USER MENU ─────────────────────────────────────────────── -->
-
       </div>
     </header>
 
@@ -430,7 +437,7 @@
 
   <!-- Base JavaScript -->
   <script>
-    // Configuration
+    // ── Configuration ──────────────────────────────────────────────────────
     const CONFIG = {
       socketTimeout: 60000,
       reconnectDelay: 1000,
@@ -438,7 +445,7 @@
       toastDuration: 3000
     };
 
-    // WebSocket connection
+    // ── WebSocket ──────────────────────────────────────────────────────────
     const socket = io({
       reconnection: true,
       reconnectionDelay: CONFIG.reconnectDelay,
@@ -479,7 +486,6 @@
     function showToast(message, type = 'info', duration = CONFIG.toastDuration) {
       const container = document.getElementById('toastContainer');
       if (!container) return;
-
       const toast = document.createElement('div');
       toast.className = `toast toast-${type}`;
       const iconMap = {
@@ -506,6 +512,52 @@
       return div.innerHTML;
     }
 
+    // ── Hamburger / Slide-in Sidebar ───────────────────────────────────────
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const mainSidebar = document.getElementById('mainSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
+    const mainContent = document.getElementById('mainContent');
+
+    function openSidebar() {
+      mainSidebar.classList.add('sidebar-active');
+      sidebarOverlay.classList.add('sidebar-overlay-active');
+      mainContent.classList.add('content-shifted');
+      hamburgerBtn.setAttribute('aria-expanded', 'true');
+      hamburgerBtn.classList.add('is-open');
+      document.body.style.overflow = 'hidden'; // prevent scroll bleed on mobile
+    }
+
+    function closeSidebar() {
+      mainSidebar.classList.remove('sidebar-active');
+      sidebarOverlay.classList.remove('sidebar-overlay-active');
+      mainContent.classList.remove('content-shifted');
+      hamburgerBtn.setAttribute('aria-expanded', 'false');
+      hamburgerBtn.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    hamburgerBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mainSidebar.classList.contains('sidebar-active') ? closeSidebar() : openSidebar();
+    });
+
+    sidebarCloseBtn?.addEventListener('click', closeSidebar);
+    sidebarOverlay?.addEventListener('click', closeSidebar);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && mainSidebar.classList.contains('sidebar-active')) {
+        closeSidebar();
+      }
+    });
+
+    // Close sidebar when a nav link is clicked (single-page feel)
+    mainSidebar?.querySelectorAll('.nav-item').forEach(link => {
+      link.addEventListener('click', () => {
+        if (window.innerWidth < 1024) closeSidebar();
+      });
+    });
+
     // ── User menu dropdown ─────────────────────────────────────────────────
     const userMenu = document.getElementById('userMenu');
     const userTrigger = document.getElementById('userMenuTrigger');
@@ -530,35 +582,7 @@
           userTrigger.setAttribute('aria-expanded', 'false');
         }
       });
-
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          userMenu.classList.remove('open');
-          userTrigger.setAttribute('aria-expanded', 'false');
-        }
-      });
     }
-
-    // ── Sidebar toggle ─────────────────────────────────────────────────────
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.querySelector('.sidebar');
-
-    if (menuToggle) {
-      menuToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        sidebar.classList.toggle('mobile-open');
-      });
-    }
-
-    document.querySelector('.main-content')?.addEventListener('click', () => {
-      if (window.innerWidth <= 768 && sidebar?.classList.contains('mobile-open')) {
-        sidebar.classList.remove('mobile-open');
-      }
-    });
-
-    window.addEventListener('resize', () => {
-      if (window.innerWidth > 768) sidebar?.classList.remove('mobile-open');
-    });
   </script>
 
   {% block scripts %}{% endblock %}

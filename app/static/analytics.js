@@ -110,7 +110,6 @@
     ctx.fill();
   }
 
-
   function applyMetrics(m) {
     /* ── Host-level metrics ── */
     const cpu = +m.cpu_usage || +m.cpu || 0;
@@ -213,7 +212,6 @@
     }, POLL_MS);
   }
 
-  /* Parse container.* keys from monitor.py broadcast payload */
   function _applyContainerMetricsFromBroadcast(data) {
     // Keys like: "container.cloudx-project-3-abc.cpu_percent"
     const containers = {};
@@ -233,7 +231,6 @@
     }
   }
 
-  /* Merge live CPU/mem data into the existing table rows */
   function _mergeContainerMetrics(liveList) {
     const tbody = document.getElementById('containerTableBody');
     if (!tbody) return;
@@ -376,7 +373,6 @@
     }).join('');
   }
 
-  /* Container action helper */
   window.containerAction = function (containerId, action) {
     const labels = { stop: 'Stopping', restart: 'Restarting', delete: 'Deleting' };
     if (typeof showToast === 'function') showToast(`${labels[action] || 'Acting on'} container…`, 'info');
@@ -400,7 +396,6 @@
       });
   };
 
-  /* Open terminal for a container (navigates to workspace page) */
   window.openContainerTerminal = function (containerId, name) {
     const url = `/workspace?container=${encodeURIComponent(containerId)}`;
     window.open(url, '_blank');
@@ -456,24 +451,113 @@
     error: 'fa-exclamation-circle',
   };
 
+  function initTimeRangeDropdown() {
+    const wrapper = document.getElementById('timeRangeDropdown');
+    const btn = document.getElementById('timeRangeBtn');
+    const menu = document.getElementById('timeRangeMenu');
+    const label = document.getElementById('timeRangeLabel');
+    if (!wrapper || !btn || !menu) return;
+
+    function openMenu() {
+      wrapper.classList.add('time-range-dropdown--open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu() {
+      wrapper.classList.remove('time-range-dropdown--open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleMenu() {
+      wrapper.classList.contains('time-range-dropdown--open') ? closeMenu() : openMenu();
+    }
+
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); });
+
+    menu.querySelectorAll('.time-range-dropdown__item').forEach(item => {
+      item.addEventListener('click', () => {
+        // Clear old active
+        menu.querySelectorAll('.time-range-dropdown__item').forEach(i => {
+          i.classList.remove('time-range-dropdown__item--active');
+          i.removeAttribute('aria-selected');
+          const chk = i.querySelector('.time-range-dropdown__item-check');
+          if (chk) chk.remove();
+        });
+
+        // Set new active
+        item.classList.add('time-range-dropdown__item--active');
+        item.setAttribute('aria-selected', 'true');
+
+        // Add checkmark
+        const check = document.createElement('i');
+        check.className = 'fas fa-check time-range-dropdown__item-check';
+        item.appendChild(check);
+
+        // Update trigger label
+        const newLabel = item.querySelector('.time-range-dropdown__item-label').textContent;
+        if (label) label.textContent = newLabel;
+
+        closeMenu();
+
+        if (typeof showToast === 'function') {
+          showToast(`Time range: ${newLabel}`, 'info');
+        }
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!wrapper.contains(e.target)) closeMenu();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu();
+    });
+  }
+
   function renderLogs(filter) {
     const tbody = document.getElementById('logsBody');
     if (!tbody) return;
+
+    const filtered = filter === 'all'
+      ? SEED_LOGS
+      : SEED_LOGS.filter(log => log.severity === filter);
+
     tbody.innerHTML = '';
-    SEED_LOGS.forEach(log => {
-      if (filter !== 'all' && log.severity !== filter) return;
+
+    filtered.forEach(log => {
       const tr = document.createElement('tr');
       tr.dataset.severity = log.severity;
-      tr.innerHTML =
-        `<td style="font-family:var(--cx-mono);font-size:.75rem;color:var(--cx-t3)">${log.ts}</td>
-         <td><span class="cx-sev ${log.severity}">
-               <i class="fas ${SEV_ICONS[log.severity] || ''}"></i>
-               ${log.severity.charAt(0).toUpperCase() + log.severity.slice(1)}
-             </span></td>
-         <td style="font-family:var(--cx-mono);font-size:.78rem;color:var(--cx-t2)">${log.service}</td>
-         <td style="font-family:var(--cx-mono);font-size:.78rem">${log.msg}</td>`;
+
+      const iconMap = {
+        info: 'fa-info-circle',
+        warning: 'fa-exclamation-triangle',
+        error: 'fa-times-circle',
+      };
+
+      tr.innerHTML = `
+      <td class="logs-table__timestamp">${log.ts}</td>
+      <td>
+        <span class="severity-badge severity-badge--${log.severity}">
+          <i class="fas ${iconMap[log.severity] || 'fa-circle'}"></i>
+          ${log.severity.charAt(0).toUpperCase() + log.severity.slice(1)}
+        </span>
+      </td>
+      <td>
+        <span class="logs-table__service">${log.service}</span>
+      </td>
+      <td class="logs-table__message">${log.msg}</td>
+    `;
+
       tbody.appendChild(tr);
     });
+
+    // Update footer count
+    const countEl = document.getElementById('logsCount');
+    if (countEl) {
+      countEl.textContent = `Showing ${filtered.length} event${filtered.length !== 1 ? 's' : ''}`;
+    }
   }
 
   function initLogFilters() {
@@ -705,25 +789,90 @@
     if (!container || typeof vis === 'undefined') return;
 
     topoNodes = new vis.DataSet([
-      { id: 'orchestrator', label: 'Orchestrator\n(App Node)', color: '#8b5cf6', size: 25, shape: 'dot' }
+      {
+        id: 'orchestrator',
+        label: 'Orchestrator',
+        title: 'App Node',
+        shape: 'box',
+        color: {
+          background: 'rgba(139, 92, 246, 0.18)',
+          border: '#8B5CF6',
+          highlight: { background: 'rgba(139, 92, 246, 0.30)', border: '#a78bfa' },
+          hover: { background: 'rgba(139, 92, 246, 0.25)', border: '#a78bfa' },
+        },
+        font: { color: '#c4b5fd', size: 13, face: "'JetBrains Mono', monospace", bold: { color: '#dbeaff' } },
+        borderWidth: 1.5,
+        borderWidthSelected: 2.5,
+        widthConstraint: { minimum: 110, maximum: 140 },
+        shadow: { enabled: true, color: 'rgba(139, 92, 246, 0.45)', size: 14, x: 0, y: 0 },
+        margin: { top: 10, right: 14, bottom: 10, left: 14 },
+        size: 28,
+      }
     ]);
     topoEdges = new vis.DataSet([]);
 
     const data = { nodes: topoNodes, edges: topoEdges };
     const options = {
       nodes: {
-        font: { color: '#dbeaff', face: "'DM Mono', monospace", size: 12 },
-        borderWidth: 2,
-        shadow: true
+        shape: 'box',
+        borderWidth: 1,
+        borderWidthSelected: 2,
+        widthConstraint: { minimum: 100, maximum: 130 },
+        margin: { top: 8, right: 12, bottom: 8, left: 12 },
+        font: {
+          color: '#94a3b8',
+          size: 11,
+          face: "'JetBrains Mono', monospace",
+        },
+        shadow: { enabled: true, color: 'rgba(0, 0, 0, 0.5)', size: 10, x: 0, y: 4 },
+        chosen: {
+          node(values, id, selected, hovering) {
+            if (hovering || selected) {
+              values.shadowSize = 20;
+              values.shadowColor = values.color; // glow matches border
+            }
+          }
+        }
       },
       edges: {
-        width: 2,
-        color: { color: 'rgba(0, 204, 255, 0.4)', highlight: '#00ccff' },
-        smooth: { type: 'continuous' }
+        width: 1.5,
+        dashes: [4, 4],
+        color: {
+          color: 'rgba(14, 165, 233, 0.30)',
+          highlight: 'rgba(14, 165, 233, 0.85)',
+          hover: 'rgba(14, 165, 233, 0.60)',
+          inherit: false,
+        },
+        smooth: { enabled: true, type: 'cubicBezier', forceDirection: 'none', roundness: 0.45 },
+        shadow: { enabled: true, color: 'rgba(14, 165, 233, 0.25)', size: 6, x: 0, y: 0 },
+        selectionWidth: multiplier => multiplier * 2,
+        hoverWidth: multiplier => multiplier * 1.5,
+        arrows: {
+          to: { enabled: true, scaleFactor: 0.55, type: 'arrow' }
+        },
       },
       physics: {
-        barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 }
-      }
+        solver: 'forceAtlas2Based',
+        forceAtlas2Based: {
+          gravitationalConstant: -55,
+          centralGravity: 0.008,
+          springLength: 160,
+          springConstant: 0.05,
+          damping: 0.4,
+          avoidOverlap: 0.6,
+        },
+        stabilization: { iterations: 120, updateInterval: 25 },
+      },
+      interaction: {
+        hover: true,
+        tooltipDelay: 120,
+        zoomView: true,
+        dragView: true,
+        hideEdgesOnDrag: false,
+      },
+      layout: {
+        improvedLayout: true,
+      },
     };
 
     topoNetwork = new vis.Network(container, data, options);
@@ -738,18 +887,73 @@
       const nodeId = c.id;
       currentIds.push(nodeId);
 
-      // Determine color based on status
-      let color = '#0ea5e9'; // Running
-      if (c.status !== 'running') color = '#f59e0b'; // Stopped
-
       const labelName = c.name ? c.name.replace(/^\//, '') : 'Unknown';
+      const status = c.status || 'unknown';
 
-      // Update or add node
+      const colorMap = {
+        running: {
+          bg: 'rgba(14, 165, 233, 0.12)',
+          border: '#0EA5E9',
+          hlBg: 'rgba(14, 165, 233, 0.22)',
+          hlBorder: '#38bdf8',
+          font: '#7dd3fc',
+          shadow: 'rgba(14, 165, 233, 0.40)',
+        },
+        error: {
+          bg: 'rgba(239, 68, 68, 0.12)',
+          border: '#EF4444',
+          hlBg: 'rgba(239, 68, 68, 0.22)',
+          hlBorder: '#f87171',
+          font: '#fca5a5',
+          shadow: 'rgba(239, 68, 68, 0.40)',
+        },
+        stopped: {
+          bg: 'rgba(245, 158, 11, 0.12)',
+          border: '#F59E0B',
+          hlBg: 'rgba(245, 158, 11, 0.22)',
+          hlBorder: '#fbbf24',
+          font: '#fcd34d',
+          shadow: 'rgba(245, 158, 11, 0.40)',
+        },
+      };
+
+      const c_ = colorMap[status] || colorMap.stopped;
+
+      const nodeConfig = {
+        id: nodeId,
+        label: labelName.length > 20 ? labelName.substring(0, 20) + '…' : labelName,
+        shape: 'box',
+        color: {
+          background: c_.bg,
+          border: c_.border,
+          highlight: { background: c_.hlBg, border: c_.hlBorder },
+          hover: { background: c_.hlBg, border: c_.hlBorder },
+        },
+        font: {
+          color: c_.font,
+          size: 11,
+          face: "'JetBrains Mono', monospace",
+        },
+        shadow: {
+          enabled: true,
+          color: c_.shadow,
+          size: 10,
+          x: 0,
+          y: 0,
+        },
+        widthConstraint: { minimum: 100, maximum: 130 },
+        margin: { top: 8, right: 12, bottom: 8, left: 12 },
+      };
+
       if (!topoNodes.get(nodeId)) {
-        topoNodes.add({ id: nodeId, label: labelName, color: color, shape: 'dot', size: 16 });
-        topoEdges.add({ id: `edge-${nodeId}`, from: 'orchestrator', to: nodeId });
+        topoNodes.add(nodeConfig);
+        topoEdges.add({
+          id: `edge-${nodeId}`,
+          from: 'orchestrator',
+          to: nodeId,
+        });
       } else {
-        topoNodes.update({ id: nodeId, color: color });
+        topoNodes.update(nodeConfig);
       }
     });
 
@@ -761,15 +965,18 @@
       }
     });
 
+    // Update the node count badge
     const countBadge = document.getElementById('topoNodeCount');
     if (countBadge) {
-      countBadge.querySelector('span:last-child').textContent = `${currentIds.length} node(s)`;
+      const countEl = countBadge.querySelector('span:last-child');
+      if (countEl) countEl.textContent = `${currentIds.length} node(s)`;
     }
   }
 
   window.CloudXMonitor = {
     init() {
       attachSocketListeners();
+      initTimeRangeDropdown();
       initTopology();
 
       simulateTick();

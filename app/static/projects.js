@@ -1,10 +1,8 @@
 class ProjectWizard {
   constructor() {
-    // Wizard state
     this.currentStep = 1;
     this.totalSteps = 4;
 
-    // Project data
     this.projectData = {
       gitProvider: null,
       name: '',
@@ -14,24 +12,21 @@ class ProjectWizard {
       envVars: []
     };
 
-    // DOM elements
     this.modal = null;
     this.stepSections = [];
     this.stepIndicators = [];
 
-    // Validation rules
     this.validationRules = {
       1: () => this.validateStep1(),
       2: () => this.validateStep2(),
-      3: () => true, // Environment variables are optional
-      4: () => true  // Review step
+      3: () => true,
+      4: () => true
     };
 
     this.init();
   }
 
   init() {
-    // Wait for DOM to be ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => this.setupEventListeners());
     } else {
@@ -40,21 +35,17 @@ class ProjectWizard {
   }
 
   setupEventListeners() {
-    // Cache DOM elements
     this.modal = document.getElementById('wizardModal');
     this.stepSections = document.querySelectorAll('.step-section');
     this.stepIndicators = document.querySelectorAll('.wizard-step');
 
-    // Wizard navigation
     document.getElementById('btnNext')?.addEventListener('click', () => this.nextStep());
     document.getElementById('btnBack')?.addEventListener('click', () => this.previousStep());
     document.getElementById('btnSubmit')?.addEventListener('click', () => this.submitProject());
 
-    // Close modal
     document.getElementById('closeWizard')?.addEventListener('click', () => this.closeModal());
     document.querySelector('.wizard-overlay')?.addEventListener('click', () => this.closeModal());
 
-    // Step indicators (allow clicking to jump between steps)
     this.stepIndicators.forEach((indicator, index) => {
       indicator.addEventListener('click', () => {
         const targetStep = index + 1;
@@ -64,17 +55,14 @@ class ProjectWizard {
       });
     });
 
-    // Git provider selection
     document.querySelectorAll('.git-provider-card').forEach(card => {
       card.addEventListener('click', (e) => this.selectGitProvider(e.currentTarget));
     });
 
-    // Framework selection
     document.querySelectorAll('.framework-card').forEach(card => {
       card.addEventListener('click', (e) => this.selectFramework(e.currentTarget));
     });
 
-    // Form inputs
     document.getElementById('projectName')?.addEventListener('input', (e) => {
       this.projectData.name = e.target.value.trim();
       this.updateNextButtonState();
@@ -89,10 +77,8 @@ class ProjectWizard {
       this.projectData.description = e.target.value.trim();
     });
 
-    // Environment variables
     document.getElementById('btnAddEnv')?.addEventListener('click', () => this.addEnvVar());
 
-    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (!this.modal || this.modal.style.display === 'none') return;
 
@@ -114,7 +100,6 @@ class ProjectWizard {
       return;
     }
 
-    // Reset wizard state
     this.currentStep = 1;
     this.projectData = {
       gitProvider: null,
@@ -125,12 +110,10 @@ class ProjectWizard {
       envVars: []
     };
 
-    // Reset form
     document.getElementById('projectName').value = '';
     document.getElementById('repositoryUrl').value = '';
     document.getElementById('projectDescription').value = '';
 
-    // Clear selections
     document.querySelectorAll('.git-provider-card').forEach(card =>
       card.classList.remove('selected')
     );
@@ -138,24 +121,19 @@ class ProjectWizard {
       card.classList.remove('selected')
     );
 
-    // Select default framework
     const defaultFramework = document.querySelector('[data-framework="nodejs"]');
     if (defaultFramework) {
       defaultFramework.classList.add('selected');
     }
 
-    // Clear environment variables
     this.projectData.envVars = [];
     this.renderEnvVars();
 
-    // Show modal
     this.modal.style.display = 'flex';
     setTimeout(() => this.modal.classList.add('show'), 10);
 
-    // Go to first step
     this.goToStep(1);
 
-    // Focus first input
     setTimeout(() => document.getElementById('projectName')?.focus(), 300);
   }
 
@@ -735,77 +713,62 @@ class DeploymentHistory {
   }
 }
 
-/**
- * Project Deletion with Confirmation
- */
-async function deleteProject(projectId, projectName) {
-  // Show confirmation dialog
-  const confirmed = confirm(
-    `Are you sure you want to delete "${projectName}"?\n\n` +
-    `This will permanently delete the project and all its deployments.\n` +
-    `This action cannot be undone.`
-  );
+function deleteProject(projectId, projectName) {
+  // Use our new custom glassmorphism modal
+  showConfirm(
+    "Delete Project",
+    `Are you sure you want to delete "${projectName}"? This will permanently delete the project and all its deployments. This action cannot be undone.`,
+    async () => {
+      const projectCard = document.querySelector(`[data-project-id="${projectId}"]`);
 
-  if (!confirmed) {
-    return;
-  }
-
-  // Find the project card element
-  const projectCard = document.querySelector(`[data-project-id="${projectId}"]`);
-
-  if (projectCard) {
-    // Show loading state on the card
-    projectCard.style.opacity = '0.5';
-    projectCard.style.pointerEvents = 'none';
-  }
-
-  try {
-    const response = await fetch(`/api/projects/${projectId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    const data = await response.json();
-
-    if (data.success) {
-      // Show success message
-      showToast(`Project "${projectName}" deleted successfully`, 'success');
-
-      // Animate card removal
       if (projectCard) {
-        projectCard.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-        projectCard.style.transform = 'scale(0.9)';
-        projectCard.style.opacity = '0';
-
-        setTimeout(() => {
-          projectCard.remove();
-
-          // Check if no projects remain
-          const remainingCards = document.querySelectorAll('.project-card').length;
-          if (remainingCards === 0) {
-            // Reload page to show empty state
-            window.location.reload();
-          }
-        }, 400);
-      } else {
-        // If card not found, just reload
-        setTimeout(() => window.location.reload(), 1000);
+        projectCard.style.opacity = '0.5';
+        projectCard.style.pointerEvents = 'none';
       }
-    } else {
-      throw new Error(data.error || 'Failed to delete project');
-    }
-  } catch (error) {
-    console.error('Error deleting project:', error);
-    showToast(`Failed to delete project: ${error.message}`, 'error');
 
-    // Restore card state
-    if (projectCard) {
-      projectCard.style.opacity = '1';
-      projectCard.style.pointerEvents = 'auto';
+      try {
+        const response = await fetch(`/api/projects/${projectId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showToast(`Project "${projectName}" deleted successfully`, 'success');
+
+          if (projectCard) {
+            projectCard.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            projectCard.style.transform = 'scale(0.9)';
+            projectCard.style.opacity = '0';
+
+            setTimeout(() => {
+              projectCard.remove();
+
+              const remainingCards = document.querySelectorAll('.project-card').length;
+              if (remainingCards === 0) {
+                window.location.reload();
+              }
+            }, 400);
+          } else {
+            setTimeout(() => window.location.reload(), 1000);
+          }
+        } else {
+          throw new Error(data.error || 'Failed to delete project');
+        }
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        showToast(`Failed to delete project: ${error.message}`, 'error');
+
+        if (projectCard) {
+          projectCard.style.opacity = '1';
+          projectCard.style.pointerEvents = 'auto';
+        }
+      }
     }
-  }
+  );
 }
 
 // Launch environment function

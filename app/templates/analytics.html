@@ -49,14 +49,43 @@
       Live
     </span>
 
-    <!-- Time-Range Selector -->
-    <select class="analytics-select" id="timeRangeSelect">
-      <option value="1h">Last 1 Hour</option>
-      <option value="6h">Last 6 Hours</option>
-      <option value="24h" selected>Last 24 Hours</option>
-      <option value="7d">Last 7 Days</option>
-      <option value="30d">Last 30 Days</option>
-    </select>
+    <div class="time-range-dropdown" id="timeRangeDropdown">
+      <button class="time-range-dropdown__trigger" id="timeRangeBtn" aria-haspopup="listbox" aria-expanded="false">
+        <i class="fas fa-clock"></i>
+        <span id="timeRangeLabel">Last 24 Hours</span>
+        <i class="fas fa-chevron-down time-range-dropdown__chevron" id="timeRangeChevron"></i>
+      </button>
+      <ul class="time-range-dropdown__menu" id="timeRangeMenu" role="listbox" aria-label="Select time range">
+        <li class="time-range-dropdown__item" role="option" data-value="1h">
+          <span class="time-range-dropdown__item-icon"><i class="fas fa-bolt"></i></span>
+          <span class="time-range-dropdown__item-label">Last 1 Hour</span>
+          <span class="time-range-dropdown__item-sub">Live window</span>
+        </li>
+        <li class="time-range-dropdown__item" role="option" data-value="6h">
+          <span class="time-range-dropdown__item-icon"><i class="fas fa-history"></i></span>
+          <span class="time-range-dropdown__item-label">Last 6 Hours</span>
+          <span class="time-range-dropdown__item-sub">Short-term</span>
+        </li>
+        <li class="time-range-dropdown__item time-range-dropdown__item--active" role="option" data-value="24h"
+          aria-selected="true">
+          <span class="time-range-dropdown__item-icon"><i class="fas fa-calendar-day"></i></span>
+          <span class="time-range-dropdown__item-label">Last 24 Hours</span>
+          <span class="time-range-dropdown__item-sub">Default view</span>
+          <i class="fas fa-check time-range-dropdown__item-check"></i>
+        </li>
+        <li class="time-range-dropdown__item" role="option" data-value="7d">
+          <span class="time-range-dropdown__item-icon"><i class="fas fa-calendar-week"></i></span>
+          <span class="time-range-dropdown__item-label">Last 7 Days</span>
+          <span class="time-range-dropdown__item-sub">Weekly trend</span>
+        </li>
+        <li class="time-range-dropdown__divider" role="separator"></li>
+        <li class="time-range-dropdown__item" role="option" data-value="30d">
+          <span class="time-range-dropdown__item-icon"><i class="fas fa-calendar-alt"></i></span>
+          <span class="time-range-dropdown__item-label">Last 30 Days</span>
+          <span class="time-range-dropdown__item-sub">Monthly overview</span>
+        </li>
+      </ul>
+    </div>
 
     <!-- Manual Refresh -->
     <button class="btn btn-secondary analytics-page-header__refresh" id="refreshBtn" title="Refresh all data">
@@ -184,17 +213,28 @@
 </section>
 
 <!-- ─── SYSTEM LOGS ─────────────────────────────────────────── -->
-<section class="analytics-card analytics-card--full">
-  <div class="analytics-card__header">
-    <div>
-      <h3 class="analytics-card__title">System Logs</h3>
-      <p class="analytics-card__subtitle">Recent platform events</p>
+<section class="analytics-card analytics-card--full logs-glass">
+  <div class="analytics-card__header logs-header">
+    <div class="logs-header__left">
+      <div class="logs-header__icon-wrap">
+        <i class="fas fa-terminal"></i>
+      </div>
+      <div>
+        <h3 class="analytics-card__title">System Logs</h3>
+        <p class="analytics-card__subtitle">Real-time platform events &amp; audit trail</p>
+      </div>
     </div>
-    <div class="logs-filters">
-      <button class="logs-filters__btn logs-filters__btn--active" data-filter="all">All</button>
-      <button class="logs-filters__btn" data-filter="info">Info</button>
-      <button class="logs-filters__btn" data-filter="warning">Warn</button>
-      <button class="logs-filters__btn" data-filter="error">Error</button>
+    <div class="logs-header__right">
+      <span class="live-badge">
+        <span class="live-badge__dot"></span>
+        Live
+      </span>
+      <div class="logs-filters">
+        <button class="logs-filters__btn logs-filters__btn--active" data-filter="all">All</button>
+        <button class="logs-filters__btn" data-filter="info">Info</button>
+        <button class="logs-filters__btn" data-filter="warning">Warn</button>
+        <button class="logs-filters__btn" data-filter="error">Error</button>
+      </div>
     </div>
   </div>
 
@@ -209,62 +249,77 @@
         </tr>
       </thead>
       <tbody id="logsBody">
-        <!-- Rows injected by analytics.js -->
+        <!-- Injected by analytics.js -->
       </tbody>
     </table>
   </div>
+
+  <div class="logs-footer">
+    <span class="logs-footer__count" id="logsCount">Showing 12 events</span>
+    <span class="logs-footer__hint">
+      <i class="fas fa-circle"
+        style="font-size:0.45rem; color:var(--success); vertical-align:middle; margin-right:0.35rem;"></i>
+      Auto-refreshing every 5s
+    </span>
+  </div>
 </section>
 
-<section class="analytics-card analytics-card--full topology-section" style="margin-top: 1.75rem;">
-  <div class="analytics-card__header">
-    <div>
-      <h3 class="analytics-card__title">Live Container Topology</h3>
-      <p class="analytics-card__subtitle">Real-time orchestrator &amp; container network graph</p>
+<section class="analytics-card analytics-card--full topology-section topo-glass" style="margin-top: 1.75rem;">
+  <div class="analytics-card__header topo-header">
+    <div class="topo-header__left">
+      <div class="topo-header__icon-wrap">
+        <i class="fas fa-project-diagram"></i>
+      </div>
+      <div>
+        <h3 class="analytics-card__title">Live Container Topology</h3>
+        <p class="analytics-card__subtitle">Real-time orchestrator &amp; container network graph</p>
+      </div>
     </div>
-    <div style="display:flex; align-items:center; gap:0.75rem;">
+    <div class="topo-header__right">
       <span class="live-badge">
         <span class="live-badge__dot"></span>
         Live
       </span>
-      <button class="btn btn-secondary" id="topologyRefreshBtn" title="Refresh topology">
+      <span class="topology-node-count" id="topoNodeCount">
+        <span class="topology-node-count__dot"></span>
+        <span>1 node(s)</span>
+      </span>
+      <button class="btn btn-secondary topo-icon-btn" id="topologyRefreshBtn" title="Refresh topology">
         <i class="fas fa-sync-alt"></i>
       </button>
     </div>
   </div>
 
-  <!-- Legend -->
-  <div class="topology-legend">
-    <span class="topology-legend__item">
-      <span class="topology-legend__dot" style="background:#8B5CF6; box-shadow: 0 0 8px #8B5CF6;"></span>
+  <!-- Redesigned legend pills -->
+  <div class="topo-legend">
+    <span class="topo-legend__pill topo-legend__pill--orchestrator">
+      <span class="topo-legend__pip"></span>
       Orchestrator
     </span>
-    <span class="topology-legend__item">
-      <span class="topology-legend__dot" style="background:#0EA5E9; box-shadow: 0 0 8px #0EA5E9;"></span>
+    <span class="topo-legend__pill topo-legend__pill--running">
+      <span class="topo-legend__pip"></span>
       Running
     </span>
-    <span class="topology-legend__item">
-      <span class="topology-legend__dot" style="background:#F59E0B; box-shadow: 0 0 8px #F59E0B;"></span>
+    <span class="topo-legend__pill topo-legend__pill--stopped">
+      <span class="topo-legend__pip"></span>
       Stopped
     </span>
-    <span class="topology-legend__item">
-      <span class="topology-legend__dot" style="background:#EF4444; box-shadow: 0 0 8px #EF4444;"></span>
+    <span class="topo-legend__pill topo-legend__pill--error">
+      <span class="topo-legend__pip"></span>
       Error
     </span>
-    <span class="topology-legend__item topology-legend__item--divider"></span>
-    <span class="topology-legend__item topology-legend__edge-sample"></span>
-    <span class="topology-legend__item" style="color: var(--text-tertiary); font-size:0.78rem;">Data stream</span>
-    <span class="topology-node-count" id="topoNodeCount">
-      <span class="topology-node-count__dot"></span>
-      <span>1 node</span>
+    <span class="topo-legend__divider"></span>
+    <span class="topo-legend__pill topo-legend__pill--stream">
+      <span class="topo-legend__edge-line"></span>
+      Data stream
     </span>
   </div>
 
-  <!-- Network canvas -->
+  <!-- Canvas -->
   <div id="topology-network"></div>
 
-  <!-- Custom HTML tooltip (rendered by JS) -->
+  <!-- Tooltip -->
   <div id="topology-tooltip" class="topology-tooltip" role="tooltip" aria-hidden="true"></div>
-
 </section>
 
 {% endblock %}

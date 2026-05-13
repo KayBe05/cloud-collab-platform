@@ -2153,6 +2153,76 @@ body {
   color: var(--error);
 }
 
+/* ─── GLOBAL MODAL SYSTEM ─── */
+.cx-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 11, 20, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.cx-modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cx-modal {
+  width: 90%;
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transform: translateY(20px) scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cx-modal-overlay.visible .cx-modal {
+  transform: translateY(0) scale(1);
+}
+
+.cx-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cx-modal-header h3 {
+  margin: 0;
+  font-family: var(--cx-mono);
+  font-size: 1rem;
+  color: var(--cx-t1);
+}
+
+.cx-modal-body {
+  padding: 1.5rem;
+  font-family: var(--cx-mono);
+  font-size: 0.85rem;
+  color: var(--cx-t2);
+  line-height: 1.5;
+}
+
+.cx-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border-color);
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
 /* Responsive Dashboard */
 @media (max-width: 1200px) {
   .dashboard-grid-2 {

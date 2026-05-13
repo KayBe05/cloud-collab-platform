@@ -1324,16 +1324,13 @@
   border-color: rgba(0, 204, 255, 0.25);
 }
 
-/* Hide suggestions once first user message appears */
 .ai-suggestions:empty,
 .ai-suggestions.hidden {
   display: none;
 }
 
-/* ── Copy-to-clipboard button inside code blocks ──────────────── */
 .ai-msg-bubble pre {
   position: relative;
-  /* ensure child button positions relative to this */
 }
 
 .ai-copy-btn {
@@ -1364,7 +1361,6 @@
   border-color: rgba(0, 232, 122, 0.3);
 }
 
-/* ── Keyboard shortcut badge ───────────────────────────────────── */
 kbd {
   display: inline-block;
   padding: 0.1em 0.35em;
@@ -1378,8 +1374,6 @@ kbd {
 }
 
 /* ── Enhanced AI message bubbles ───────────────────────────────── */
-
-/* Ensure token hint text uses theme colors */
 .ai-token-hint {
   font-family: var(--cx-mono);
   font-size: 0.62rem;
@@ -1388,13 +1382,11 @@ kbd {
   padding: 0 0.25rem 0.25rem;
 }
 
-/* Smooth height transition when suggestions collapse */
 .ai-suggestions {
   transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
   overflow: hidden;
 }
 
-/* ── Scrollbar styling for AI messages ─────────────────────────── */
 #aiMessages {
   scrollbar-width: thin;
   scrollbar-color: var(--cx-3) transparent;
@@ -1413,24 +1405,20 @@ kbd {
   border-radius: 4px;
 }
 
-/* ── Textarea auto-resize feel ─────────────────────────────────── */
 .ai-textarea {
   transition: border-color 0.15s, height 0.1s ease;
 }
 
-/* ── Container table — terminal button colour ──────────────────── */
 .cx-icon-btn[title="Open Terminal"]:hover {
   color: var(--cx-green);
   border-color: rgba(0, 232, 122, 0.3);
 }
 
-/* ── Monitor-dash-actions: wrap on narrow viewports ───────────── */
 .monitor-dash-actions {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-/* ── Pulse animation referenced by blink util ──────────────────── */
 @keyframes cx-blink {
 
   0%,
@@ -1443,12 +1431,10 @@ kbd {
   }
 }
 
-/* ── Resource card: spacing fix ────────────────────────────────── */
 .resources-grid {
   gap: 1.25rem;
 }
 
-/* ── AI sidebar open state — push FAB aside ────────────────────── */
 .ai-sidebar.open~.ai-fab {
   opacity: 0;
   pointer-events: none;
@@ -1459,7 +1445,6 @@ kbd {
   transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
-/* ── Responsive: hide suggestion chips on very small viewports ─── */
 @media (max-width: 480px) {
   .ai-suggestions {
     display: none;

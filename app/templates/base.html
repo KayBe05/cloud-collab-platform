@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
 
   <!-- WebSocket & Chart Libraries -->
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" ></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
   <style>
@@ -303,7 +303,6 @@
 
   <!-- Main Content Area -->
   <main class="main-content" id="mainContent" role="main">
-    <!-- Top Header Bar -->
     <header class="top-header" role="banner">
       <div class="header-left">
 
@@ -410,12 +409,10 @@
       </div>
     </header>
 
-    <!-- Page Content -->
     <div class="content-wrapper">
       {% block content %}{% endblock %}
     </div>
 
-    <!-- Footer -->
     <footer class="main-footer" role="contentinfo">
       <div class="footer-content">
         <p>&copy; 2026 CloudX Platform by Kritarth | Apache 2.0 License</p>
@@ -426,14 +423,30 @@
         </div>
       </div>
     </footer>
+
+    <div class="cx-modal-overlay" id="globalConfirmModal">
+      <div class="cx-modal glass-panel">
+        <div class="cx-modal-header">
+          <h3 id="confirmModalTitle"><i class="fas fa-exclamation-triangle"
+              style="color: var(--warning); margin-right: 8px;"></i>Confirm Action</h3>
+          <button class="cx-icon-btn" onclick="closeConfirmModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="cx-modal-body">
+          <p id="confirmModalMessage">Are you sure you want to proceed?</p>
+        </div>
+        <div class="cx-modal-footer">
+          <button class="cx-btn cx-btn-ghost" onclick="closeConfirmModal()">Cancel</button>
+          <button class="cx-btn" id="confirmModalActionBtn"
+            style="background: var(--cx-red); color: white; border: none;">Confirm</button>
+        </div>
+      </div>
+    </div>
   </main>
 
-  <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container" role="region" aria-live="polite"></div>
 
   <!-- Base JavaScript -->
   <script>
-    // ── Configuration ──────────────────────────────────────────────────────
     const CONFIG = {
       socketTimeout: 60000,
       reconnectDelay: 1000,
@@ -441,7 +454,6 @@
       toastDuration: 3000
     };
 
-    // ── WebSocket ──────────────────────────────────────────────────────────
     const socket = io({
       reconnection: true,
       reconnectionDelay: CONFIG.reconnectDelay,
@@ -482,23 +494,29 @@
     function showToast(message, type = 'info', duration = CONFIG.toastDuration) {
       const container = document.getElementById('toastContainer');
       if (!container) return;
+
       const toast = document.createElement('div');
-      toast.className = `toast toast-${type}`;
+      // Use the new cx-toast class
+      toast.className = `cx-toast ${type}`;
+
       const iconMap = {
-        success: 'check-circle', error: 'exclamation-circle',
-        warning: 'exclamation-triangle', info: 'info-circle'
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle',
+        info: 'info-circle'
       };
+
       toast.innerHTML = `
         <i class="fas fa-${iconMap[type] || 'info-circle'}"></i>
         <span>${escapeHtml(message)}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">
-          <i class="fas fa-times"></i>
-        </button>`;
+      `;
+
       container.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add('show'));
+
+      // Auto-remove after duration
       setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
+        toast.style.animation = 'fadeOutToast 0.4s ease forwards';
+        toast.addEventListener('animationend', () => toast.remove());
       }, duration);
     }
 
@@ -508,7 +526,29 @@
       return div.innerHTML;
     }
 
-    // ── Hamburger / Slide-in Sidebar ───────────────────────────────────────
+    // ── Global Confirmation System ─────────────────────────────────────────
+    window.showConfirm = function (title, message, confirmCallback) {
+      const modal = document.getElementById('globalConfirmModal');
+      document.getElementById('confirmModalTitle').innerHTML = `<i class="fas fa-exclamation-triangle" style="color: var(--warning); margin-right: 8px;"></i>${title}`;
+      document.getElementById('confirmModalMessage').textContent = message;
+
+      const actionBtn = document.getElementById('confirmModalActionBtn');
+
+      const newActionBtn = actionBtn.cloneNode(true);
+      actionBtn.parentNode.replaceChild(newActionBtn, actionBtn);
+
+      newActionBtn.addEventListener('click', () => {
+        closeConfirmModal();
+        if (confirmCallback) confirmCallback();
+      });
+
+      modal.classList.add('visible');
+    };
+
+    window.closeConfirmModal = function () {
+      document.getElementById('globalConfirmModal').classList.remove('visible');
+    };
+
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const mainSidebar = document.getElementById('mainSidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -534,7 +574,7 @@
       e.stopPropagation();
       mainSidebar.classList.contains('sidebar-active') ? closeSidebar() : openSidebar();
     });
-    
+
     sidebarOverlay?.addEventListener('click', closeSidebar);
 
     document.addEventListener('keydown', (e) => {
@@ -543,14 +583,12 @@
       }
     });
 
-    // Close sidebar when a nav link is clicked (single-page feel)
     mainSidebar?.querySelectorAll('.nav-item').forEach(link => {
       link.addEventListener('click', () => {
         if (window.innerWidth < 1024) closeSidebar();
       });
     });
 
-    // ── User menu dropdown ─────────────────────────────────────────────────
     const userMenu = document.getElementById('userMenu');
     const userTrigger = document.getElementById('userMenuTrigger');
 

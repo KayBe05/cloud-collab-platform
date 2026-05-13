@@ -1,4 +1,3 @@
-
 FROM python:3.12-slim-bookworm
 
 # Set working directory in container
@@ -17,7 +16,8 @@ RUN apt-get update \
         python3-dev \
         libpq-dev \
         curl \
-        git `# <-- ADD THIS LINE` \
+        git \
+        python3-setuptools `# <-- ADD THIS: Required for eventlet on Python 3.12` \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,16 +25,12 @@ RUN apt-get update \
 COPY app/requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip \
+# ADDED 'setuptools' to the pip install command to handle the removal of distutils
+RUN pip install --no-cache-dir --upgrade pip setuptools \
     && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ .
-
-# Create non-root user for security
-#RUN adduser --disabled-password --gecos '' appuser \
-#    && chown -R appuser:appuser /app
-#USER appuser
 
 # Expose port 5000
 EXPOSE 5000
@@ -44,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
 # Run the application with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "--bind", "0.0.0.0:5000", "app:app"]

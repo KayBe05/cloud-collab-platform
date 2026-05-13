@@ -2,8 +2,8 @@
   'use strict';
 
   const CIRC = 2 * Math.PI * 45;
-  const MAX_SPARK = 30;                  
-  const POLL_MS = 5000;               
+  const MAX_SPARK = 30;
+  const POLL_MS = 5000;
   const SPARK_COLORS = {
     cpu: '#00ccff',
     mem: '#9d6fff',
@@ -292,6 +292,7 @@
   }
 
   function renderContainerTable(containers) {
+    updateTopology(containers);
     const tbody = document.getElementById('containerTableBody');
     const badge = document.getElementById('containerCount');
     if (!tbody) return;
@@ -694,11 +695,83 @@
     });
   }
 
+  /* ── Topology Logic ── */
+  let topoNetwork = null;
+  let topoNodes = null;
+  let topoEdges = null;
+
+  function initTopology() {
+    const container = document.getElementById('topology-network');
+    if (!container || typeof vis === 'undefined') return;
+
+    topoNodes = new vis.DataSet([
+      { id: 'orchestrator', label: 'Orchestrator\n(App Node)', color: '#8b5cf6', size: 25, shape: 'dot' }
+    ]);
+    topoEdges = new vis.DataSet([]);
+
+    const data = { nodes: topoNodes, edges: topoEdges };
+    const options = {
+      nodes: {
+        font: { color: '#dbeaff', face: "'DM Mono', monospace", size: 12 },
+        borderWidth: 2,
+        shadow: true
+      },
+      edges: {
+        width: 2,
+        color: { color: 'rgba(0, 204, 255, 0.4)', highlight: '#00ccff' },
+        smooth: { type: 'continuous' }
+      },
+      physics: {
+        barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 }
+      }
+    };
+
+    topoNetwork = new vis.Network(container, data, options);
+  }
+
+  function updateTopology(containers) {
+    if (!topoNodes || !topoEdges) return;
+
+    const currentIds = ['orchestrator'];
+
+    containers.forEach(c => {
+      const nodeId = c.id;
+      currentIds.push(nodeId);
+
+      // Determine color based on status
+      let color = '#0ea5e9'; // Running
+      if (c.status !== 'running') color = '#f59e0b'; // Stopped
+
+      const labelName = c.name ? c.name.replace(/^\//, '') : 'Unknown';
+
+      // Update or add node
+      if (!topoNodes.get(nodeId)) {
+        topoNodes.add({ id: nodeId, label: labelName, color: color, shape: 'dot', size: 16 });
+        topoEdges.add({ id: `edge-${nodeId}`, from: 'orchestrator', to: nodeId });
+      } else {
+        topoNodes.update({ id: nodeId, color: color });
+      }
+    });
+
+    // Remove nodes that no longer exist
+    topoNodes.getIds().forEach(id => {
+      if (!currentIds.includes(id)) {
+        topoNodes.remove(id);
+        topoEdges.remove(`edge-${id}`);
+      }
+    });
+
+    const countBadge = document.getElementById('topoNodeCount');
+    if (countBadge) {
+      countBadge.querySelector('span:last-child').textContent = `${currentIds.length} node(s)`;
+    }
+  }
+
   window.CloudXMonitor = {
     init() {
       attachSocketListeners();
+      initTopology();
 
-      /* Prime gauges immediately */
       simulateTick();
 
       /* Simulate at intervals; naturally stops if real data arrives */

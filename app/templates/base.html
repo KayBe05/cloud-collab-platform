@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
 
   <!-- WebSocket & Chart Libraries -->
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" defer></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js" ></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 
   <style>
@@ -234,10 +234,6 @@
         </div>
       </div>
 
-      <!-- Close button inside sidebar (mobile / convenience) -->
-      <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close Navigation">
-        <i class="fas fa-times"></i>
-      </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -516,7 +512,6 @@
     const hamburgerBtn = document.getElementById('hamburgerBtn');
     const mainSidebar = document.getElementById('mainSidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
     const mainContent = document.getElementById('mainContent');
 
     function openSidebar() {
@@ -525,7 +520,6 @@
       mainContent.classList.add('content-shifted');
       hamburgerBtn.setAttribute('aria-expanded', 'true');
       hamburgerBtn.classList.add('is-open');
-      document.body.style.overflow = 'hidden'; // prevent scroll bleed on mobile
     }
 
     function closeSidebar() {
@@ -534,15 +528,13 @@
       mainContent.classList.remove('content-shifted');
       hamburgerBtn.setAttribute('aria-expanded', 'false');
       hamburgerBtn.classList.remove('is-open');
-      document.body.style.overflow = '';
     }
 
     hamburgerBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
       mainSidebar.classList.contains('sidebar-active') ? closeSidebar() : openSidebar();
     });
-
-    sidebarCloseBtn?.addEventListener('click', closeSidebar);
+    
     sidebarOverlay?.addEventListener('click', closeSidebar);
 
     document.addEventListener('keydown', (e) => {

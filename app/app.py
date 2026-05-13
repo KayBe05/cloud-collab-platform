@@ -20,7 +20,6 @@ import docker
 import time
 import threading
 
-# ── Optional: Google Generative AI ────────────────────────────────────────────
 try:
     import google.generativeai as genai
     _GENAI_AVAILABLE = True
@@ -46,9 +45,9 @@ app.config['JSON_SORT_KEYS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 
 CORS(app, resources={r"/api/*": {"origins": "*"}})
-socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=60, ping_interval=25)
+socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=120, ping_interval=25)
 
-# ── Flask-Login setup ──────────────────────────────────────────────────────────
+# ── Flask-Login setup ───────
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'

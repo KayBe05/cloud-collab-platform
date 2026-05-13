@@ -8,10 +8,12 @@ Werkzeug==3.0.1
 # WebSocket Support
 python-socketio==5.10.0
 python-engineio==4.8.0
-eventlet==0.33.3
+eventlet==0.36.1
+# Add this line
+setuptools
 
 psutil==5.9.8
-google-generativeai==0.7.2
+google-generativeai==0.7.2d
 
 # Database Adapter
 psycopg==3.1.18

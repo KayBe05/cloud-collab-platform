@@ -1,6 +1,3 @@
-// ==================== Settings Page JavaScript ====================
-
-// Configuration
 const SETTINGS_CONFIG = {
   STORAGE_KEYS: {
     THEME: 'cloudx_theme_preference',
@@ -11,8 +8,6 @@ const SETTINGS_CONFIG = {
   API_KEY: null,
   MASKED_API_KEY: 'Not Configured'
 };
-
-// ==================== Theme Management ====================
 
 class ThemeManager {
   constructor() {
@@ -30,10 +25,8 @@ class ThemeManager {
     const html = document.documentElement;
 
     if (theme === 'system') {
-      // Remove manual override, let CSS @media handle it
       html.removeAttribute('data-theme');
     } else {
-      // Set explicit theme
       html.setAttribute('data-theme', theme);
     }
 
@@ -42,7 +35,6 @@ class ThemeManager {
   }
 
   updateThemeUI(theme) {
-    // Update active state on theme options
     document.querySelectorAll('.theme-option').forEach(option => {
       const optionTheme = option.getAttribute('data-theme');
       if (optionTheme === theme) {
@@ -63,8 +55,6 @@ class ThemeManager {
     });
   }
 }
-
-// ==================== Form Management ====================
 
 class FormManager {
   constructor() {
@@ -88,7 +78,6 @@ class FormManager {
         location: document.getElementById('location').value
       };
 
-      // Simulate API call
       setTimeout(() => {
         showToast('Profile updated successfully!', 'success');
         console.log('Profile data:', formData);
@@ -107,7 +96,6 @@ class FormManager {
       const newPassword = document.getElementById('newPassword').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
 
-      // Validation
       if (!currentPassword || !newPassword || !confirmPassword) {
         showToast('Please fill in all password fields', 'error');
         return;
@@ -123,7 +111,6 @@ class FormManager {
         return;
       }
 
-      // Simulate API call
       setTimeout(() => {
         showToast('Password updated successfully!', 'success');
         form.reset();
@@ -141,19 +128,16 @@ class FormManager {
       const file = e.target.files[0];
       if (!file) return;
 
-      // Validate file type
       if (!file.type.match('image.*')) {
         showToast('Please select an image file', 'error');
         return;
       }
 
-      // Validate file size (2MB max)
       if (file.size > 2 * 1024 * 1024) {
         showToast('Image size must be less than 2MB', 'error');
         return;
       }
 
-      // Preview image
       const reader = new FileReader();
       reader.onload = (e) => {
         preview.src = e.target.result;
@@ -164,7 +148,6 @@ class FormManager {
   }
 }
 
-// ==================== API Key Management ====================
 
 function copyApiKey() {
   const apiKey = SETTINGS_CONFIG.API_KEY;
@@ -172,7 +155,6 @@ function copyApiKey() {
   navigator.clipboard.writeText(apiKey).then(() => {
     showToast('API key copied to clipboard', 'success');
   }).catch(() => {
-    // Fallback for older browsers
     const textarea = document.createElement('textarea');
     textarea.value = apiKey;
     textarea.style.position = 'fixed';
@@ -186,20 +168,21 @@ function copyApiKey() {
 }
 
 function regenerateApiKey() {
-  if (!confirm('Are you sure you want to regenerate your API key? This will invalidate your current key and cannot be undone.')) {
-    return;
-  }
+  showConfirm(
+    'Regenerate API Key',
+    'This will permanently invalidate your current API key. Any integrations using it will stop working immediately. This action cannot be undone.',
+    () => {
+      const newKey = generateRandomApiKey();
+      SETTINGS_CONFIG.API_KEY = newKey;
 
-  // Simulate API key regeneration
-  const newKey = generateRandomApiKey();
-  SETTINGS_CONFIG.API_KEY = newKey;
+      const keyElement = document.getElementById('apiKeyValue');
+      if (keyElement) {
+        keyElement.textContent = maskApiKey(newKey);
+      }
 
-  const keyElement = document.getElementById('apiKeyValue');
-  if (keyElement) {
-    keyElement.textContent = maskApiKey(newKey);
-  }
-
-  showToast('New API key generated successfully!', 'success');
+      showToast('New API key generated successfully!', 'success');
+    }
+  );
 }
 
 function generateRandomApiKey() {
@@ -240,25 +223,29 @@ function resetProfileForm() {
   const form = document.getElementById('profileForm');
   if (!form) return;
 
-  if (confirm('Are you sure you want to reset all changes?')) {
-    form.reset();
-    showToast('Form reset successfully', 'info');
-  }
+  showConfirm(
+    'Reset Profile Form',
+    'All unsaved changes to your profile will be discarded. This cannot be undone.',
+    () => {
+      form.reset();
+      showToast('Form reset successfully', 'info');
+    }
+  );
 }
 
 function removeAvatar() {
-  if (!confirm('Are you sure you want to remove your profile picture?')) {
-    return;
-  }
-
-  const preview = document.getElementById('avatarImage');
-  if (preview) {
-    preview.src = 'https://ui-avatars.com/api/?name=User&background=0EA5E9&color=fff&size=200';
-    showToast('Avatar removed. Click "Save Changes" to confirm', 'success');
-  }
+  showConfirm(
+    'Remove Profile Picture',
+    'Your current profile picture will be replaced with a default avatar. Click "Save Changes" afterward to confirm.',
+    () => {
+      const preview = document.getElementById('avatarImage');
+      if (preview) {
+        preview.src = 'https://ui-avatars.com/api/?name=User&background=0EA5E9&color=fff&size=200';
+        showToast('Avatar removed. Click "Save Changes" to confirm', 'success');
+      }
+    }
+  );
 }
-
-// ==================== Notification Management ====================
 
 class NotificationManager {
   constructor() {

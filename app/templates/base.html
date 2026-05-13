@@ -515,7 +515,10 @@
 
       // Auto-remove after duration
       setTimeout(() => {
-        toast.style.animation = 'fadeOutToast 0.4s ease forwards';
+        toast.style.animation = 'none';
+        requestAnimationFrame(() => {
+          toast.style.animation = 'fadeOutToast 0.38s cubic-bezier(0.4,0,1,1) forwards';
+        });
         toast.addEventListener('animationend', () => toast.remove());
       }, duration);
     }

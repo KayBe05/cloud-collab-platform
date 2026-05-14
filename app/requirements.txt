@@ -13,7 +13,7 @@ eventlet==0.36.1
 setuptools
 
 psutil==5.9.8
-google-generativeai==0.7.2d
+google-generativeai==0.7.2
 
 # Database Adapter
 psycopg==3.1.18

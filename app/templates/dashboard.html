@@ -5,9 +5,10 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='cloudx.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='cloudx_additions.css') }}">
 {# marked.js for AI markdown rendering #}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 {% endblock %}
 
 {% block breadcrumb %}
@@ -18,14 +19,12 @@
 
 {% block content %}
 
-<!-- ── Dashboard Header ─────────────────────────────────────────── -->
 <div class="monitor-dash-header">
   <div>
     <h2 class="monitor-dash-heading">System Monitor</h2>
     <p class="monitor-dash-sub">Live infrastructure telemetry · auto-refresh every 5 s</p>
   </div>
   <div class="monitor-dash-actions">
-    <!-- Live status badge -->
     <div id="liveStatusBadge" class="live-status-badge">
       <span class="live-dot"></span>
       <span class="badge-text">All systems nominal</span>
@@ -39,7 +38,6 @@
   </div>
 </div>
 
-<!-- ── Circular Gauge Grid (Host Metrics) ──────────────────────── -->
 <div class="gauge-grid" id="gaugeGrid">
 
   <!-- CPU -->
@@ -59,7 +57,6 @@
     <div class="gauge-sub" id="gaugeCpuSub">Loading…</div>
   </div>
 
-  <!-- Memory -->
   <div class="gauge-card" data-type="mem">
     <div class="gauge-svg-wrap">
       <svg class="gauge-svg" viewBox="0 0 120 120">
@@ -76,7 +73,6 @@
     <div class="gauge-sub" id="gaugeMemSub">Loading…</div>
   </div>
 
-  <!-- Disk -->
   <div class="gauge-card" data-type="disk">
     <div class="gauge-svg-wrap">
       <svg class="gauge-svg" viewBox="0 0 120 120">
@@ -93,7 +89,6 @@
     <div class="gauge-sub" id="gaugeDiskSub">Loading…</div>
   </div>
 
-  <!-- Network -->
   <div class="gauge-card" data-type="net">
     <div class="gauge-svg-wrap">
       <svg class="gauge-svg" viewBox="0 0 120 120">
@@ -112,7 +107,6 @@
 
 </div>
 
-<!-- ── Container List ───────────────────────────────────────────── -->
 <div class="monitor-section" id="containerSection">
   <div class="monitor-header">
     <div class="monitor-title">
@@ -152,7 +146,6 @@
   </div>
 </div>
 
-<!-- ── Charts Grid ──────────────────────────────────────────────── -->
 <div class="dashboard-grid">
   <div class="dashboard-card chart-card">
     <div class="card-header-dash">
@@ -183,7 +176,6 @@
   </div>
 </div>
 
-<!-- ── Activity + Resources ─────────────────────────────────────── -->
 <div class="dashboard-grid-2">
   <div class="dashboard-card">
     <div class="card-header-dash">
@@ -221,7 +213,6 @@
         <h3>System Resources</h3>
         <p class="card-subtitle">Live usage · Socket.IO feed</p>
       </div>
-      <!-- Real-time indicator -->
       <div class="realtime-pill" id="realtimePill">
         <span class="realtime-dot"></span>
         <span>Live</span>
@@ -259,7 +250,6 @@
   </div>
 </div>
 
-<!-- ── Metric Cards Row ─────────────────────────────────────────── -->
 <div class="metrics-grid" style="margin-top:1.5rem">
   <div class="metric-card animate-in" style="animation-delay:.1s">
     <div class="metric-header">
@@ -313,7 +303,6 @@
 
 <aside class="ai-sidebar" id="aiSidebar" role="complementary" aria-label="AI Code Assistant" aria-hidden="true">
 
-  <!-- Header -->
   <div class="ai-header">
     <div class="ai-header-icon">
       <i class="fas fa-robot"></i>
@@ -328,7 +317,6 @@
     </button>
   </div>
 
-  <!-- Context toggle -->
   <div class="ai-context-bar">
     <span class="ai-context-label">
       <i class="fas fa-code" style="margin-right:.4rem;color:var(--cx-cyan)"></i>
@@ -340,14 +328,11 @@
     </label>
   </div>
 
-  <!-- Suggested prompts (shown when conversation is empty) -->
   <div class="ai-suggestions" id="aiSuggestedPrompts">
     <!-- Populated by ai_assistant.js -->
   </div>
 
-  <!-- Messages area -->
   <div class="ai-messages" id="aiMessages" role="log" aria-live="polite">
-    <!-- Welcome message -->
     <div class="ai-msg assistant">
       <div class="ai-msg-bubble">
         <p>👋 Hi! I'm your CloudX AI assistant. I can help you:</p>
@@ -364,7 +349,6 @@
     </div>
   </div>
 
-  <!-- Input area -->
   <div class="ai-input-area">
     <textarea class="ai-textarea" id="aiQuery" placeholder="Ask about your code, errors, or architecture…" rows="3"
       aria-label="Message to AI assistant"></textarea>
@@ -383,7 +367,6 @@
   </div>
 </aside>
 
-<!-- Floating AI Trigger Button -->
 <button class="ai-fab" id="aiFab" onclick="CloudXAI.toggle()" title="Open AI Assistant (Ctrl+Shift+A)"
   aria-label="Open AI Assistant" aria-expanded="false">
   <i class="fas fa-robot"></i>
@@ -391,11 +374,7 @@
 </button>
 
 
-<!-- ══════════════════════════════════════════════════════════════
-     PAGE SCRIPTS
-     ══════════════════════════════════════════════════════════════ -->
 <script>
-  /* ── Sync aria-hidden on sidebar open/close ─────────────────── */
   const _sidebar = document.getElementById('aiSidebar');
   const _obs = new MutationObserver(() => {
     const isOpen = _sidebar.classList.contains('open');
@@ -403,7 +382,6 @@
   });
   _obs.observe(_sidebar, { attributes: true, attributeFilter: ['class'] });
 
-  /* ── DOMContentLoaded: init charts + monitoring ──────────────── */
   document.addEventListener('DOMContentLoaded', () => {
     initPerformanceChart();
     initDeploymentChart();
@@ -412,7 +390,6 @@
       CloudXMonitor.init();
     }
 
-    /* Staggered entrance animations */
     const iObs = new IntersectionObserver(entries =>
       entries.forEach(e => e.isIntersecting && e.target.classList.add('animate-in')),
       { threshold: 0.1 }
@@ -420,7 +397,6 @@
     document.querySelectorAll('.metric-card, .gauge-card').forEach(el => iObs.observe(el));
   });
 
-  /* ── Refresh all ─────────────────────────────────────────────── */
   function refreshAll() {
     const icon = document.getElementById('refreshIcon');
     icon.classList.add('fa-spin');
@@ -431,7 +407,6 @@
     }, 800);
   }
 
-  /* ── Chart time-range controls ──────────────────────────────── */
   document.querySelectorAll('.chart-btn').forEach(btn => {
     btn.addEventListener('click', function () {
       document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
@@ -440,9 +415,6 @@
     });
   });
 
-  /* ================================================================
-     PERFORMANCE CHART
-     ================================================================ */
   let performanceChart, deploymentChart;
 
   function initPerformanceChart() {
@@ -517,9 +489,6 @@
     });
   }
 
-  /* ================================================================
-     DEPLOYMENT CHART
-     ================================================================ */
   function initDeploymentChart() {
     const ctx = document.getElementById('deploymentChart')?.getContext('2d');
     if (!ctx) return;
@@ -590,10 +559,7 @@
   }
 </script>
 
-<!-- Load monitoring module (analytics + gauge updates) -->
 <script src="{{ url_for('static', filename='analytics.js') }}"></script>
-
-<!-- Load AI assistant module -->
 <script src="{{ url_for('static', filename='ai_assistant.js') }}"></script>
 
 {% endblock %}

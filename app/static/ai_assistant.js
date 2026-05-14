@@ -1,5 +1,3 @@
-
-
 (function (window) {
   'use strict';
 
@@ -53,13 +51,11 @@
   function open() { if (!_isOpen) toggle(); }
   function close() { if (_isOpen) toggle(); }
 
-  /* ── Message rendering ─────────────────────────────────────────── */
   function _now() {
     return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
   function _sanitise(html) {
-    // Very light sanitisation — strip script tags, keep code blocks
     return html
       .replace(/<script[\s\S]*?<\/script>/gi, '')
       .replace(/on\w+="[^"]*"/gi, '')
@@ -72,7 +68,6 @@
         breaks: true,
         gfm: true,
         highlight: (code, lang) => {
-          // Highlight.js integration if available
           if (window.hljs && lang && window.hljs.getLanguage(lang)) {
             return window.hljs.highlight(code, { language: lang }).value;
           }
@@ -81,7 +76,6 @@
       });
       return _sanitise(marked.parse(text));
     }
-    // Plain text fallback
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -133,7 +127,6 @@
     requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
   }
 
-  /* ── Core API call ─────────────────────────────────────────────── */
   async function sendQuery(options = {}) {
     const {
       query,
@@ -152,13 +145,10 @@
     const sendBtn = $(sendBtnId);
     if (sendBtn) sendBtn.disabled = true;
 
-    // Append user message
     appendMessage(messagesId, 'user', query.trim());
 
-    // Show typing indicator
     const typingId = appendTypingIndicator(messagesId);
 
-    // Gather context
     const codeContext = useContext ? _collectContext() : '';
 
     try {
@@ -185,13 +175,11 @@
       if (data.success) {
         appendMessage(messagesId, 'assistant', data.suggestion, true);
 
-        // Update model badge
         if (modelBadgeId && data.model) {
           const badge = $(modelBadgeId);
           if (badge) badge.textContent = data.model;
         }
 
-        // Token usage as subtle info
         if (data.usage?.prompt_tokens) {
           _appendUsageHint(messagesId, data.usage);
         }
@@ -232,7 +220,6 @@
     container.appendChild(hint);
   }
 
-  /* ── Wire up the dashboard AI sidebar ─────────────────────────── */
   function _wireDashboardSidebar() {
     const queryEl = $('aiQuery');
     const sendBtn = $('aiSendBtn');
@@ -241,7 +228,6 @@
 
     if (!queryEl) return;
 
-    // Send on Enter (Shift+Enter = newline)
     queryEl.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -249,7 +235,6 @@
       }
     });
 
-    // Auto-resize textarea
     queryEl.addEventListener('input', () => {
       queryEl.style.height = 'auto';
       queryEl.style.height = Math.min(queryEl.scrollHeight, 180) + 'px';
@@ -257,13 +242,10 @@
 
     if (sendBtn) sendBtn.addEventListener('click', _triggerDashboardSend);
 
-    // Clear conversation
     if (clearBtn) clearBtn.addEventListener('click', _clearConversation);
 
-    // Close on overlay click
     if (overlay) overlay.addEventListener('click', close);
 
-    // Keyboard shortcut: Ctrl+Shift+A to open/close
     document.addEventListener('keydown', e => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
         e.preventDefault();
@@ -280,7 +262,6 @@
     const query = queryEl.value.trim();
     if (!query) return;
 
-    // Reset height
     queryEl.value = '';
     queryEl.style.height = '';
 
@@ -296,13 +277,11 @@
   function _clearConversation() {
     const container = $('aiMessages');
     if (!container) return;
-    // Keep only the welcome message (first child)
     while (container.children.length > 1) {
       container.removeChild(container.lastChild);
     }
   }
 
-  /* ── Suggested prompts (quick-launch chips) ────────────────────── */
   const SUGGESTED_PROMPTS = [
     'Review this code for security vulnerabilities',
     'Explain how the WebSocket connection works',
@@ -327,9 +306,7 @@
     }
   }
 
-  /* ── Copy-to-clipboard for code blocks ────────────────────────── */
   function _attachCodeCopyButtons() {
-    // Use event delegation on the messages container
     ['aiMessages', 'wsAiMessages'].forEach(containerId => {
       const el = $(containerId);
       if (!el) return;
@@ -350,7 +327,6 @@
     });
   }
 
-  /* Post-process AI messages to add copy buttons to code blocks */
   function _enhanceMarkdownOutput() {
     ['aiMessages', 'wsAiMessages'].forEach(containerId => {
       const el = $(containerId);
@@ -376,7 +352,6 @@
     });
   }
 
-  /* ── Initialise ─────────────────────────────────────────────────── */
   function init() {
     _wireDashboardSidebar();
     _renderSuggestedPrompts();
@@ -384,7 +359,6 @@
     _attachCodeCopyButtons();
   }
 
-  /* ── Public API ─────────────────────────────────────────────────── */
   window.CloudXAI = {
     init,
     toggle,
@@ -393,13 +367,11 @@
     sendQuery,
     appendMessage,
     registerContextProvider,
-    _injectPrompt,  // used by suggestion chips
+    _injectPrompt,  
   };
 
-  // Also expose as global for inline onclick handlers in templates
   window.toggleAI = toggle;
 
-  // Auto-init when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

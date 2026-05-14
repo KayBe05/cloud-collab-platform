@@ -29,7 +29,7 @@ except ImportError:
     logging.warning("google-generativeai not installed. AI assistant will be disabled.")
 
 try:
-    from app.monitor import SystemMonitor
+    from monitor import SystemMonitor
 except ImportError:
     SystemMonitor = None
     logging.warning("monitor.py not found. Real-time stats will be disabled.")

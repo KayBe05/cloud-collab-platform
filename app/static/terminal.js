@@ -1,53 +1,47 @@
-
-
 (function (window) {
   'use strict';
 
   const MONOKAI = {
-    background: '#060b12',   // --cx-0 (matches platform bg)
-    foreground: '#f8f8f2',   // Monokai foreground
-    cursor: '#f92672',   // Monokai pink
+    background: '#060b12',   
+    foreground: '#f8f8f2',   
+    cursor: '#f92672',   
     cursorAccent: '#060b12',
     selectionBackground: 'rgba(73,72,62,0.6)',
     selectionForeground: '#f8f8f2',
 
-    // Normal palette
     black: '#1a1a2e',
     red: '#f92672',
     green: '#a6e22e',
     yellow: '#f4bf75',
     blue: '#66d9ef',
     magenta: '#ae81ff',
-    cyan: '#00ccff',   // --cx-cyan (brand colour)
+    cyan: '#00ccff',   
     white: '#f8f8f2',
 
-    // Bright palette
     brightBlack: '#75715e',
     brightRed: '#ff6188',
     brightGreen: '#a9dc76',
     brightYellow: '#ffd866',
     brightBlue: '#78dce8',
     brightMagenta: '#ab9df2',
-    brightCyan: '#00e87a',   // --cx-green (brand colour)
+    brightCyan: '#00e87a',   
     brightWhite: '#ffffff',
   };
 
-  /* ── Internal state ────────────────────────────────────────────── */
   let _term = null;
   let _fitAddon = null;
   let _socket = null;
   let _containerId = null;
   let _resizeObserver = null;
   let _connected = false;
-  let _outputListener = null;   // reference so we can cleanly re-bind
+  let _outputListener = null; 
 
-  /* ── Output buffer — absorbs back-to-back chunked writes ──────── */
+
   let _writeBuffer = [];
   let _writeRafId = null;
 
   function _flushWriteBuffer() {
     if (!_term || _writeBuffer.length === 0) { _writeRafId = null; return; }
-    // Concatenate all pending chunks into a single write call
     const payload = _writeBuffer.join('');
     _writeBuffer = [];
     _writeRafId = null;
@@ -61,7 +55,6 @@
     }
   }
 
-  /* ── Lazy-load Xterm.js + addons ──────────────────────────────── */
   const XTERM_VERSION = '5.3.0';
   const CDN_BASE = `https://unpkg.com/@xterm/xterm@${XTERM_VERSION}/`;
   const XTERM_FIT_CDN = `https://unpkg.com/@xterm/addon-fit@0.8.0/lib/addon-fit.min.js`;
@@ -97,7 +90,6 @@
     });
   }
 
-  /* ── Init ─────────────────────────────────────────────────────── */
   async function init(options = {}) {
     const {
       containerId,
@@ -123,7 +115,6 @@
       return null;
     }
 
-    /* ── Create terminal ─────────────────────────────────────────── */
     _term = new Terminal({
       theme: MONOKAI,
       fontFamily: '"JetBrains Mono", "DM Mono", "Cascadia Code", "Fira Code", monospace',

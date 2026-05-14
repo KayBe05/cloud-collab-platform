@@ -13,10 +13,16 @@
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='cloudx.css') }}?v=5">
   {% if request.path == '/settings' %}
   <link rel="stylesheet" href="{{ url_for('static', filename='settings.css') }}">
   {% endif %}
   <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+
+  <!-- AI Assistant: Markdown + Syntax Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 
   <!-- WebSocket & Chart Libraries -->
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
@@ -496,7 +502,6 @@
       if (!container) return;
 
       const toast = document.createElement('div');
-      // Use the new cx-toast class
       toast.className = `cx-toast ${type}`;
 
       const iconMap = {
@@ -513,7 +518,6 @@
 
       container.appendChild(toast);
 
-      // Auto-remove after duration
       setTimeout(() => {
         toast.style.animation = 'none';
         requestAnimationFrame(() => {
@@ -616,6 +620,96 @@
         }
       });
     }
+  </script>
+
+  <!-- ── Global AI Assistant ──────────────────────────────────────────────── -->
+
+  <div class="ai-overlay" id="aiOverlay"></div>
+
+  <aside class="ai-sidebar" id="aiSidebar" role="complementary" aria-label="AI Code Assistant" aria-hidden="true">
+
+    <div class="ai-header">
+      <div class="ai-header-icon">
+        <i class="fas fa-robot"></i>
+      </div>
+      <div class="ai-header-title">
+        <h3>AI Assistant</h3>
+        <span>Powered by Gemini</span>
+      </div>
+      <span class="ai-header-model" id="aiModelBadge">Gemini-2.5-Flash</span>
+      <button class="cx-icon-btn" onclick="CloudXAI.close()" title="Close (Ctrl+Shift+A)" style="margin-left:.25rem">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div class="ai-context-bar">
+      <span class="ai-context-label">
+        <i class="fas fa-code" style="margin-right:.4rem;color:var(--cx-cyan)"></i>
+        Send IDE context with messages
+      </span>
+      <label class="cx-toggle" title="When enabled, the AI sees your current editor content">
+        <input type="checkbox" id="aiContextToggle">
+        <span class="cx-toggle-track"></span>
+      </label>
+    </div>
+
+    <div class="ai-suggestions" id="aiSuggestedPrompts">
+      <!-- Populated by ai_assistant.js -->
+    </div>
+
+    <div class="ai-messages" id="aiMessages" role="log" aria-live="polite">
+      <div class="ai-msg assistant">
+        <div class="ai-msg-bubble">
+          <p>👋 Hi! I'm your CloudX AI assistant. I can help you:</p>
+          <ul>
+            <li>Debug and fix code errors</li>
+            <li>Review architecture decisions</li>
+          </ul>
+          <p>Enable <strong>IDE Context</strong> above to share your current editor content.</p>
+          <p style="margin-top:.5rem;font-size:.8em;color:var(--cx-t3)">
+            Tip: <kbd>Ctrl+Shift+A</kbd> toggles this panel.
+          </p>
+        </div>
+        <span class="ai-msg-time">Now</span>
+      </div>
+    </div>
+
+    <div class="ai-input-area">
+      <textarea class="ai-textarea" id="aiQuery" placeholder="Ask about your code, errors, or architecture…" rows="3"
+        aria-label="Message to AI assistant"></textarea>
+      <div class="ai-input-actions">
+        <div style="display:flex;gap:.4rem;align-items:center">
+          <span class="ai-hint">Shift+Enter for newline</span>
+          <button class="cx-icon-btn" id="aiClearBtn" title="Clear conversation"
+            style="width:28px;height:28px;font-size:.7rem">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+        <button class="ai-send-btn" id="aiSendBtn">
+          <i class="fas fa-paper-plane"></i> Send
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <button class="ai-fab" id="aiFab" onclick="CloudXAI.toggle()" title="Open AI Assistant (Ctrl+Shift+A)"
+    aria-label="Open AI Assistant" aria-expanded="false">
+    <i class="fas fa-robot"></i>
+    <span class="ai-fab-badge" aria-hidden="true"></span>
+  </button>
+
+  <script src="{{ url_for('static', filename='ai_assistant.js') }}"></script>
+
+  <script>
+    (function () {
+      const _aiSidebar = document.getElementById('aiSidebar');
+      if (!_aiSidebar) return;
+      const _aiObs = new MutationObserver(() => {
+        const isOpen = _aiSidebar.classList.contains('open');
+        _aiSidebar.setAttribute('aria-hidden', !isOpen);
+      });
+      _aiObs.observe(_aiSidebar, { attributes: true, attributeFilter: ['class'] });
+    })();
   </script>
 
   {% block scripts %}{% endblock %}

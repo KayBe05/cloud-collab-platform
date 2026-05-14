@@ -12,16 +12,9 @@
     href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap"
     rel="stylesheet">
 
-  <!-- Icons -->
   <link rel="stylesheet" href="https://unpkg.com/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
-
-  <!-- CloudX CSS -->
   <link rel="stylesheet" href="/static/cloudx.css">
-
-  <!-- marked.js for AI markdown -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-
-  <!-- Socket.IO -->
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
   <style>
@@ -350,7 +343,6 @@
 
 <body>
 
-  <!-- ── Top toolbar ──────────────────────────────────────────────── -->
   <div class="ws-toolbar">
     <a href="/" class="ws-toolbar-logo">
       <i class="fas fa-cloud"></i> CloudX
@@ -363,7 +355,6 @@
 
     <div class="ws-toolbar-sep"></div>
 
-    <!-- Connection status -->
     <div id="wsConnStatus"
       style="display:flex;align-items:center;gap:.4rem;font-family:var(--cx-mono);font-size:.72rem;color:var(--cx-t2)">
       <span class="ws-status-dot disconnected" id="wsStatusDot"></span>
@@ -372,7 +363,6 @@
 
     <div class="ws-toolbar-spacer"></div>
 
-    <!-- Terminal controls -->
     <button class="ws-toolbar-btn" id="termClearBtn" title="Clear terminal">
       <i class="fas fa-trash-alt"></i> Clear
     </button>
@@ -382,21 +372,17 @@
 
     <div class="ws-toolbar-sep"></div>
 
-    <!-- AI toggle -->
     <button class="ws-toolbar-btn active-ai" id="aiToggleBtn" onclick="toggleWsAI()">
       <i class="fas fa-robot"></i> AI
     </button>
 
-    <!-- Go to dashboard -->
     <a href="/dashboard" class="ws-toolbar-btn primary">
       <i class="fas fa-chart-line"></i> Dashboard
     </a>
   </div>
 
-  <!-- ── 3-Pane Body ──────────────────────────────────────────────── -->
   <div class="ws-body">
 
-    <!-- LEFT: File Explorer -->
     <div class="ws-filetree" id="wsFiletree">
       <div class="ws-panel-header">
         <span class="ws-panel-title">Explorer</span>
@@ -411,7 +397,6 @@
       </div>
       <div class="ws-filetree-body" id="fileTreeBody">
         <div class="ws-file-group-label"><i class="fas fa-chevron-down"></i> Workspace</div>
-        <!-- File tree items injected by JS -->
         <div class="ws-file-item folder active">
           <i class="fas fa-chevron-down" style="color:var(--cx-cyan);font-size:.6rem"></i>
           <i class="fas fa-folder-open" style="color:var(--cx-yellow)"></i> src
@@ -447,13 +432,10 @@
       </div>
     </div>
 
-    <!-- Vertical resize handle (left ↔ center) -->
     <div class="ws-resize-v" id="resizeLeft" title="Drag to resize"></div>
 
-    <!-- CENTER: Editor + Terminal -->
     <div class="ws-center">
 
-      <!-- Tab bar -->
       <div class="ws-tabs" id="wsTabs">
         <div class="ws-tab active" data-file="app.py">
           <i class="fas fa-file-code" style="color:#3572A5;font-size:.7rem"></i>
@@ -464,9 +446,7 @@
         </div>
       </div>
 
-      <!-- Editor area -->
       <div class="ws-editor-wrap" id="wsEditorWrap" style="display:flex;flex-direction:column">
-        <!-- Placeholder until Monaco loads -->
         <div class="ws-editor-placeholder" id="editorPlaceholder">
           <i class="fas fa-code"></i>
           <p>Select a file to open it in the editor</p>
@@ -477,10 +457,8 @@
         <div id="monacoEditor" style="flex:1;display:none"></div>
       </div>
 
-      <!-- Horizontal resize -->
       <div class="ws-resize-h" id="resizeTerminal"></div>
 
-      <!-- Terminal -->
       <div class="ws-terminal-wrap" id="wsTerminalWrap" style="height:260px">
         <div class="ws-terminal-header">
           <i class="fas fa-terminal" style="color:var(--cx-cyan);font-size:.75rem"></i>
@@ -505,10 +483,8 @@
       </div>
     </div>
 
-    <!-- Vertical resize handle (center ↔ right) -->
     <div class="ws-resize-v" id="resizeRight" title="Drag to resize"></div>
 
-    <!-- RIGHT: In-workspace AI panel -->
     <div class="ws-ai-panel" id="wsAiPanel">
       <div class="ai-header">
         <div class="ai-header-icon"><i class="fas fa-robot"></i></div>
@@ -524,7 +500,6 @@
         </button>
       </div>
 
-      <!-- Context toggle -->
       <div class="ai-context-bar">
         <span class="ai-context-label">
           <i class="fas fa-code" style="margin-right:.4rem;color:var(--cx-cyan)"></i>
@@ -536,7 +511,6 @@
         </label>
       </div>
 
-      <!-- Messages -->
       <div class="ai-messages" id="wsAiMessages">
         <div class="ai-msg assistant">
           <div class="ai-msg-bubble">
@@ -547,7 +521,6 @@
         </div>
       </div>
 
-      <!-- Input -->
       <div class="ai-input-area">
         <textarea class="ai-textarea" id="wsAiQuery" placeholder="Ask about your code…" rows="3"></textarea>
         <div class="ai-input-actions">
@@ -561,13 +534,10 @@
 
   </div>
 
-  <!-- Toast container -->
   <div class="ws-toast-container" id="wsToasts"></div>
 
-  <!-- ── Scripts ─────────────────────────────────────────────────── -->
   <script src="/static/terminal.js"></script>
   <script>
-    /* ── Global Socket.IO ──────────────────────────────────────────── */
     const socket = io({
       reconnection: true,
       reconnectionAttempts: 5,
@@ -585,7 +555,6 @@
       document.getElementById('wsStatusTxt').textContent = 'Disconnected';
     });
 
-    /* ── Project info from URL ─────────────────────────────────────── */
     const params = new URLSearchParams(location.search);
     const projectId = params.get('project') || '';
     const containerId = params.get('container') || '';
@@ -603,7 +572,6 @@
       document.getElementById('wsProjectName').textContent = 'Untitled Workspace';
     }
 
-    /* ── Attach terminal ───────────────────────────────────────────── */
     document.addEventListener('DOMContentLoaded', () => {
       const mountEl = document.getElementById('terminalMount');
       CloudXTerminal.init({ containerId: containerId || null, mountEl, socket });
@@ -612,11 +580,9 @@
         document.getElementById('termContainerLabel').textContent = containerId;
       }
 
-      /* Terminal inner clear btn */
       document.getElementById('termClearBtnInner').addEventListener('click', CloudXTerminal.clear);
     });
 
-    /* ── Toggle AI panel ───────────────────────────────────────────── */
     function toggleWsAI() {
       const panel = document.getElementById('wsAiPanel');
       const btn = document.getElementById('aiToggleBtn');
@@ -624,19 +590,16 @@
       btn.classList.toggle('active-ai', !panel.classList.contains('collapsed'));
     }
 
-    /* ── Context toggle ────────────────────────────────────────────── */
     function onContextToggle() {
       const on = document.getElementById('wsContextToggle').checked;
       const badge = document.getElementById('wsContextBadge');
       badge.style.display = on ? 'inline-flex' : 'none';
     }
 
-    /* ── File selection ────────────────────────────────────────────── */
     function selectFile(el, filename) {
       document.querySelectorAll('.ws-file-item').forEach(i => i.classList.remove('active'));
       el.classList.add('active');
 
-      /* Update tabs */
       const tabs = document.getElementById('wsTabs');
       const existing = [...tabs.querySelectorAll('.ws-tab')].find(t => t.dataset.file === filename);
       if (!existing) {
@@ -654,13 +617,11 @@
         activateTab(existing);
       }
 
-      /* Show Monaco placeholder with filename */
       const ph = document.getElementById('editorPlaceholder');
       ph.innerHTML = `<i class="fas fa-file-code" style="font-size:3rem;opacity:.2"></i>
     <p style="color:var(--cx-t2)">${filename}</p>
     <p style="font-size:.78rem;color:var(--cx-t3)">Monaco editor — attach a running container to edit live files</p>`;
 
-      /* Store as IDE context for AI */
       window.__ideContext = `// File: ${filename}\n// (Mount a container workspace to load actual content)`;
     }
 
@@ -689,7 +650,6 @@
       }
     }
 
-    /* ── Monaco loader (lazy) ──────────────────────────────────────── */
     function loadMonaco() {
       if (window._monacoLoaded) return;
       window._monacoLoaded = true;
@@ -715,7 +675,6 @@
             glyphMargin: true,
             automaticLayout: true,
           });
-          /* Store editor content as AI context */
           window._monacoEditor.onDidChangeModelContent(() => {
             window.__ideContext = window._monacoEditor.getValue();
           });
@@ -724,7 +683,6 @@
       document.head.appendChild(s);
     }
 
-    /* ── Terminal maximize toggle ──────────────────────────────────── */
     let _termMaximised = false;
     function toggleTermMax() {
       const wrap = document.getElementById('wsTerminalWrap');
@@ -733,7 +691,6 @@
       setTimeout(CloudXTerminal.fit, 100);
     }
 
-    /* ── Resize handles ────────────────────────────────────────────── */
     function initResize(handleId, targetId, axis) {
       const handle = document.getElementById(handleId);
       const target = document.getElementById(targetId);
@@ -778,7 +735,6 @@
       initResize('resizeTerminal', 'wsTerminalWrap', 'y');
     });
 
-    /* ── AI send (workspace panel) ─────────────────────────────────── */
     async function wsAISend() {
       const queryEl = document.getElementById('wsAiQuery');
       const sendBtn = document.getElementById('wsAiSendBtn');
@@ -839,7 +795,6 @@
       });
     });
 
-    /* ── Toast helper ──────────────────────────────────────────────── */
     function toast(msg, type = 'info') {
       const c = document.getElementById('wsToasts');
       const el = document.createElement('div');

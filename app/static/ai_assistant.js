@@ -284,7 +284,6 @@
 
   const SUGGESTED_PROMPTS = [
     'Review this code for security vulnerabilities',
-    'Explain how the WebSocket connection works',
   ];
 
   function _renderSuggestedPrompts() {

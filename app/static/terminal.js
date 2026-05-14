@@ -64,7 +64,6 @@
     return new Promise((resolve, reject) => {
       if (typeof Terminal !== 'undefined') { resolve(); return; }
 
-      /* CSS */
       if (!document.getElementById('xterm-css')) {
         const link = document.createElement('link');
         link.id = 'xterm-css';
@@ -83,7 +82,6 @@
 
       load(CDN_BASE + 'lib/xterm.min.js', () => {
         load(XTERM_FIT_CDN, () => {
-          // WebLinks is optional; don't reject if it fails
           load(XTERM_WEB_CDN, resolve);
         });
       });
@@ -134,22 +132,18 @@
       smoothScrollDuration: 125,
     });
 
-    /* FitAddon */
     _fitAddon = new FitAddon.FitAddon();
     _term.loadAddon(_fitAddon);
 
-    /* WebLinksAddon — make URLs clickable */
     if (typeof WebLinksAddon !== 'undefined') {
       try {
         _term.loadAddon(new WebLinksAddon.WebLinksAddon());
       } catch (_) { }
     }
 
-    /* Mount */
     _term.open(mountEl);
     setTimeout(() => { try { _fitAddon.fit(); } catch (_) { } }, 50);
 
-    /* Resize observer */
     if (window.ResizeObserver) {
       _resizeObserver = new ResizeObserver(() => {
         requestAnimationFrame(() => {
@@ -159,17 +153,14 @@
       _resizeObserver.observe(mountEl);
     }
 
-    /* ── Welcome banner ──────────────────────────────────────────── */
     _banner();
 
-    /* ── Key input → Socket ──────────────────────────────────────── */
     _term.onData(data => {
       if (_connected && _socket) {
         _socket.emit('terminal_input', { input: data });
       }
     });
 
-    /* ── Paste support ───────────────────────────────────────────── */
     _term.attachCustomKeyEventHandler(event => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
         navigator.clipboard?.readText().then(text => {
@@ -182,7 +173,6 @@
       return true;
     });
 
-    /* ── Auto-connect if containerId was supplied ────────────────── */
     if (_containerId && _socket) {
       connectToContainer(_containerId);
     }
@@ -190,7 +180,6 @@
     return _term;
   }
 
-  /* ── Welcome banner ──────────────────────────────────────────── */
   function _banner() {
     if (!_term) return;
     _term.writeln('\x1b[1;36m ██████╗██╗      ██████╗ ██╗   ██╗██████╗  \x1b[0m');
@@ -205,7 +194,6 @@
     _term.writeln('');
   }
 
-  /* ── Connect to container ────────────────────────────────────── */
   function connectToContainer(containerId) {
     if (!_socket) {
       console.warn('[Terminal] No Socket.IO instance available');
@@ -219,7 +207,6 @@
       _term.writeln(`\x1b[33m⟳ Connecting to container \x1b[1m${containerId}\x1b[0m\x1b[33m…\x1b[0m`);
     }
 
-    // Emit the join event
     _socket.emit('terminal_join', { container_id: containerId });
     _connected = true;
 
@@ -229,7 +216,6 @@
 
     _outputListener = (data) => {
       if (!_term) return;
-      // data.output is a UTF-8 string (backend decodes with errors='ignore')
       const text = typeof data === 'string' ? data : (data.output ?? '');
       if (text) _bufferWrite(text);
     };
@@ -241,7 +227,6 @@
     }
   }
 
-  /* ── Disconnect ──────────────────────────────────────────────── */
   function disconnect() {
     _connected = false;
     if (_socket && _outputListener) {
@@ -251,7 +236,6 @@
     if (_term) _term.writeln('\r\n\x1b[33m⟳ Disconnected.\x1b[0m');
   }
 
-  /* ── Helpers ─────────────────────────────────────────────────── */
   function clear() {
     if (_term) _term.clear();
   }
@@ -282,7 +266,6 @@
     _fitAddon = null;
   }
 
-  /* ── Auto-init from DOM ──────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', () => {
     const mountEl = document.getElementById('terminalMount');
     if (!mountEl) return;
@@ -297,7 +280,6 @@
 
       window._term = term;
 
-      // Wire up control buttons (both IDs used in workspace.html and dashboard)
       ['termClearBtn', 'termClearBtnInner'].forEach(id => {
         document.getElementById(id)?.addEventListener('click', clear);
       });
@@ -306,7 +288,6 @@
         document.getElementById(id)?.addEventListener('click', fit);
       });
 
-      // data-terminal-connect buttons
       document.querySelectorAll('[data-terminal-connect]').forEach(btn => {
         btn.addEventListener('click', () => {
           const cid = btn.dataset.terminalConnect;
@@ -316,7 +297,6 @@
     });
   });
 
-  /* ── Public API ──────────────────────────────────────────────── */
   window.CloudXTerminal = {
     init,
     connectToContainer,

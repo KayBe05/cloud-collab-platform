@@ -5,10 +5,6 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='cloudx.css') }}">
-{# marked.js for AI markdown rendering #}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
 {% endblock %}
 
 {% block breadcrumb %}
@@ -295,93 +291,8 @@
 
 {% endblock %}
 
-{# ── AI Sidebar + FAB injected after main content ── #}
 {% block scripts %}
-
-
-<div class="ai-overlay" id="aiOverlay"></div>
-
-<aside class="ai-sidebar" id="aiSidebar" role="complementary" aria-label="AI Code Assistant" aria-hidden="true">
-
-  <div class="ai-header">
-    <div class="ai-header-icon">
-      <i class="fas fa-robot"></i>
-    </div>
-    <div class="ai-header-title">
-      <h3>AI Assistant</h3>
-      <span>Powered by Gemini</span>
-    </div>
-    <span class="ai-header-model" id="aiModelBadge">Gemini-2.5-Flash</span>
-    <button class="cx-icon-btn" onclick="CloudXAI.close()" title="Close (Ctrl+Shift+A)" style="margin-left:.25rem">
-      <i class="fas fa-times"></i>
-    </button>
-  </div>
-
-  <div class="ai-context-bar">
-    <span class="ai-context-label">
-      <i class="fas fa-code" style="margin-right:.4rem;color:var(--cx-cyan)"></i>
-      Send IDE context with messages
-    </span>
-    <label class="cx-toggle" title="When enabled, the AI sees your current editor content">
-      <input type="checkbox" id="aiContextToggle">
-      <span class="cx-toggle-track"></span>
-    </label>
-  </div>
-
-  <div class="ai-suggestions" id="aiSuggestedPrompts">
-    <!-- Populated by ai_assistant.js -->
-  </div>
-
-  <div class="ai-messages" id="aiMessages" role="log" aria-live="polite">
-    <div class="ai-msg assistant">
-      <div class="ai-msg-bubble">
-        <p>👋 Hi! I'm your CloudX AI assistant. I can help you:</p>
-        <ul>
-          <li>Debug and fix code errors</li>
-          <li>Review architecture decisions</li>
-        </ul>
-        <p>Enable <strong>IDE Context</strong> above to share your current editor content.</p>
-        <p style="margin-top:.5rem;font-size:.8em;color:var(--cx-t3)">
-          Tip: <kbd>Ctrl+Shift+A</kbd> toggles this panel.
-        </p>
-      </div>
-      <span class="ai-msg-time">Now</span>
-    </div>
-  </div>
-
-  <div class="ai-input-area">
-    <textarea class="ai-textarea" id="aiQuery" placeholder="Ask about your code, errors, or architecture…" rows="3"
-      aria-label="Message to AI assistant"></textarea>
-    <div class="ai-input-actions">
-      <div style="display:flex;gap:.4rem;align-items:center">
-        <span class="ai-hint">Shift+Enter for newline</span>
-        <button class="cx-icon-btn" id="aiClearBtn" title="Clear conversation"
-          style="width:28px;height:28px;font-size:.7rem">
-          <i class="fas fa-trash-alt"></i>
-        </button>
-      </div>
-      <button class="ai-send-btn" id="aiSendBtn">
-        <i class="fas fa-paper-plane"></i> Send
-      </button>
-    </div>
-  </div>
-</aside>
-
-<button class="ai-fab" id="aiFab" onclick="CloudXAI.toggle()" title="Open AI Assistant (Ctrl+Shift+A)"
-  aria-label="Open AI Assistant" aria-expanded="false">
-  <i class="fas fa-robot"></i>
-  <span class="ai-fab-badge" aria-hidden="true"></span>
-</button>
-
-
 <script>
-  const _sidebar = document.getElementById('aiSidebar');
-  const _obs = new MutationObserver(() => {
-    const isOpen = _sidebar.classList.contains('open');
-    _sidebar.setAttribute('aria-hidden', !isOpen);
-  });
-  _obs.observe(_sidebar, { attributes: true, attributeFilter: ['class'] });
-
   document.addEventListener('DOMContentLoaded', () => {
     initPerformanceChart();
     initDeploymentChart();
@@ -560,6 +471,4 @@
 </script>
 
 <script src="{{ url_for('static', filename='analytics.js') }}"></script>
-<script src="{{ url_for('static', filename='ai_assistant.js') }}"></script>
-
 {% endblock %}

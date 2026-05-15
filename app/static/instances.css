@@ -600,8 +600,7 @@
   position: fixed;
   inset: 0;
   z-index: 3000;
-  display: none !important;
-  /* JS overrides via inline style when active */
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
@@ -612,7 +611,7 @@
 }
 
 .cx-modal-overlay.active {
-  display: flex !important;
+  display: flex;
 }
 
 .log-viewer-modal {

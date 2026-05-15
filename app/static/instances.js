@@ -115,9 +115,6 @@ function createContainerRow(container) {
   return tr;
 }
 
-/**
- * Build a glowing status badge with a .status-dot element.
- */
 function buildStatusBadge(statusClass, rawStatus) {
   const label = escapeHtml(rawStatus.toUpperCase());
   return `
@@ -130,15 +127,15 @@ function buildStatusBadge(statusClass, rawStatus) {
 
 function createActionButtons(container) {
   const status = container.status.toLowerCase();
-  const id = container.id;
+  const id = escapeHtml(container.id);
   const name = escapeHtml(container.name);
   let buttons = '';
 
-  // Terminal — running only
   if (status === 'running') {
     buttons += `
       <button class="action-btn-modern terminal-btn"
-              onclick="openTerminal('${id}', '${name}')"
+              data-id="${id}" data-name="${name}"
+              onclick="openTerminal(this.dataset.id, this.dataset.name)"
               title="Open Terminal">
         <i class="fas fa-terminal"></i>
         <span>Term</span>
@@ -146,26 +143,27 @@ function createActionButtons(container) {
     `;
   }
 
-  // Logs — always
   buttons += `
     <button class="action-btn-modern"
-            onclick="viewLogs('${id}', '${name}')"
+            data-id="${id}" data-name="${name}"
+            onclick="viewLogs(this.dataset.id, this.dataset.name)"
             title="View Logs">
       <i class="fas fa-file-alt"></i>
       <span>Logs</span>
     </button>
   `;
 
-  // Control buttons
   if (status === 'running') {
     buttons += `
       <button class="action-btn-modern"
-              onclick="containerAction('${id}', 'restart', '${name}', this)"
+              data-id="${id}" data-name="${name}"
+              onclick="containerAction(this.dataset.id, 'restart', this.dataset.name, this)"
               title="Restart">
         <i class="fas fa-sync-alt"></i>
       </button>
       <button class="action-btn-modern danger"
-              onclick="containerAction('${id}', 'stop', '${name}', this)"
+              data-id="${id}" data-name="${name}"
+              onclick="containerAction(this.dataset.id, 'stop', this.dataset.name, this)"
               title="Stop">
         <i class="fas fa-stop"></i>
       </button>
@@ -173,12 +171,14 @@ function createActionButtons(container) {
   } else {
     buttons += `
       <button class="action-btn-modern success"
-              onclick="containerAction('${id}', 'start', '${name}', this)"
+              data-id="${id}" data-name="${name}"
+              onclick="containerAction(this.dataset.id, 'start', this.dataset.name, this)"
               title="Start">
         <i class="fas fa-play"></i>
       </button>
       <button class="action-btn-modern danger"
-              onclick="containerAction('${id}', 'delete', '${name}', this)"
+              data-id="${id}" data-name="${name}"
+              onclick="containerAction(this.dataset.id, 'delete', this.dataset.name, this)"
               title="Delete">
         <i class="fas fa-trash"></i>
       </button>
@@ -187,6 +187,7 @@ function createActionButtons(container) {
 
   return buttons;
 }
+
 
 async function containerAction(containerId, action, containerName, buttonElement) {
   if (action === 'delete') {
@@ -254,9 +255,8 @@ async function viewLogs(containerId, containerName) {
   outputEl.style.display = 'none';
   metaEl.textContent = '—';
 
-  // Force display alongside the class — guards against any external CSS overrides
   overlay.classList.add('active');
-  overlay.style.display = 'flex';
+  overlay.style.setProperty('display', 'flex', 'important');
   document.body.style.overflow = 'hidden';
 
   try {
@@ -295,7 +295,7 @@ function retryLogFetch() {
 function closeLogViewer() {
   const overlay = document.getElementById('logViewerOverlay');
   overlay.classList.remove('active');
-  overlay.style.display = 'none';
+  overlay.style.removeProperty('display');
   document.body.style.overflow = '';
   _logViewerState = { containerId: null, containerName: null };
 }

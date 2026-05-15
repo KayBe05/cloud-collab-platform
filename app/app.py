@@ -34,7 +34,6 @@ except ImportError:
     SystemMonitor = None
     logging.warning("monitor.py not found. Real-time stats will be disabled.")
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,6 @@ app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=120, ping_interval=25)
 
-# ── Flask-Login setup ───────
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
@@ -111,7 +109,6 @@ def load_user(user_id):
     return User.get_by_id(int(user_id))
 
 
-# Database configuration
 DB_CONFIG = {
     'host': os.getenv('POSTGRES_HOST', 'db'),
     'dbname': os.getenv('POSTGRES_DB', 'cloudx'),
@@ -121,7 +118,6 @@ DB_CONFIG = {
     'connect_timeout': 10
 }
 
-# Cache for frequently accessed data
 cache = {'metrics': {}, 'projects': {}, 'last_update': {}}
 
 
@@ -138,7 +134,6 @@ def init_db():
         with get_db_connection() as conn:
             with conn.cursor() as cursor:
 
-                # ── Users table (must be created before projects) ──────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id            SERIAL PRIMARY KEY,
@@ -149,7 +144,6 @@ def init_db():
                     )
                 """)
 
-                # ── Projects table (owner_id → users.id) ───────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS projects (
                         id             SERIAL PRIMARY KEY,
@@ -164,7 +158,6 @@ def init_db():
                     )
                 """)
 
-                # ── Activity logs ──────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS activity_logs (
                         id         SERIAL PRIMARY KEY,
@@ -178,7 +171,6 @@ def init_db():
                     )
                 """)
 
-                # ── Deployments ────────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS deployments (
                         id          SERIAL PRIMARY KEY,
@@ -193,7 +185,6 @@ def init_db():
                     )
                 """)
 
-                # ── System metrics ─────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS system_metrics (
                         id           SERIAL PRIMARY KEY,
@@ -204,7 +195,6 @@ def init_db():
                     )
                 """)
 
-                # ── User sessions ──────────────────────────────────────────────
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS user_sessions (
                         id            SERIAL PRIMARY KEY,
@@ -222,7 +212,6 @@ def init_db():
         logger.error(f"Database initialization error: {e}")
 
 
-# Initialize database on startup
 with app.app_context():
     init_db()
 
@@ -245,7 +234,6 @@ def log_activity(action, details=None, severity='info'):
         logger.error(f"Activity logging error: {e}")
 
 
-# ── AUTH ROUTES ────────────────────────────────────────────────────────────────
 @app.route('/workspace')
 @login_required
 def workspace():
@@ -288,7 +276,6 @@ def signup():
         password = request.form.get('password', '')
         confirm  = request.form.get('confirm_password', '')
 
-        # Basic validation
         errors = []
         if not username or len(username) < 3:
             errors.append('Username must be at least 3 characters.')
@@ -345,7 +332,6 @@ def logout():
     return redirect(url_for('login'))
 
 
-# ── PAGE ROUTES ────────────────────────────────────────────────────────────────
 
 @app.route('/')
 @login_required
@@ -1120,8 +1106,8 @@ def server_error(error):
 
 terminal_sessions = {}
 
-TERMINAL_BUFFER_BYTES    = int(os.getenv("TERMINAL_BUFFER_BYTES",    4096))   # 4 KiB
-TERMINAL_FLUSH_INTERVAL  = float(os.getenv("TERMINAL_FLUSH_INTERVAL", 0.05))  # 50 ms
+TERMINAL_BUFFER_BYTES    = int(os.getenv("TERMINAL_BUFFER_BYTES",    4096))   
+TERMINAL_FLUSH_INTERVAL  = float(os.getenv("TERMINAL_FLUSH_INTERVAL", 0.05))  
 
 
 def _buffered_docker_reader(container_id: str, exec_sock, sid: str):
@@ -1172,13 +1158,11 @@ def _buffered_docker_reader(container_id: str, exec_sock, sid: str):
                 if buf_size >= TERMINAL_BUFFER_BYTES:
                     flush()
             else:
-                # Timeout expired with no data – time-based flush
                 flush()
 
     except Exception as exc:
         logger.error("Terminal reader error (sid=%s): %s", sid, exc)
     finally:
-        # Drain any remaining bytes so the user sees the last line
         flush()
         logger.debug("Terminal reader exited (sid=%s)", sid)
 
@@ -1188,7 +1172,6 @@ def on_terminal_join(data):
     container_id = data.get('container_id')
     sid = request.sid
 
-    # Verify ownership before opening a shell
     try:
         user_project_ids = _get_user_project_ids()
         client    = docker.from_env()
@@ -1212,8 +1195,6 @@ def on_terminal_join(data):
         sock = client.api.exec_start(exec_inst['Id'], detach=False, tty=True, socket=True)
         terminal_sessions[sid] = sock
 
-        # Launch the buffered reader as a SocketIO background task so it runs
-        # inside the same async context as the rest of the application.
         socketio.start_background_task(
             target=_buffered_docker_reader,
             container_id=container_id,
@@ -1251,9 +1232,6 @@ def on_disconnect_cleanup():
         except Exception:
             pass
         del terminal_sessions[sid]
-
-
-# ── ENTRY POINT ────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
     if SystemMonitor:

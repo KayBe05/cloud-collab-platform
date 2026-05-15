@@ -120,15 +120,10 @@
   </div>
 </div>
 
-<!-- ================================================================
-     LOG VIEWER MODAL — Glassmorphism Terminal
-     ================================================================ -->
-<div id="logViewerOverlay" class="cx-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="logViewerTitle">
+<div id="logViewerOverlay" class="cx-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="logViewerTitle"
+  onclick="closeLogViewer()">
 
-  <!-- Click-outside to close -->
-  <div style="position:absolute;inset:0;" onclick="closeLogViewer()"></div>
-
-  <div class="log-viewer-modal">
+  <div class="log-viewer-modal" onclick="event.stopPropagation()">
 
     <!-- Header -->
     <div class="log-viewer-header">
@@ -194,9 +189,6 @@
   </div>
 </div>
 
-<!-- ================================================================
-     TERMINAL MODAL
-     ================================================================ -->
 <div id="terminalModal" class="modal-modern" style="display:none;">
   <div class="modal-overlay-modern" onclick="closeTerminal()"></div>
   <div class="modal-content-modern"

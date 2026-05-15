@@ -246,6 +246,10 @@ def log_activity(action, details=None, severity='info'):
 
 
 # ── AUTH ROUTES ────────────────────────────────────────────────────────────────
+@app.route('/workspace')
+@login_required
+def workspace():
+    return render_template('workspace.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

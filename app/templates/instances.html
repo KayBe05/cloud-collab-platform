@@ -17,6 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
 
+<!-- ── Page Header ──────────────────────────────────────────────── -->
 <div class="instances-header">
   <div class="instances-header-content">
     <div class="instances-title-section">
@@ -49,27 +50,33 @@
   </div>
 </div>
 
+<!-- ── Main Container ────────────────────────────────────────────── -->
 <div class="instances-container">
+
+  <!-- Loading -->
   <div id="loadingState" class="loading-state-modern">
     <div class="loading-spinner-wrapper">
       <div class="loading-spinner"></div>
     </div>
-    <p class="loading-text">Fetching containers...</p>
+    <p class="loading-text">Fetching containers…</p>
   </div>
 
+  <!-- Empty / Error -->
   <div id="emptyState" class="empty-state-modern">
     <div class="empty-state-icon">
       <i class="fas fa-box-open"></i>
     </div>
     <h3 class="empty-state-title">No containers running</h3>
-    <p class="empty-state-description">Launch a new environment from the Projects page to get started with CloudX
-      workspaces.</p>
+    <p class="empty-state-description">
+      Launch a new environment from the Projects page to get started with CloudX workspaces.
+    </p>
     <a href="/projects" class="btn btn-primary btn-large">
       <i class="fas fa-plus-circle"></i>
       <span>Create New Instance</span>
     </a>
   </div>
 
+  <!-- Table -->
   <div id="containerTable" class="table-container">
     <div class="table-wrapper">
       <table class="data-table-modern">
@@ -107,107 +114,116 @@
             </th>
           </tr>
         </thead>
-        <tbody id="containerTableBody">
-        </tbody>
+        <tbody id="containerTableBody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
-<div id="logsModal" class="modal-modern">
-  <div class="modal-overlay-modern" onclick="closeLogsModal()"></div>
-  <div class="modal-content-modern logs-modal">
-    <div class="modal-header-modern">
-      <div class="modal-header-left">
-        <div class="modal-icon-wrapper">
-          <i class="fas fa-file-alt"></i>
+<!-- ================================================================
+     LOG VIEWER MODAL — Glassmorphism Terminal
+     ================================================================ -->
+<div id="logViewerOverlay" class="cx-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="logViewerTitle">
+
+  <!-- Click-outside to close -->
+  <div style="position:absolute;inset:0;" onclick="closeLogViewer()"></div>
+
+  <div class="log-viewer-modal">
+
+    <!-- Header -->
+    <div class="log-viewer-header">
+      <div class="log-viewer-header-left">
+        <div class="log-viewer-icon">
+          <i class="fas fa-terminal"></i>
         </div>
-        <div>
-          <h3 class="modal-title">Container Logs</h3>
-          <p id="logsContainerName" class="modal-subtitle"></p>
+        <div style="min-width:0;">
+          <p id="logViewerTitle" class="log-viewer-title">Container Logs</p>
+          <p id="logViewerSubtitle" class="log-viewer-subtitle">—</p>
         </div>
       </div>
-      <button class="modal-close-btn" onclick="closeLogsModal()" aria-label="Close modal">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
 
-    <div class="modal-body-modern">
-      <div id="logsLoadingState" class="logs-loading-state">
-        <div class="loading-spinner-wrapper">
-          <div class="loading-spinner"></div>
-        </div>
-        <p class="loading-text">Fetching logs...</p>
-      </div>
-
-      <div id="logsContentWrapper" class="logs-content-wrapper">
-        <div class="logs-toolbar">
-          <div class="logs-toolbar-left">
-            <span class="logs-toolbar-label">
-              <i class="fas fa-terminal"></i>
-              Output
-            </span>
-          </div>
-          <div class="logs-toolbar-right">
-            <button class="logs-toolbar-btn" onclick="copyLogsToClipboard()" title="Copy logs">
-              <i class="fas fa-copy"></i>
-              <span>Copy</span>
-            </button>
-            <button class="logs-toolbar-btn" onclick="downloadLogs()" title="Download logs">
-              <i class="fas fa-download"></i>
-              <span>Download</span>
-            </button>
-          </div>
-        </div>
-        <pre id="logsContent" class="logs-content"></pre>
-      </div>
-
-      <div id="logsErrorState" class="logs-error-state">
-        <div class="error-icon-wrapper">
-          <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <p class="error-text">Failed to load logs</p>
-        <button class="btn btn-secondary btn-sm"
-          onclick="viewLogs(window.currentContainerId, window.currentContainerName)">
-          <i class="fas fa-sync-alt"></i>
-          <span>Retry</span>
+      <div class="log-viewer-actions">
+        <button class="log-toolbar-btn" onclick="copyLogs()" title="Copy to clipboard">
+          <i class="fas fa-copy"></i>
+          <span>Copy</span>
+        </button>
+        <button class="log-toolbar-btn" onclick="downloadLogs()" title="Download .txt">
+          <i class="fas fa-download"></i>
+          <span>Download</span>
+        </button>
+        <button class="log-close-btn" onclick="closeLogViewer()" aria-label="Close">
+          <i class="fas fa-times"></i>
         </button>
       </div>
     </div>
 
-    <div class="modal-footer-modern">
-      <button class="btn btn-secondary" onclick="closeLogsModal()">
+    <!-- Body — switches between loading, error, content -->
+    <div class="log-viewer-body">
+
+      <!-- Loading -->
+      <div id="logLoadingState" class="log-state">
+        <div class="loading-spinner" style="width:36px;height:36px;border-width:3px;"></div>
+        <p class="log-state-text">Fetching logs…</p>
+      </div>
+
+      <!-- Error -->
+      <div id="logErrorState" class="log-state" style="display:none;">
+        <i class="fas fa-exclamation-triangle log-state-icon"
+          style="color:#ef4444;filter:drop-shadow(0 0 8px #ef4444);"></i>
+        <p class="log-state-text" id="logErrorText">Failed to fetch logs.</p>
+        <button class="log-toolbar-btn" onclick="retryLogFetch()" style="margin-top:.25rem;">
+          <i class="fas fa-sync-alt"></i>
+          <span>Retry</span>
+        </button>
+      </div>
+
+      <!-- Log Output -->
+      <pre id="logOutput" class="log-viewer-content" style="display:none;"></pre>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="log-viewer-footer">
+      <span class="log-meta" id="logMeta">—</span>
+      <button class="log-toolbar-btn" onclick="closeLogViewer()">
         <i class="fas fa-times"></i>
         <span>Close</span>
       </button>
     </div>
+
   </div>
 </div>
 
-<div id="terminalModal" class="modal-modern" style="display: none;">
+<!-- ================================================================
+     TERMINAL MODAL
+     ================================================================ -->
+<div id="terminalModal" class="modal-modern" style="display:none;">
   <div class="modal-overlay-modern" onclick="closeTerminal()"></div>
-  <div class="modal-content-modern terminal-modal-content"
-    style="max-width: 900px; background: #000; border: 1px solid #333;">
-    <div class="modal-header-modern" style="background: #1a1a1a; border-bottom: 1px solid #333;">
+  <div class="modal-content-modern"
+    style="max-width:900px; background:rgba(0,0,0,0.92); border:1px solid rgba(16,185,129,0.2);">
+    <div class="modal-header-modern"
+      style="background:rgba(16,185,129,0.05); border-bottom:1px solid rgba(16,185,129,0.12);">
       <div class="modal-header-left">
-        <div class="modal-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+        <div class="modal-icon-wrapper"
+          style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.25);color:#10b981;box-shadow:0 0 16px rgba(16,185,129,0.15);">
           <i class="fas fa-terminal"></i>
         </div>
         <div>
-          <h3 class="modal-title" style="font-family: 'JetBrains Mono', monospace;">Terminal</h3>
-          <p id="term-title" class="modal-subtitle" style="font-family: 'JetBrains Mono', monospace;">root@container</p>
+          <h3 class="modal-title" style="font-family:'JetBrains Mono',monospace;">Terminal</h3>
+          <p id="term-title" class="modal-subtitle" style="font-family:'JetBrains Mono',monospace;color:#10b981;">
+            root@container</p>
         </div>
       </div>
-      <button class="modal-close-btn" onclick="closeTerminal()">
+      <button class="modal-close-btn" onclick="closeTerminal()" aria-label="Close terminal">
         <i class="fas fa-times"></i>
       </button>
     </div>
-
-    <div class="modal-body-modern" style="padding: 0; display: flex; flex-direction: column; height: 500px;">
-      <div id="terminal-container" style="flex: 1; overflow: hidden; background: #000; padding: 10px;"></div>
+    <div class="modal-body-modern" style="padding:0;display:flex;flex-direction:column;height:500px;">
+      <div id="terminal-container" style="flex:1;overflow:hidden;background:#000;padding:10px;"></div>
     </div>
   </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}

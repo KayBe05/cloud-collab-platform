@@ -242,11 +242,26 @@
     }
 
     /* ── Terminal ────────────────────────────────── */
+
+    /* Glass terminal wrap */
+    .ws-terminal-wrap {
+      background: rgba(6, 11, 18, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(0, 204, 255, 0.1);
+    }
+
+    /* Glass terminal header */
+    .ws-terminal-header {
+      background: rgba(0, 0, 0, 0.2);
+    }
+
     #terminalMount {
       flex: 1;
       overflow: hidden;
-      background: #0d1117;
       padding: 2px 4px;
+      /* background is transparent to let the glass wrap show through */
+      background: transparent;
     }
 
     /* Override Xterm.js defaults for clean look */
@@ -254,13 +269,24 @@
       height: 100%;
     }
 
+    /* Sleek semi-transparent scrollbar */
     .xterm-viewport::-webkit-scrollbar {
-      width: 6px;
+      width: 5px;
+    }
+
+    .xterm-viewport::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 4px;
     }
 
     .xterm-viewport::-webkit-scrollbar-thumb {
-      background: #333;
-      border-radius: 3px;
+      background: rgba(0, 204, 255, 0.22);
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .xterm-viewport::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 204, 255, 0.42);
     }
 
     /* ── Context aware badge in AI (workspace) ───── */
@@ -544,45 +570,59 @@
       reconnectionDelay: 1500,
     });
 
+    const params = new URLSearchParams(location.search);
+    const projectId = params.get('project') || '';
+    const containerId = params.get('container') || '';
+
     socket.on('connect', () => {
       document.getElementById('wsStatusDot').classList.remove('disconnected');
       document.getElementById('wsStatusTxt').textContent = 'Connected';
       toast('Connected to CloudX', 'success');
+      if (containerId) {
+        const label = document.getElementById('termContainerLabel');
+        label.innerHTML = `<i class="fas fa-link" style="margin-right:.3rem"></i>Connected to ${containerId}`;
+        label.style.color = '#00ccff';
+      }
     });
 
     socket.on('disconnect', () => {
       document.getElementById('wsStatusDot').classList.add('disconnected');
       document.getElementById('wsStatusTxt').textContent = 'Disconnected';
+      const label = document.getElementById('termContainerLabel');
+      label.innerHTML = `<i class="fas fa-unlink" style="margin-right:.3rem"></i>Connection Lost`;
+      label.style.color = '#ef4444';
     });
-
-    const params = new URLSearchParams(location.search);
-    const projectId = params.get('project') || '';
-    const containerId = params.get('container') || '';
 
     if (projectId) {
       fetch('/api/projects?limit=100')
         .then(r => r.json())
         .then(d => {
           const p = (d.data || []).find(x => String(x.id) === projectId);
-          if (p) document.getElementById('wsProjectName').textContent = p.name;
-          else document.getElementById('wsProjectName').textContent = 'Project ' + projectId;
+          document.getElementById('wsProjectName').textContent =
+            p ? p.name : 'Project ' + projectId;
         })
-        .catch(() => { document.getElementById('wsProjectName').textContent = 'Project ' + projectId; });
+        .catch(() => {
+          document.getElementById('wsProjectName').textContent = 'Project ' + projectId;
+        });
     } else {
       document.getElementById('wsProjectName').textContent = 'Untitled Workspace';
     }
 
+    /* ── Terminal init ───────────────────────────────────── */
     document.addEventListener('DOMContentLoaded', () => {
       const mountEl = document.getElementById('terminalMount');
       CloudXTerminal.init({ containerId: containerId || null, mountEl, socket });
 
       if (containerId) {
-        document.getElementById('termContainerLabel').textContent = containerId;
+        const label = document.getElementById('termContainerLabel');
+        label.innerHTML = `<i class="fas fa-link" style="margin-right:.3rem"></i>Connected to ${containerId}`;
+        label.style.color = '#00ccff';
       }
 
       document.getElementById('termClearBtnInner').addEventListener('click', CloudXTerminal.clear);
     });
 
+    /* ── AI panel toggle ─────────────────────────────────── */
     function toggleWsAI() {
       const panel = document.getElementById('wsAiPanel');
       const btn = document.getElementById('aiToggleBtn');
@@ -596,20 +636,201 @@
       badge.style.display = on ? 'inline-flex' : 'none';
     }
 
+    /* ══════════════════════════════════════════════════════
+       FILE EXPLORER HELPERS
+    ══════════════════════════════════════════════════════ */
+
+    /** Map a filename to a Monaco language string */
+    function getLanguageFromFilename(filename) {
+      if (!filename) return 'plaintext';
+      const ext = filename.includes('.') ? filename.split('.').pop().toLowerCase() : '';
+      const map = {
+        py: 'python',
+        js: 'javascript',
+        ts: 'typescript',
+        jsx: 'javascript',
+        tsx: 'typescript',
+        html: 'html',
+        htm: 'html',
+        css: 'css',
+        scss: 'scss',
+        json: 'json',
+        yml: 'yaml',
+        yaml: 'yaml',
+        md: 'markdown',
+        sh: 'shell',
+        bash: 'shell',
+        txt: 'plaintext',
+        env: 'shell',
+        sql: 'sql',
+        xml: 'xml',
+        rs: 'rust',
+        go: 'go',
+        rb: 'ruby',
+        java: 'java',
+        cpp: 'cpp',
+        c: 'c',
+      };
+      if (filename === 'Dockerfile') return 'dockerfile';
+      if (filename === '.env') return 'shell';
+      if (filename === '.gitignore') return 'shell';
+      return map[ext] || 'plaintext';
+    }
+
+    /** Return realistic boilerplate content for known project files */
+    function getDummyContent(filename) {
+      const snippets = {
+        'app.py': `from flask import Flask, jsonify, request
+from models import db, User
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cloudx.db'
+db.init_app(app)
+
+
+@app.route('/api/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'ok', 'version': '1.0.0'})
+
+
+@app.route('/api/users', methods=['GET'])
+def list_users():
+    users = User.query.all()
+    return jsonify([u.to_dict() for u in users])
+
+
+@app.route('/api/users', methods=['POST'])
+def create_user():
+    data = request.get_json()
+    user = User(name=data['name'], email=data['email'])
+    db.session.add(user)
+    db.session.commit()
+    return jsonify(user.to_dict()), 201
+
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(host='0.0.0.0', port=5000, debug=True)
+`,
+
+        'models.py': `from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+
+db = SQLAlchemy()
+
+
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    name       = db.Column(db.String(120), nullable=False)
+    email      = db.Column(db.String(255), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id':         self.id,
+            'name':       self.name,
+            'email':      self.email,
+            'created_at': self.created_at.isoformat(),
+        }
+
+    def __repr__(self):
+        return f'<User {self.email}>'
+`,
+
+        'requirements.txt': `flask==3.0.3
+flask-sqlalchemy==3.1.1
+python-dotenv==1.0.1
+gunicorn==22.0.0
+requests==2.31.0
+`,
+
+        'Dockerfile': `FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 5000
+
+ENV FLASK_ENV=production
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "app:app"]
+`,
+
+        'docker-compose.yml': `version: '3.9'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: \${DB_USER}
+      POSTGRES_PASSWORD: \${DB_PASSWORD}
+      POSTGRES_DB: \${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+`,
+
+        '.env': `# Application
+FLASK_ENV=development
+SECRET_KEY=change-me-before-production
+
+# Database
+DB_USER=cloudx
+DB_PASSWORD=supersecret
+DB_NAME=cloudx_db
+DB_HOST=db
+DB_PORT=5432
+
+# API
+API_BASE_URL=http://localhost:5000
+`,
+      };
+
+      return snippets[filename]
+        || `# ${filename}\n# Select a running container to load the live contents of this file.\n`;
+    }
+
+    /* ── File selection ──────────────────────────────────── */
     function selectFile(el, filename) {
       document.querySelectorAll('.ws-file-item').forEach(i => i.classList.remove('active'));
       el.classList.add('active');
 
+      /* Tab management */
       const tabs = document.getElementById('wsTabs');
-      const existing = [...tabs.querySelectorAll('.ws-tab')].find(t => t.dataset.file === filename);
+      const existing = [...tabs.querySelectorAll('.ws-tab')]
+        .find(t => t.dataset.file === filename);
+
       if (!existing) {
         const icon = getFileIcon(filename);
         const tab = document.createElement('div');
         tab.className = 'ws-tab active';
         tab.dataset.file = filename;
-        tab.innerHTML = `<i class="fas ${icon.cls}" style="color:${icon.color};font-size:.7rem"></i>
-      ${filename}
-      <span class="ws-tab-close" onclick="closeTab(event,this.parentElement)"><i class="fas fa-times"></i></span>`;
+        tab.innerHTML = `
+        <i class="fas ${icon.cls}" style="color:${icon.color};font-size:.7rem"></i>
+        ${filename}
+        <span class="ws-tab-close" onclick="closeTab(event,this.parentElement)">
+          <i class="fas fa-times"></i>
+        </span>`;
         tab.addEventListener('click', () => activateTab(tab));
         tabs.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
         tabs.appendChild(tab);
@@ -617,27 +838,263 @@
         activateTab(existing);
       }
 
-      const ph = document.getElementById('editorPlaceholder');
-      ph.innerHTML = `<i class="fas fa-file-code" style="font-size:3rem;opacity:.2"></i>
-    <p style="color:var(--cx-t2)">${filename}</p>
-    <p style="font-size:.78rem;color:var(--cx-t3)">Monaco editor — attach a running container to edit live files</p>`;
+      const content = getDummyContent(filename);
+      const language = getLanguageFromFilename(filename);
 
-      window.__ideContext = `// File: ${filename}\n// (Mount a container workspace to load actual content)`;
+      /* If Monaco is live, update it in-place */
+      if (window._monacoEditor && window.monaco) {
+        const model = window._monacoEditor.getModel();
+        monaco.editor.setModelLanguage(model, language);
+        window._monacoEditor.setValue(content);
+        window._monacoEditor.setScrollPosition({ scrollTop: 0 });
+        document.getElementById('editorPlaceholder').style.display = 'none';
+        document.getElementById('monacoEditor').style.display = 'block';
+      } else {
+        /* Monaco not loaded yet — update placeholder and stash content for when it loads */
+        const ph = document.getElementById('editorPlaceholder');
+        ph.innerHTML = `
+        <i class="fas fa-file-code" style="font-size:3rem;opacity:.2"></i>
+        <p style="color:var(--cx-t2)">${filename}</p>
+        <p style="font-size:.78rem;color:var(--cx-t3)">Click "Load Editor" to open Monaco</p>
+        <button class="cx-btn cx-btn-ghost" onclick="loadMonaco()" style="margin-top:.5rem">
+          <i class="fas fa-plug"></i> Load Editor
+        </button>`;
+      }
+
+      /* Always keep IDE context fresh */
+      window.__ideContext = `// File: ${filename}\n\n${content}`;
+      window.__pendingFile = { filename, content, language };
     }
 
+    /* ── Monaco loader ───────────────────────────────────── */
+    function loadMonaco() {
+      if (window._monacoLoaded) return;
+      window._monacoLoaded = true;
+
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js';
+      s.onload = () => {
+        window.require.config({
+          paths: { vs: 'https://unpkg.com/monaco-editor@0.45.0/min/vs' },
+        });
+
+        window.require(['vs/editor/editor.main'], () => {
+
+          /* ── Define CloudX Dark Theme ───────────────────── */
+          monaco.editor.defineTheme('cloudx-dark', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [
+              /* Core tokens */
+              { token: '', foreground: 'dbeaff' },
+              { token: 'comment', foreground: '3d5475', fontStyle: 'italic' },
+              { token: 'string', foreground: '56e0a0' },
+              { token: 'number', foreground: 'ffb347' },
+              { token: 'keyword', foreground: '00ccff', fontStyle: 'bold' },
+              { token: 'keyword.control', foreground: '00ccff', fontStyle: 'bold' },
+              { token: 'storage.type', foreground: '00ccff', fontStyle: 'bold' },
+
+              /* Functions & methods */
+              { token: 'entity.name.function', foreground: '8b5cf6' },
+              { token: 'support.function', foreground: '8b5cf6' },
+              { token: 'meta.function', foreground: '8b5cf6' },
+
+              /* Classes & types */
+              { token: 'entity.name.class', foreground: 'f59e0b' },
+              { token: 'entity.name.type', foreground: 'f59e0b' },
+              { token: 'support.class', foreground: 'f59e0b' },
+
+              /* Variables & params */
+              { token: 'variable', foreground: 'dbeaff' },
+              { token: 'variable.parameter', foreground: 'a5c8ff' },
+
+              /* Operators & punctuation */
+              { token: 'operator', foreground: '00ccff' },
+              { token: 'delimiter', foreground: '607a99' },
+              { token: 'punctuation', foreground: '607a99' },
+
+              /* Markup / HTML / XML */
+              { token: 'tag', foreground: '00ccff' },
+              { token: 'attribute.name', foreground: '8b5cf6' },
+              { token: 'attribute.value', foreground: '56e0a0' },
+
+              /* YAML / JSON keys */
+              { token: 'key', foreground: '00ccff' },
+              { token: 'string.key.json', foreground: '00ccff' },
+              { token: 'string.value.json', foreground: '56e0a0' },
+
+              /* Decorators */
+              { token: 'meta.decorator', foreground: 'f59e0b' },
+              { token: 'punctuation.decorator', foreground: 'f59e0b' },
+
+              /* Invalid */
+              { token: 'invalid', foreground: 'ff4455', fontStyle: 'underline' },
+            ],
+            colors: {
+              /* Editor chrome */
+              'editor.background': '#060b12',
+              'editor.foreground': '#dbeaff',
+              'editorLineNumber.foreground': '#2a3d55',
+              'editorLineNumber.activeForeground': '#00ccff',
+              'editor.lineHighlightBackground': '#0d1e30',
+              'editor.lineHighlightBorder': '#0d1e30',
+
+              /* Selection */
+              'editor.selectionBackground': '#1a3a5c',
+              'editor.inactiveSelectionBackground': '#122840',
+              'editor.wordHighlightBackground': '#0d2a40',
+              'editor.wordHighlightStrongBackground': '#0d2a40',
+
+              /* Find / search */
+              'editor.findMatchBackground': '#00ccff33',
+              'editor.findMatchHighlightBackground': '#00ccff1a',
+              'editor.findMatchBorder': '#00ccff88',
+
+              /* Gutter & minimap */
+              'editorGutter.background': '#060b12',
+              'minimap.background': '#060b12',
+              'minimapGutter.addedBackground': '#00ccff',
+              'minimapGutter.modifiedBackground': '#8b5cf6',
+
+              /* Bracket matching */
+              'editorBracketMatch.background': '#00ccff22',
+              'editorBracketMatch.border': '#00ccff88',
+
+              /* Indent guides */
+              'editorIndentGuide.background': '#1a2a3a',
+              'editorIndentGuide.activeBackground': '#00ccff44',
+
+              /* Cursor */
+              'editorCursor.foreground': '#00ccff',
+
+              /* Scrollbar */
+              'scrollbarSlider.background': '#00ccff18',
+              'scrollbarSlider.hoverBackground': '#00ccff33',
+              'scrollbarSlider.activeBackground': '#00ccff55',
+
+              /* Suggest / autocomplete widget */
+              'editorSuggestWidget.background': '#0d1622',
+              'editorSuggestWidget.border': '#1a3040',
+              'editorSuggestWidget.foreground': '#dbeaff',
+              'editorSuggestWidget.selectedBackground': '#0d2a40',
+              'editorSuggestWidget.highlightForeground': '#00ccff',
+
+              /* Hover card */
+              'editorHoverWidget.background': '#0d1622',
+              'editorHoverWidget.border': '#1a3040',
+
+              /* Status bar area within editor */
+              'editorWidget.background': '#0d1622',
+              'editorWidget.border': '#1a3040',
+
+              /* Peek view (Go-to-definition inline) */
+              'peekViewEditor.background': '#060b12',
+              'peekViewResult.background': '#0d1622',
+              'peekView.border': '#00ccff55',
+              'peekViewEditor.matchHighlightBackground': '#00ccff22',
+
+              /* Diff editor */
+              'diffEditor.insertedTextBackground': '#00ccff14',
+              'diffEditor.removedTextBackground': '#ff445522',
+            },
+          });
+
+          /* Hide placeholder, show editor div */
+          document.getElementById('editorPlaceholder').style.display = 'none';
+          const editorEl = document.getElementById('monacoEditor');
+          editorEl.style.display = 'block';
+
+          /* Resolve initial file (from a prior selectFile call, or blank) */
+          const pending = window.__pendingFile || {};
+          const initCode = pending.content || '# Open a file from the explorer to start editing\n';
+          const initLang = pending.language || 'python';
+
+          window._monacoEditor = monaco.editor.create(editorEl, {
+            value: initCode,
+            language: initLang,
+            theme: 'cloudx-dark',
+            fontSize: 13,
+            fontFamily: '"JetBrains Mono","DM Mono",monospace',
+            fontLigatures: true,
+            lineHeight: 22,
+            letterSpacing: 0.3,
+            minimap: { enabled: true, scale: 1 },
+            scrollBeyondLastLine: false,
+            lineNumbers: 'on',
+            glyphMargin: true,
+            folding: true,
+            renderLineHighlight: 'gutter',
+            cursorBlinking: 'phase',
+            cursorSmoothCaretAnimation: 'on',
+            smoothScrolling: true,
+            automaticLayout: true,
+            tabSize: 4,
+            insertSpaces: true,
+            wordWrap: 'off',
+            bracketPairColorization: { enabled: true },
+            renderWhitespace: 'selection',
+            guides: {
+              bracketPairs: true,
+              indentation: true,
+            },
+            suggest: {
+              showKeywords: true,
+              showSnippets: true,
+            },
+          });
+
+          window._monacoEditor.onDidChangeModelContent(() => {
+            window.__ideContext = window._monacoEditor.getValue();
+          });
+        });
+      };
+
+      document.head.appendChild(s);
+    }
+
+    /* ── File icon helper ────────────────────────────────── */
     function getFileIcon(name) {
-      if (name.endsWith('.py')) return { cls: 'fa-file-code', color: '#3572A5' };
-      if (name.endsWith('.js')) return { cls: 'fa-file-code', color: '#f1e05a' };
-      if (name.endsWith('.html')) return { cls: 'fa-file-code', color: '#e34c26' };
-      if (name.endsWith('.yml') || name.endsWith('.yaml')) return { cls: 'fa-file-code', color: var_cx_orange() };
-      if (name.startsWith('Docker')) return { cls: 'fa-file-alt', color: '#2496ed' };
-      return { cls: 'fa-file-alt', color: '#7b9db8' };
+      if (!name) return { cls: 'fa-file-alt', color: '#7b9db8' };
+      const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+      const icons = {
+        py: { cls: 'fa-file-code', color: '#3572A5' },
+        js: { cls: 'fa-file-code', color: '#f1e05a' },
+        ts: { cls: 'fa-file-code', color: '#3178c6' },
+        jsx: { cls: 'fa-file-code', color: '#61dafb' },
+        tsx: { cls: 'fa-file-code', color: '#61dafb' },
+        html: { cls: 'fa-file-code', color: '#e34c26' },
+        css: { cls: 'fa-file-code', color: '#563d7c' },
+        scss: { cls: 'fa-file-code', color: '#c6538c' },
+        json: { cls: 'fa-file-code', color: '#cbcb41' },
+        yml: { cls: 'fa-file-code', color: '#ff7c42' },
+        yaml: { cls: 'fa-file-code', color: '#ff7c42' },
+        md: { cls: 'fa-file-alt', color: '#7b9db8' },
+        sh: { cls: 'fa-terminal', color: '#4eaa25' },
+        env: { cls: 'fa-lock', color: '#00e87a' },
+        txt: { cls: 'fa-file-alt', color: '#7b9db8' },
+        sql: { cls: 'fa-database', color: '#e38c00' },
+      };
+      if (name === 'Dockerfile') return { cls: 'fa-file-alt', color: '#2496ed' };
+      if (name === '.env') return { cls: 'fa-lock', color: '#00e87a' };
+      if (name === '.gitignore') return { cls: 'fa-file-alt', color: '#7b9db8' };
+      if (name.startsWith('docker')) return { cls: 'fa-file-code', color: '#2496ed' };
+      return icons[ext] || { cls: 'fa-file-alt', color: '#7b9db8' };
     }
-    function var_cx_orange() { return '#ff7c42'; }
 
+    /* ── Tab helpers ─────────────────────────────────────── */
     function activateTab(tab) {
       document.querySelectorAll('.ws-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
+      /* If a file is already known for this tab, re-sync the editor */
+      const filename = tab.dataset.file;
+      if (filename && window._monacoEditor && window.monaco) {
+        const lang = getLanguageFromFilename(filename);
+        const content = getDummyContent(filename);
+        monaco.editor.setModelLanguage(window._monacoEditor.getModel(), lang);
+        window._monacoEditor.setValue(content);
+        window._monacoEditor.setScrollPosition({ scrollTop: 0 });
+        window.__ideContext = `// File: ${filename}\n\n${content}`;
+      }
     }
 
     function closeTab(e, tab) {
@@ -646,43 +1103,11 @@
       tab.remove();
       if (wasActive) {
         const remaining = document.querySelectorAll('.ws-tab');
-        if (remaining.length) remaining[remaining.length - 1].classList.add('active');
+        if (remaining.length) activateTab(remaining[remaining.length - 1]);
       }
     }
 
-    function loadMonaco() {
-      if (window._monacoLoaded) return;
-      window._monacoLoaded = true;
-
-      const s = document.createElement('script');
-      s.src = 'https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js';
-      s.onload = () => {
-        window.require.config({ paths: { vs: 'https://unpkg.com/monaco-editor@0.45.0/min/vs' } });
-        window.require(['vs/editor/editor.main'], () => {
-          document.getElementById('editorPlaceholder').style.display = 'none';
-          const editorEl = document.getElementById('monacoEditor');
-          editorEl.style.display = 'block';
-          window._monacoEditor = monaco.editor.create(editorEl, {
-            value: '# Open a file from the explorer to start editing\n',
-            language: 'python',
-            theme: 'vs-dark',
-            fontSize: 13,
-            fontFamily: '"JetBrains Mono","DM Mono",monospace',
-            fontLigatures: true,
-            minimap: { enabled: true },
-            scrollBeyondLastLine: false,
-            lineNumbers: 'on',
-            glyphMargin: true,
-            automaticLayout: true,
-          });
-          window._monacoEditor.onDidChangeModelContent(() => {
-            window.__ideContext = window._monacoEditor.getValue();
-          });
-        });
-      };
-      document.head.appendChild(s);
-    }
-
+    /* ── Terminal resize / max ───────────────────────────── */
     let _termMaximised = false;
     function toggleTermMax() {
       const wrap = document.getElementById('wsTerminalWrap');
@@ -691,6 +1116,10 @@
       setTimeout(CloudXTerminal.fit, 100);
     }
 
+    document.getElementById('termClearBtn')?.addEventListener('click', CloudXTerminal.clear);
+    document.getElementById('termFitBtn')?.addEventListener('click', CloudXTerminal.fit);
+
+    /* ── Panel resize handles ────────────────────────────── */
     function initResize(handleId, targetId, axis) {
       const handle = document.getElementById(handleId);
       const target = document.getElementById(targetId);
@@ -711,9 +1140,9 @@
             axis === 'x' ? 140 : 80,
             Math.min(axis === 'x' ? 520 : 600, startSize + delta)
           );
-          if (axis === 'x') target.style.width = newSize + 'px';
-          else target.style.height = newSize + 'px';
+          target.style[axis === 'x' ? 'width' : 'height'] = newSize + 'px';
           CloudXTerminal.fit();
+          if (window._monacoEditor) window._monacoEditor.layout();
         };
 
         const onUp = () => {
@@ -735,6 +1164,7 @@
       initResize('resizeTerminal', 'wsTerminalWrap', 'y');
     });
 
+    /* ── AI assistant ────────────────────────────────────── */
     async function wsAISend() {
       const queryEl = document.getElementById('wsAiQuery');
       const sendBtn = document.getElementById('wsAiSendBtn');
@@ -748,12 +1178,12 @@
       sendBtn.disabled = true;
 
       const typingId = 'ws-typing-' + Date.now();
-      messages.insertAdjacentHTML('beforeend',
-        `<div class="ai-msg assistant" id="${typingId}">
-       <div class="ai-typing"><div class="ai-typing-dots">
-         <span></span><span></span><span></span>
-       </div></div>
-     </div>`);
+      messages.insertAdjacentHTML('beforeend', `
+      <div class="ai-msg assistant" id="${typingId}">
+        <div class="ai-typing"><div class="ai-typing-dots">
+          <span></span><span></span><span></span>
+        </div></div>
+      </div>`);
       messages.scrollTop = messages.scrollHeight;
 
       const codeContext = useCtx ? (window.__ideContext || '') : '';
@@ -762,11 +1192,15 @@
         const resp = await fetch('/api/ai/assist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_query: query, code_context: codeContext })
+          body: JSON.stringify({ user_query: query, code_context: codeContext }),
         });
         const data = await resp.json();
         document.getElementById(typingId)?.remove();
-        wsAppendMsg('assistant', data.success ? data.suggestion : ('⚠️ ' + (data.error || 'Error')), true);
+        wsAppendMsg(
+          'assistant',
+          data.success ? data.suggestion : ('⚠️ ' + (data.error || 'Error')),
+          true
+        );
       } catch (e) {
         document.getElementById(typingId)?.remove();
         wsAppendMsg('assistant', '⚠️ **Network error:** ' + e.message, true);
@@ -795,6 +1229,7 @@
       });
     });
 
+    /* ── Toast ───────────────────────────────────────────── */
     function toast(msg, type = 'info') {
       const c = document.getElementById('wsToasts');
       const el = document.createElement('div');

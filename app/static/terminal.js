@@ -1,31 +1,31 @@
 (function (window) {
   'use strict';
 
-  const MONOKAI = {
-    background: '#060b12',   
-    foreground: '#f8f8f2',   
-    cursor: '#f92672',   
+  const CLOUDX_THEME = {
+    background: 'transparent',
+    foreground: '#dbeaff',
+    cursor: '#00ccff',
     cursorAccent: '#060b12',
-    selectionBackground: 'rgba(73,72,62,0.6)',
-    selectionForeground: '#f8f8f2',
+    selectionBackground: 'rgba(0, 204, 255, 0.18)',
+    selectionForeground: '#dbeaff',
 
-    black: '#1a1a2e',
-    red: '#f92672',
-    green: '#a6e22e',
-    yellow: '#f4bf75',
-    blue: '#66d9ef',
-    magenta: '#ae81ff',
-    cyan: '#00ccff',   
-    white: '#f8f8f2',
+    black: '#0d1117',
+    red: '#ef4444',
+    green: '#00e87a',
+    yellow: '#f59e0b',
+    blue: '#3b82f6',
+    magenta: '#8b5cf6',
+    cyan: '#00ccff',
+    white: '#dbeaff',
 
-    brightBlack: '#75715e',
-    brightRed: '#ff6188',
-    brightGreen: '#a9dc76',
-    brightYellow: '#ffd866',
-    brightBlue: '#78dce8',
-    brightMagenta: '#ab9df2',
-    brightCyan: '#00e87a',   
-    brightWhite: '#ffffff',
+    brightBlack: '#4b5563',
+    brightRed: '#f87171',
+    brightGreen: '#34d399',
+    brightYellow: '#fbbf24',
+    brightBlue: '#60a5fa',
+    brightMagenta: '#a78bfa',
+    brightCyan: '#67e8f9',
+    brightWhite: '#f0f9ff',
   };
 
   let _term = null;
@@ -34,7 +34,7 @@
   let _containerId = null;
   let _resizeObserver = null;
   let _connected = false;
-  let _outputListener = null; 
+  let _outputListener = null;
 
 
   let _writeBuffer = [];
@@ -107,14 +107,14 @@
       await ensureXterm();
     } catch (e) {
       mountEl.innerHTML =
-        `<div style="padding:1rem;color:#f92672;font-family:'JetBrains Mono',monospace">
+        `<div style="padding:1rem;color:#ef4444;font-family:'JetBrains Mono',monospace">
            ⚠ Failed to load Xterm.js: ${e}
          </div>`;
       return null;
     }
 
     _term = new Terminal({
-      theme: MONOKAI,
+      theme: CLOUDX_THEME,
       fontFamily: '"JetBrains Mono", "DM Mono", "Cascadia Code", "Fira Code", monospace',
       fontSize: 13,
       fontWeight: '400',
@@ -122,7 +122,7 @@
       lineHeight: 1.45,
       letterSpacing: 0.3,
       cursorBlink: true,
-      cursorStyle: 'block',
+      cursorStyle: 'bar',
       scrollback: 8000,
       tabStopWidth: 4,
       allowProposedApi: true,
@@ -189,7 +189,7 @@
     _term.writeln('\x1b[1;36m╚██████╗███████╗╚██████╔╝╚██████╔╝██████╔╝ \x1b[0m');
     _term.writeln('\x1b[1;36m ╚═════╝╚══════╝ ╚═════╝  ╚═════╝ ╚═════╝ \x1b[0m');
     _term.writeln('');
-    _term.writeln('\x1b[2mCloudX Workspace Terminal  ·  Monokai Theme\x1b[0m');
+    _term.writeln('\x1b[2mCloudX Workspace Terminal  ·  Glassmorphism Theme\x1b[0m');
     _term.writeln(`\x1b[2m${new Date().toLocaleString()}\x1b[0m`);
     _term.writeln('');
   }

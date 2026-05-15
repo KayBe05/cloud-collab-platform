@@ -542,7 +542,7 @@ body {
 
 .icon-button:hover {
   background: var(--bg-hover);
-  color: var(--primary);
+  color: var(--text-white);
   border-color: var(--primary);
 }
 

@@ -122,9 +122,12 @@ class ProjectWizard {
     );
 
     const defaultFramework = document.querySelector('[data-framework="nodejs"]');
+
     if (defaultFramework) {
       defaultFramework.classList.add('selected');
     }
+
+    this.projectData.framework = 'nodejs';
 
     this.projectData.envVars = [];
     this.renderEnvVars();
@@ -172,10 +175,8 @@ class ProjectWizard {
   }
 
   canNavigateToStep(targetStep) {
-    // Can navigate backward freely
     if (targetStep <= this.currentStep) return true;
 
-    // Can navigate forward only if all previous steps are valid
     for (let step = 1; step < targetStep; step++) {
       if (!this.validationRules[step]()) return false;
     }
@@ -183,7 +184,6 @@ class ProjectWizard {
   }
 
   updateStepUI() {
-    // Update step sections
     this.stepSections.forEach((section, index) => {
       if (index + 1 === this.currentStep) {
         section.classList.add('active');
@@ -192,7 +192,6 @@ class ProjectWizard {
       }
     });
 
-    // Update step indicators
     this.stepIndicators.forEach((indicator, index) => {
       const stepNum = index + 1;
 
@@ -203,7 +202,6 @@ class ProjectWizard {
         indicator.classList.add('completed');
         indicator.classList.remove('active');
 
-        // Update indicator to show checkmark
         const stepIndicator = indicator.querySelector('.step-indicator');
         if (stepIndicator && !stepIndicator.querySelector('.fa-check')) {
           stepIndicator.innerHTML = '<i class="fas fa-check"></i>';
@@ -211,7 +209,6 @@ class ProjectWizard {
       } else {
         indicator.classList.remove('active', 'completed');
 
-        // Reset indicator to show number
         const stepIndicator = indicator.querySelector('.step-indicator');
         if (stepIndicator) {
           stepIndicator.textContent = stepNum;
@@ -219,7 +216,6 @@ class ProjectWizard {
       }
     });
 
-    // Update review section if on step 4
     if (this.currentStep === 4) {
       this.updateReviewSection();
     }
@@ -245,14 +241,12 @@ class ProjectWizard {
 
     if (!btnBack || !btnNext || !btnSubmit) return;
 
-    // Back button
     if (this.currentStep === 1) {
       btnBack.style.display = 'none';
     } else {
       btnBack.style.display = 'inline-flex';
     }
 
-    // Next/Submit buttons
     if (this.currentStep === this.totalSteps) {
       btnNext.style.display = 'none';
       btnSubmit.style.display = 'inline-flex';
@@ -286,24 +280,21 @@ class ProjectWizard {
   }
 
   selectGitProvider(card) {
-    // Remove selection from all cards
     document.querySelectorAll('.git-provider-card').forEach(c =>
       c.classList.remove('selected')
     );
 
-    // Select clicked card
     card.classList.add('selected');
     this.projectData.gitProvider = card.dataset.provider;
   }
 
   selectFramework(card) {
-    // Remove selection from all cards
-    document.querySelectorAll('.framework-card').forEach(c =>
-      c.classList.remove('selected')
-    );
+    document.querySelectorAll('.framework-card').forEach(c => {
+      c.classList.remove('selected');
+    });
 
-    // Select clicked card
     card.classList.add('selected');
+
     this.projectData.framework = card.dataset.framework;
   }
 
@@ -331,7 +322,6 @@ class ProjectWizard {
 
     if (!container) return;
 
-    // Clear container
     container.innerHTML = '';
 
     if (this.projectData.envVars.length === 0) {
@@ -341,7 +331,6 @@ class ProjectWizard {
 
     if (emptyState) emptyState.style.display = 'none';
 
-    // Render each environment variable
     this.projectData.envVars.forEach(envVar => {
       const row = document.createElement('div');
       row.className = 'env-var-row';
@@ -373,7 +362,6 @@ class ProjectWizard {
         </button>
       `;
 
-      // Add event listeners
       row.querySelectorAll('.env-var-input').forEach(input => {
         input.addEventListener('input', (e) => {
           this.updateEnvVar(
@@ -393,7 +381,6 @@ class ProjectWizard {
   }
 
   updateReviewSection() {
-    // Update project details
     document.getElementById('reviewProjectName').textContent =
       this.projectData.name || 'Not specified';
     document.getElementById('reviewRepoUrl').textContent =
@@ -401,20 +388,17 @@ class ProjectWizard {
     document.getElementById('reviewDescription').textContent =
       this.projectData.description || 'No description provided';
 
-    // Update git provider
     const gitProviderName = this.projectData.gitProvider
       ? this.projectData.gitProvider.charAt(0).toUpperCase() + this.projectData.gitProvider.slice(1)
       : 'Not selected';
     document.getElementById('reviewGitProvider').textContent = gitProviderName;
 
-    // Update framework
     const frameworkCard = document.querySelector(`.framework-card[data-framework="${this.projectData.framework}"]`);
     const frameworkName = frameworkCard
       ? frameworkCard.querySelector('h4').textContent
       : 'Not selected';
     document.getElementById('reviewFramework').textContent = frameworkName;
 
-    // Update environment variables
     const envContainer = document.getElementById('reviewEnvVars');
     if (!envContainer) return;
 
@@ -436,13 +420,11 @@ class ProjectWizard {
 
     if (!btnSubmit || !loadingOverlay) return;
 
-    // Show loading state
     btnSubmit.disabled = true;
     btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Project...';
     loadingOverlay.classList.add('active');
 
     try {
-      // Prepare payload
       const payload = {
         name: this.projectData.name,
         repository_url: this.projectData.repositoryUrl,
@@ -450,7 +432,6 @@ class ProjectWizard {
         tags: this.projectData.framework
       };
 
-      // Add environment variables to description if present
       if (this.projectData.envVars.length > 0) {
         const envVarsText = this.projectData.envVars
           .map(v => `${v.key}=${v.value}`)
@@ -458,7 +439,6 @@ class ProjectWizard {
         payload.description += `\n\nEnvironment Variables: ${envVarsText}`;
       }
 
-      // Make API request
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -468,10 +448,8 @@ class ProjectWizard {
       const data = await response.json();
 
       if (data.success) {
-        // Success!
         showToast('Project created successfully! Redirecting...', 'success');
 
-        // Close modal and reload page after short delay
         setTimeout(() => {
           this.closeModal();
           window.location.reload();
@@ -483,7 +461,6 @@ class ProjectWizard {
       console.error('Error creating project:', error);
       showToast('Failed to create project: ' + error.message, 'error');
 
-      // Reset button state
       btnSubmit.disabled = false;
       btnSubmit.innerHTML = '<i class="fas fa-rocket"></i> Create Project';
       loadingOverlay.classList.remove('active');
@@ -497,9 +474,6 @@ class ProjectWizard {
   }
 }
 
-/**
- * Deployment History Manager
- */
 class DeploymentHistory {
   constructor() {
     this.modal = null;
@@ -518,14 +492,11 @@ class DeploymentHistory {
   setupEventListeners() {
     this.modal = document.getElementById('deploymentModal');
 
-    // Close modal
     document.getElementById('closeDeployment')?.addEventListener('click', () => this.closeModal());
     document.querySelector('.deployment-overlay')?.addEventListener('click', () => this.closeModal());
 
-    // Redeploy button
     document.getElementById('btnRedeploy')?.addEventListener('click', () => this.triggerRedeploy());
 
-    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (!this.modal || !this.modal.classList.contains('show')) return;
       if (e.key === 'Escape') {
@@ -542,11 +513,9 @@ class DeploymentHistory {
 
     this.currentProjectId = projectId;
 
-    // Show modal
     this.modal.style.display = 'flex';
     setTimeout(() => this.modal.classList.add('show'), 10);
 
-    // Load deployment history
     await this.loadDeployments();
   }
 
@@ -563,7 +532,6 @@ class DeploymentHistory {
     const timelineContainer = document.getElementById('deploymentTimeline');
     if (!timelineContainer) return;
 
-    // Show loading state
     timelineContainer.innerHTML = `
       <div class="timeline-empty">
         <i class="fas fa-spinner fa-spin"></i>
@@ -605,35 +573,35 @@ class DeploymentHistory {
       const statusClass = deployment.status.toLowerCase();
 
       return `
-        <div class="timeline-item">
-          <div class="timeline-dot ${statusClass}"></div>
-          <div class="timeline-time">${timestamp}</div>
-          <div class="timeline-content">
-            <div class="timeline-header">
-              <div class="timeline-version">${deployment.version || 'Unknown'}</div>
-              <span class="timeline-status ${statusClass}">${deployment.status}</span>
-            </div>
-            <div class="timeline-details">
-              <div class="timeline-detail">
-                <div class="timeline-detail-label">Commit</div>
-                <div class="timeline-detail-value">${deployment.commit_hash || 'N/A'}</div>
-              </div>
-              <div class="timeline-detail">
-                <div class="timeline-detail-label">Environment</div>
-                <div class="timeline-detail-value">${deployment.environment || 'production'}</div>
-              </div>
-              <div class="timeline-detail">
-                <div class="timeline-detail-label">Deployed By</div>
-                <div class="timeline-detail-value">${deployment.deployed_by || 'System'}</div>
-              </div>
-              <div class="timeline-detail">
-                <div class="timeline-detail-label">Duration</div>
-                <div class="timeline-detail-value">${this.formatDuration(deployment.duration_ms)}</div>
-              </div>
-            </div>
+    <div class="timeline-item">
+      <div class="timeline-dot ${statusClass}"></div>
+      <div class="timeline-time">${timestamp}</div>
+      <div class="timeline-content">
+        <div class="timeline-header">
+          <div class="timeline-version">${deployment.version || 'v-unknown'}</div>
+          <span class="timeline-status ${statusClass}">${deployment.status}</span>
+        </div>
+        <div class="timeline-details">
+          <div class="timeline-detail">
+            <div class="timeline-detail-label">Commit</div>
+            <div class="timeline-detail-value">${(deployment.commit_hash || 'N/A').substring(0, 8)}</div>
+          </div>
+          <div class="timeline-detail">
+            <div class="timeline-detail-label">Environment</div>
+            <div class="timeline-detail-value">${deployment.environment || 'production'}</div>
+          </div>
+          <div class="timeline-detail">
+            <div class="timeline-detail-label">By</div>
+            <div class="timeline-detail-value">${deployment.deployed_by || 'system'}</div>
+          </div>
+          <div class="timeline-detail">
+            <div class="timeline-detail-label">Duration</div>
+            <div class="timeline-detail-value">${this.formatDuration(deployment.duration_ms)}</div>
           </div>
         </div>
-      `;
+      </div>
+    </div>
+    `;
     }).join('');
 
     timelineContainer.innerHTML = `<div class="timeline">${timelineHTML}</div>`;
@@ -643,16 +611,13 @@ class DeploymentHistory {
     const btnRedeploy = document.getElementById('btnRedeploy');
     if (!btnRedeploy) return;
 
-    // Disable button and show loading state
     const originalText = btnRedeploy.innerHTML;
     btnRedeploy.disabled = true;
     btnRedeploy.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Building...';
 
     try {
-      // Simulate 2-second build delay
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Trigger redeploy API
       const response = await fetch('/api/deployments/redeploy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -666,10 +631,8 @@ class DeploymentHistory {
       if (data.success) {
         showToast('Deployment completed successfully!', 'success');
 
-        // Reload deployment history
         await this.loadDeployments();
 
-        // Reset button
         btnRedeploy.disabled = false;
         btnRedeploy.innerHTML = originalText;
       } else {
@@ -714,7 +677,6 @@ class DeploymentHistory {
 }
 
 function deleteProject(projectId, projectName) {
-  // Use our new custom glassmorphism modal
   showConfirm(
     "Delete Project",
     `Are you sure you want to delete "${projectName}"? This will permanently delete the project and all its deployments. This action cannot be undone.`,
@@ -771,7 +733,6 @@ function deleteProject(projectId, projectName) {
   );
 }
 
-// Launch environment function
 async function launchEnvironment(projectId, btnElement) {
   const originalText = btnElement.innerHTML;
   btnElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Provisioning...';
@@ -808,7 +769,6 @@ async function launchEnvironment(projectId, btnElement) {
   }
 }
 
-// Copy password
 function copyPassword(btn) {
   const password = btn.parentElement.querySelector('.password-field').textContent;
   navigator.clipboard.writeText(password).then(() => {
@@ -825,7 +785,6 @@ function copyPassword(btn) {
   });
 }
 
-// Copy SSH command
 function copySSH(btn) {
   const command = btn.nextElementSibling.value;
   navigator.clipboard.writeText(command).then(() => {
@@ -838,11 +797,9 @@ function copySSH(btn) {
   });
 }
 
-// Initialize both managers
 const projectWizard = new ProjectWizard();
 const deploymentHistory = new DeploymentHistory();
 
-// Global functions to open modals (called from HTML)
 function openProjectWizard() {
   projectWizard.openModal();
 }
@@ -851,7 +808,6 @@ function openDeploymentHistory(projectId) {
   deploymentHistory.openModal(projectId);
 }
 
-// Export for use in other scripts if needed
 if (typeof window !== 'undefined') {
   window.projectWizard = projectWizard;
   window.deploymentHistory = deploymentHistory;

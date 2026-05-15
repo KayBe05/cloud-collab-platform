@@ -25,7 +25,7 @@
   </button>
 </div>
 
-<div class="projects-grid">
+<div class="projects-grid" id="projectsGrid">
   {% for project in projects %}
   <div class="project-card" data-project-id="{{ project.id }}">
     <div class="card-header">
@@ -36,8 +36,8 @@
         </h3>
         <div class="card-meta">
           <div class="card-badges">
-            <span class="status-badge">
-              <i class="fas fa-circle"></i>
+            <span class="status-badge" data-status="{{ project.status | lower }}">
+              <span class="dot"></span>
               {{ project.status }}
             </span>
             {% if project.tags %}
@@ -286,83 +286,169 @@
 
         <div class="wizard-body">
           <div class="framework-grid">
+
             <div class="framework-card selected" data-framework="nodejs">
-              <div class="framework-icon">
-                <i class="fab fa-node-js"></i>
-              </div>
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fab fa-node-js"></i></div>
               <div class="framework-info">
                 <h4>Node.js</h4>
-                <p>JavaScript runtime for scalable apps</p>
+                <p>JavaScript runtime</p>
               </div>
-              <span class="framework-badge">
-                <i class="fas fa-check"></i> Selected
-              </span>
             </div>
 
             <div class="framework-card" data-framework="react">
-              <div class="framework-icon">
-                <i class="fab fa-react"></i>
-              </div>
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fab fa-react"></i></div>
               <div class="framework-info">
                 <h4>React</h4>
                 <p>Modern UI library</p>
               </div>
-              <span class="framework-badge">
-                <i class="fas fa-check"></i> Selected
-              </span>
-            </div>
-
-            <div class="framework-card" data-framework="python">
-              <div class="framework-icon">
-                <i class="fab fa-python"></i>
-              </div>
-              <div class="framework-info">
-                <h4>Python</h4>
-                <p>Versatile backend language</p>
-              </div>
-              <span class="framework-badge">
-                <i class="fas fa-check"></i> Selected
-              </span>
-            </div>
-
-            <div class="framework-card" data-framework="docker">
-              <div class="framework-icon">
-                <i class="fab fa-docker"></i>
-              </div>
-              <div class="framework-info">
-                <h4>Docker</h4>
-                <p>Containerized deployment</p>
-              </div>
-              <span class="framework-badge">
-                <i class="fas fa-check"></i> Selected
-              </span>
             </div>
 
             <div class="framework-card" data-framework="nextjs">
-              <div class="framework-icon">
-                <i class="fas fa-layer-group"></i>
-              </div>
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-layer-group"></i></div>
               <div class="framework-info">
                 <h4>Next.js</h4>
-                <p>React framework for production</p>
+                <p>React for production</p>
               </div>
-              <span class="framework-badge">
-                <i class="fas fa-check"></i> Selected
-              </span>
             </div>
 
             <div class="framework-card" data-framework="vue">
-              <div class="framework-icon">
-                <i class="fab fa-vuejs"></i>
-              </div>
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fab fa-vuejs"></i></div>
               <div class="framework-info">
                 <h4>Vue.js</h4>
-                <p>Progressive JavaScript framework</p>
+                <p>Progressive JS framework</p>
               </div>
-              <span class="framework-badge">
-                <i class="fas fa-check"></i> Selected
-              </span>
             </div>
+
+            <div class="framework-card" data-framework="nuxt">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-wind"></i></div>
+              <div class="framework-info">
+                <h4>Nuxt.js</h4>
+                <p>Vue meta-framework</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="svelte">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-fire"></i></div>
+              <div class="framework-info">
+                <h4>SvelteKit</h4>
+                <p>Cybernetically enhanced</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="python">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fab fa-python"></i></div>
+              <div class="framework-info">
+                <h4>Python</h4>
+                <p>Versatile backend</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="django">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-cubes"></i></div>
+              <div class="framework-info">
+                <h4>Django</h4>
+                <p>Batteries-included Python</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="fastapi">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-bolt"></i></div>
+              <div class="framework-info">
+                <h4>FastAPI</h4>
+                <p>High-perf Python APIs</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="flask">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-flask"></i></div>
+              <div class="framework-info">
+                <h4>Flask</h4>
+                <p>Micro web framework</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="docker">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fab fa-docker"></i></div>
+              <div class="framework-info">
+                <h4>Docker</h4>
+                <p>Containerized deploy</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="laravel">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fab fa-php"></i></div>
+              <div class="framework-info">
+                <h4>Laravel</h4>
+                <p>Elegant PHP framework</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="rails">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-gem"></i></div>
+              <div class="framework-info">
+                <h4>Ruby on Rails</h4>
+                <p>Convention over config</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="go">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-server"></i></div>
+              <div class="framework-info">
+                <h4>Go / Gin</h4>
+                <p>Fast compiled backend</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="rust">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-cog"></i></div>
+              <div class="framework-info">
+                <h4>Rust / Axum</h4>
+                <p>Memory-safe services</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="static">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-globe"></i></div>
+              <div class="framework-info">
+                <h4>Static Site</h4>
+                <p>HTML / CSS / JS</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="astro">
+              <span class="framework-badge-selected"><i class="fas fa-rocket"></i> Selected</span>
+              <div class="framework-icon"><i class="fas fa-rocket"></i></div>
+              <div class="framework-info">
+                <h4>Astro</h4>
+                <p>Content-first framework</p>
+              </div>
+            </div>
+
+            <div class="framework-card" data-framework="spring">
+              <span class="framework-badge-selected"><i class="fas fa-check"></i> Selected</span>
+              <div class="framework-icon"><i class="fab fa-java"></i></div>
+              <div class="framework-info">
+                <h4>Spring Boot</h4>
+                <p>Enterprise Java apps</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

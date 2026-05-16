@@ -13,12 +13,17 @@
 <section class="hero-section">
   <div class="hero-content">
     <div class="hero-text">
+      <p class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        Enterprise Cloud Platform
+      </p>
       <h1 class="hero-title">
-        Welcome to <span class="gradient-text">CloudX Platform</span>
+        Welcome to<br><span class="gradient-text">CloudX Platform</span>
       </h1>
       <p class="hero-subtitle">
-        Enterprise-grade cloud development environment with integrated CI/CD pipelines, real-time collaboration, and
-        advanced monitoring capabilities. Build, deploy, and scale your applications with confidence.
+        Enterprise-grade cloud development environment with integrated CI/CD
+        pipelines, real-time collaboration, and advanced monitoring capabilities.
+        Build, deploy, and scale with confidence.
       </p>
       <div class="hero-buttons">
         <a href="/dashboard" class="btn btn-primary">
@@ -29,6 +34,7 @@
         </a>
       </div>
     </div>
+
     <div class="hero-visual">
       <div class="floating-card">
         <i class="fas fa-server"></i>
@@ -50,12 +56,36 @@
   </div>
 </section>
 
+<style>
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ai-cyan);
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-eyebrow-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--ai-cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--ai-cyan);
+    animation: cx-blink 2s ease-in-out infinite;
+  }
+</style>
+
 <!-- Stats Overview -->
 <section class="stats-grid">
-  <div class="stat-card animate-in" style="animation-delay: 0.1s;">
-    <div class="stat-icon blue">
-      <i class="fas fa-project-diagram"></i>
-    </div>
+  <div class="stat-card animate-in" style="animation-delay:0.1s">
+    <div class="stat-icon blue"><i class="fas fa-project-diagram"></i></div>
     <div class="stat-content">
       <h3 class="stat-value">{{ stats.total_projects }}</h3>
       <p class="stat-label">Active Projects</p>
@@ -65,10 +95,8 @@
     </div>
   </div>
 
-  <div class="stat-card animate-in" style="animation-delay: 0.2s;">
-    <div class="stat-icon green">
-      <i class="fas fa-rocket"></i>
-    </div>
+  <div class="stat-card animate-in" style="animation-delay:0.2s">
+    <div class="stat-icon green"><i class="fas fa-rocket"></i></div>
     <div class="stat-content">
       <h3 class="stat-value">{{ stats.active_deployments }}</h3>
       <p class="stat-label">Live Deployments</p>
@@ -78,10 +106,8 @@
     </div>
   </div>
 
-  <div class="stat-card animate-in" style="animation-delay: 0.3s;">
-    <div class="stat-icon purple">
-      <i class="fas fa-history"></i>
-    </div>
+  <div class="stat-card animate-in" style="animation-delay:0.3s">
+    <div class="stat-icon purple"><i class="fas fa-history"></i></div>
     <div class="stat-content">
       <h3 class="stat-value">{{ stats.total_activities }}</h3>
       <p class="stat-label">System Activities</p>
@@ -91,10 +117,8 @@
     </div>
   </div>
 
-  <div class="stat-card animate-in" style="animation-delay: 0.4s;">
-    <div class="stat-icon orange">
-      <i class="fas fa-heart-pulse"></i>
-    </div>
+  <div class="stat-card animate-in" style="animation-delay:0.4s">
+    <div class="stat-icon orange"><i class="fas fa-heart-pulse"></i></div>
     <div class="stat-content">
       <h3 class="stat-value">99.9%</h3>
       <p class="stat-label">Uptime SLA</p>
@@ -110,94 +134,107 @@
   <h2 class="section-title">Platform Features</h2>
 
   <div class="features-grid">
-    <article class="feature-card animate-in" style="animation-delay: 0.1s;">
-      <div class="feature-icon">
-        <i class="fas fa-code"></i>
-      </div>
+
+    <article class="feature-card animate-in" style="animation-delay:0.1s">
+      <div class="feature-icon"><i class="fas fa-code"></i></div>
+      <span class="feature-tag">IDE</span>
       <h3>Browser-based IDE</h3>
-      <p>Full-featured VS Code environment accessible from anywhere. Complete with syntax highlighting, IntelliSense,
-        and thousands of extensions for ultimate productivity.</p>
+      <p>Full-featured VS Code environment accessible from anywhere — syntax
+        highlighting, IntelliSense, and thousands of extensions.</p>
       <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer" class="feature-link">
         Open Editor <i class="fas fa-arrow-right"></i>
       </a>
     </article>
 
-    <article class="feature-card animate-in" style="animation-delay: 0.2s;">
-      <div class="feature-icon">
-        <i class="fas fa-database"></i>
-      </div>
+    <article class="feature-card animate-in" style="animation-delay:0.2s">
+      <div class="feature-icon"><i class="fas fa-database"></i></div>
+      <span class="feature-tag">Database</span>
       <h3>PostgreSQL Database</h3>
-      <p>Enterprise-grade relational database with automatic backups, high availability, advanced query optimization,
-        and full ACID compliance for your data.</p>
+      <p>Enterprise-grade relational database with automatic backups, HA, query
+        optimisation, and full ACID compliance.</p>
       <a href="/dbtest" class="feature-link">
         Test Connection <i class="fas fa-arrow-right"></i>
       </a>
     </article>
 
-    <article class="feature-card animate-in" style="animation-delay: 0.3s;">
-      <div class="feature-icon">
-        <i class="fab fa-docker"></i>
-      </div>
+    <article class="feature-card animate-in" style="animation-delay:0.3s">
+      <div class="feature-icon"><i class="fab fa-docker"></i></div>
+      <span class="feature-tag">Containers</span>
       <h3>Docker Containers</h3>
-      <p>Isolated, reproducible development environments. Consistent deployments across development, staging, and
-        production with containerization technology.</p>
+      <p>Isolated, reproducible environments — consistent deployments from dev
+        to production with battle-tested containerisation.</p>
       <a href="/dashboard" class="feature-link">
         View Containers <i class="fas fa-arrow-right"></i>
       </a>
     </article>
 
-    <article class="feature-card animate-in" style="animation-delay: 0.4s;">
-      <div class="feature-icon">
-        <i class="fas fa-sync-alt"></i>
-      </div>
+    <article class="feature-card animate-in" style="animation-delay:0.4s">
+      <div class="feature-icon"><i class="fas fa-sync-alt"></i></div>
+      <span class="feature-tag">CI/CD</span>
       <h3>CI/CD Pipeline</h3>
-      <p>Automated testing and deployment with GitHub Actions. Push code and watch it deploy automatically with
-        zero-downtime rollouts and instant rollback capabilities.</p>
+      <p>Automated testing and deployment with GitHub Actions. Zero-downtime
+        rollouts and instant rollback capabilities built in.</p>
       <a href="/analytics" class="feature-link">
         View Pipeline <i class="fas fa-arrow-right"></i>
       </a>
     </article>
 
-    <article class="feature-card animate-in" style="animation-delay: 0.5s;">
-      <div class="feature-icon">
-        <i class="fas fa-chart-line"></i>
-      </div>
+    <article class="feature-card animate-in" style="animation-delay:0.5s">
+      <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+      <span class="feature-tag">Analytics</span>
       <h3>Real-time Analytics</h3>
-      <p>Monitor system performance, track deployments, and analyze metrics with beautiful interactive dashboards.
-        Get insights that drive better decisions.</p>
+      <p>Monitor performance, track deployments, and analyse metrics with
+        interactive dashboards that drive better decisions.</p>
       <a href="/analytics" class="feature-link">
         View Analytics <i class="fas fa-arrow-right"></i>
       </a>
     </article>
 
-    <article class="feature-card animate-in" style="animation-delay: 0.6s;">
-      <div class="feature-icon">
-        <i class="fas fa-users"></i>
-      </div>
+    <article class="feature-card animate-in" style="animation-delay:0.6s">
+      <div class="feature-icon"><i class="fas fa-users"></i></div>
+      <span class="feature-tag">Collaboration</span>
       <h3>Team Collaboration</h3>
-      <p>Work together in real-time with shared workspaces, live editing, presence indicators, and integrated
-        communication tools for seamless teamwork.</p>
+      <p>Work together in real-time — shared workspaces, live editing, presence
+        indicators, and integrated communication tools.</p>
       <a href="/projects" class="feature-link">
         Start Collaborating <i class="fas fa-arrow-right"></i>
       </a>
     </article>
+
   </div>
 </section>
+
+<style>
+  .feature-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cx-t1);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1.1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+</style>
 
 <!-- Recent Activity -->
 <section class="activity-section">
   <div class="section-header">
-    <h2 class="section-title">Recent Activity</h2>
+    <h2 class="section-title" style="margin-bottom:0">Recent Activity</h2>
     <a href="/dashboard" class="view-all-link">
       View All <i class="fas fa-arrow-right"></i>
     </a>
   </div>
 
-  <div class="activity-list">
+  <div class="activity-list" style="margin-top:1.25rem">
     {% for activity in stats.recent_activities[:5] %}
     <div class="activity-item">
       <div class="activity-icon">
-        <i class="fas fa-circle"></i>
+        <i class="fas fa-circle" style="font-size:.4rem"></i>
       </div>
       <div class="activity-content">
         <p class="activity-action">{{ activity.action | replace('_', ' ') | title }}</p>

@@ -150,36 +150,31 @@ class FormManager {
 
 
 function copyApiKey() {
-  const apiKey = SETTINGS_CONFIG.API_KEY;
-
-  navigator.clipboard.writeText(apiKey).then(() => {
+  const input = document.getElementById('apiKeyInput');
+  if (!input || input.type === 'password') {
+    showToast('Reveal the API key before copying', 'warning');
+    return;
+  }
+  navigator.clipboard.writeText(input.value).then(() => {
     showToast('API key copied to clipboard', 'success');
   }).catch(() => {
-    const textarea = document.createElement('textarea');
-    textarea.value = apiKey;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    showToast('API key copied to clipboard', 'success');
+    showToast('Could not access clipboard', 'error');
   });
 }
 
 function regenerateApiKey() {
   showConfirm(
     'Regenerate API Key',
-    'This will permanently invalidate your current API key. Any integrations using it will stop working immediately. This action cannot be undone.',
+    'This will permanently invalidate your current API key. Any integrations using it will stop working immediately.',
     () => {
       const newKey = generateRandomApiKey();
-      SETTINGS_CONFIG.API_KEY = newKey;
-
-      const keyElement = document.getElementById('apiKeyValue');
-      if (keyElement) {
-        keyElement.textContent = maskApiKey(newKey);
+      const input = document.getElementById('apiKeyInput');
+      if (input) {
+        input.value = newKey;
+        input.type = 'text'; 
+        const icon = document.querySelector('#apiKeyToggle i');
+        icon?.classList.replace('fa-eye', 'fa-eye-slash');
       }
-
       showToast('New API key generated successfully!', 'success');
     }
   );
@@ -205,17 +200,32 @@ function maskApiKey(key) {
 
 function togglePassword(inputId) {
   const input = document.getElementById(inputId);
-  const button = input.nextElementSibling.querySelector('.input-icon-btn');
-  const icon = button.querySelector('i');
+  if (!input) return;
+  const btn = input.nextElementSibling;
+  const icon = btn?.querySelector('i');
+  if (!icon) return;
 
   if (input.type === 'password') {
     input.type = 'text';
-    icon.classList.remove('fa-eye');
-    icon.classList.add('fa-eye-slash');
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
   } else {
     input.type = 'password';
-    icon.classList.remove('fa-eye-slash');
-    icon.classList.add('fa-eye');
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+
+function toggleApiKey() {
+  const input = document.getElementById('apiKeyInput');
+  const toggle = document.getElementById('apiKeyToggle');
+  if (!input || !toggle) return;
+
+  const icon = toggle.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon?.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    input.type = 'password';
+    icon?.classList.replace('fa-eye-slash', 'fa-eye');
   }
 }
 

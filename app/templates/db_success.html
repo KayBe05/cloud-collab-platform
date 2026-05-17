@@ -9,134 +9,553 @@
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-  <div>
-    <h2>Database Connectivity</h2>
-    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
-      Real-time connection status and storage metrics.
-    </p>
-  </div>
-  <div class="dashboard-actions">
-    <a href="/dashboard" class="btn btn-secondary">
-      <i class="fas fa-arrow-left"></i> Back to Dashboard
-    </a>
-    <button onclick="window.location.reload()" class="btn btn-primary">
-      <i class="fas fa-sync-alt"></i> Re-Test Connection
-    </button>
-  </div>
-</div>
+<div class="dbs-wrap">
+  <div class="dbs-card">
 
-<div class="status-card success animate-in">
-  <div class="status-icon-wrapper">
-    <i class="fas fa-check-circle"></i>
-  </div>
-  <div class="status-content">
-    <h3>Connection Successful</h3>
-    <p>Successfully connected to the PostgreSQL container.</p>
-    <div class="tech-badge">
-      <i class="fas fa-server"></i> {{ db_version }}
+    <!-- Top bar -->
+    <div class="dbs-topbar">
+      <span class="dbs-pill">
+        <span class="dbs-pulse"></span> Connected
+      </span>
+      <a href="/dashboard" class="dbs-back">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
     </div>
-  </div>
-</div>
 
-<h3 class="section-title-small">Current Storage Stats</h3>
-<div class="stats-grid">
-  <div class="stat-card animate-in" style="animation-delay: 0.1s;">
-    <div class="stat-icon blue">
-      <i class="fas fa-folder"></i>
+    <!-- Hero -->
+    <div class="dbs-hero">
+      <div class="dbs-check-ring">
+        <svg viewBox="0 0 48 48" width="26" height="26" fill="none">
+          <path class="ck-path" d="M12 24.5 l8.5 8.5 l15.5 -16" stroke="#00e87a" stroke-width="3.5"
+            stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div class="dbs-hero-text">
+        <h1 class="dbs-title">Database connection successful</h1>
+        <p class="dbs-sub">PostgreSQL container is reachable and responding normally.</p>
+      </div>
     </div>
-    <div class="stat-content">
-      <h3 class="stat-value">{{ project_count }}</h3>
-      <p class="stat-label">Total Projects</p>
-    </div>
-  </div>
 
-  <div class="stat-card animate-in" style="animation-delay: 0.2s;">
-    <div class="stat-icon green">
-      <i class="fas fa-rocket"></i>
-    </div>
-    <div class="stat-content">
-      <h3 class="stat-value">{{ deployment_count }}</h3>
-      <p class="stat-label">Deployments</p>
-    </div>
-  </div>
+    <!-- Meta block -->
+    <div class="dbs-meta-block">
 
-  <div class="stat-card animate-in" style="animation-delay: 0.3s;">
-    <div class="stat-icon purple">
-      <i class="fas fa-list-alt"></i>
+      <div class="dbs-meta-row">
+        <span class="dbs-meta-key">
+          <i class="fas fa-microchip"></i> Engine
+        </span>
+        <div class="dbs-engine-val">
+          <code id="engineStr" class="dbs-engine-code">{{ db_version }}</code>
+          <button class="dbs-copy-btn" onclick="copyEngine()" title="Copy version string">
+            <i class="fas fa-copy" id="copyIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="dbs-meta-divider"></div>
+
+      <div class="dbs-meta-row">
+        <span class="dbs-meta-key">
+          <i class="fas fa-signal"></i> Status
+        </span>
+        <span class="dbs-status-val">
+          <span class="dbs-status-dot"></span> Operational
+        </span>
+      </div>
+
+      <div class="dbs-meta-divider"></div>
+
+      <div class="dbs-meta-row">
+        <span class="dbs-meta-key">
+          <i class="fas fa-clock"></i> Last checked
+        </span>
+        <span class="dbs-meta-plain" id="checkedAt">—</span>
+      </div>
+
     </div>
-    <div class="stat-content">
-      <h3 class="stat-value">{{ log_count }}</h3>
-      <p class="stat-label">Activity Logs</p>
+
+    <!-- Storage snapshot -->
+    <div class="dbs-snapshot">
+      <p class="dbs-snapshot-label">Storage snapshot</p>
+      <div class="dbs-stats">
+        <div class="dbs-stat">
+          <span class="dbs-stat-n" data-target="{{ project_count }}">0</span>
+          <span class="dbs-stat-l"><i class="fas fa-folder-open"></i> Projects</span>
+        </div>
+        <div class="dbs-stat">
+          <span class="dbs-stat-n" data-target="{{ deployment_count }}">0</span>
+          <span class="dbs-stat-l"><i class="fas fa-rocket"></i> Deployments</span>
+        </div>
+        <div class="dbs-stat">
+          <span class="dbs-stat-n" data-target="{{ log_count }}">0</span>
+          <span class="dbs-stat-l"><i class="fas fa-stream"></i> Log entries</span>
+        </div>
+      </div>
     </div>
+
+    <!-- Actions -->
+    <div class="dbs-actions">
+      <a href="/dashboard" class="dbs-btn dbs-btn--primary">
+        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+      </a>
+      <button onclick="window.location.reload()" class="dbs-btn dbs-btn--ghost">
+        <i class="fas fa-sync-alt"></i> Re-test
+      </button>
+    </div>
+
   </div>
 </div>
 
 <style>
-  /* Custom Styles for this page */
-  .status-card {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    padding: 2rem;
-    border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    margin-bottom: 3rem;
-  }
-
-  .status-icon-wrapper {
-    width: 64px;
-    height: 64px;
-    background: var(--success);
-    color: white;
-    border-radius: 50%;
+  /* ── Wrap & Card ─────────────────────────────────────────── */
+  .dbs-wrap {
+    min-height: calc(100vh - var(--header-height, 70px) - 4rem);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    margin-top: 0;
+    padding: 0rem 1rem;
   }
 
-  .status-content h3 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text-primary);
-    font-size: 1.5rem;
+  .dbs-card {
+    width: 100%;
+    max-width: 900px;
+    background: rgba(13, 20, 35, 0.6);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(0, 232, 122, 0.12);
+    border-radius: 20px;
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow:
+      0 0 0 1px rgba(0, 232, 122, 0.04),
+      0 32px 64px rgba(0, 0, 0, 0.45),
+      0 0 48px rgba(0, 232, 122, 0.06);
+    animation: cardIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 
-  .status-content p {
-    margin: 0 0 1rem 0;
-    color: var(--text-secondary);
+  @keyframes cardIn {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
-  .tech-badge {
+  /* ── Top bar ─────────────────────────────────────────────── */
+  .dbs-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dbs-pill {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-full);
-    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(0, 232, 122, 0.1);
+    border: 1px solid rgba(0, 232, 122, 0.22);
+    color: #00e87a;
+    letter-spacing: 0.03em;
+  }
+
+  .dbs-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00e87a;
+    box-shadow: 0 0 6px #00e87a;
+    animation: pulseAnim 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulseAnim {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(0.75);
+      opacity: 0.5;
+    }
+  }
+
+  .dbs-back {
+    font-size: 0.8rem;
+    color: var(--cx-t2, #8aa4c8);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.18s;
+  }
+
+  .dbs-back:hover {
+    color: var(--ai-cyan);
+  }
+
+  .dbs-back:hover i {
+    animation: backIconAnim 0.3s ease;
+  }
+
+  /* ── Hero ────────────────────────────────────────────────── */
+  .dbs-hero {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.25rem 0;
+  }
+
+  .dbs-check-ring {
+    width: 58px;
+    height: 58px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(0, 232, 122, 0.09);
+    border: 1.5px solid rgba(0, 232, 122, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ck-path {
+    stroke-dasharray: 52;
+    stroke-dashoffset: 52;
+    animation: drawPath 0.5s 0.2s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+  }
+
+  @keyframes drawPath {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .dbs-hero-text {
+    flex: 1;
+  }
+
+  .dbs-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--cx-t1, #dbeaff);
+    margin: 0 0 0.35rem;
+    line-height: 1.3;
+  }
+
+  .dbs-sub {
+    font-size: 0.855rem;
+    color: var(--cx-t2, #8aa4c8);
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  /* ── Meta Block ──────────────────────────────────────────── */
+  .dbs-meta-block {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 0.25rem 0;
+    overflow: hidden;
+  }
+
+  .dbs-meta-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.1rem;
+  }
+
+  .dbs-meta-key {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.825rem;
+    color: var(--cx-t2, #8aa4c8);
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-top: 0.1rem;
+  }
+
+  .dbs-meta-key i {
+    color: var(--cx-t3, #3d5870);
+    font-size: 0.8rem;
+    width: 14px;
+    text-align: center;
+  }
+
+  /* Engine value — contains long string cleanly */
+  .dbs-engine-val {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    max-width: 68%;
+    text-align: right;
+  }
+
+  .dbs-engine-code {
+    font-family: var(--cx-mono, 'JetBrains Mono', monospace);
+    font-size: 0.75rem;
+    color: var(--primary, #0ea5e9);
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.14);
+    padding: 0.3rem 0.6rem;
+    border-radius: 7px;
+    word-break: break-all;
+    line-height: 1.6;
+    text-align: left;
+  }
+
+  .dbs-copy-btn {
+    background: none;
+    border: none;
+    color: var(--cx-t3, #3d5870);
+    cursor: pointer;
+    padding: 0.3rem;
+    flex-shrink: 0;
+    transition: color 0.18s;
+    margin-top: 0.15rem;
+  }
+
+  .dbs-copy-btn:hover {
+    color: var(--primary, #0ea5e9);
+  }
+
+  /* Status value */
+  .dbs-status-val {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
     font-size: 0.85rem;
-    color: var(--primary);
-  }
-
-  .section-title-small {
-    font-size: 1.1rem;
-    color: var(--text-secondary);
-    margin-bottom: 1.5rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: #00e87a;
   }
 
-  /* Responsive tweaks */
-  @media (max-width: 768px) {
-    .status-card {
+  .dbs-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00e87a;
+    box-shadow: 0 0 6px rgba(0, 232, 122, 0.7);
+  }
+
+  .dbs-meta-plain {
+    font-size: 0.83rem;
+    color: var(--cx-t1, #dbeaff);
+  }
+
+  .dbs-meta-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.045);
+    margin: 0 1.1rem;
+  }
+
+  /* ── Snapshot ────────────────────────────────────────────── */
+  .dbs-snapshot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .dbs-snapshot-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--cx-t3, #3d5870);
+    margin: 0;
+  }
+
+  .dbs-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  .dbs-stat {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 1.1rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .dbs-stat:hover {
+    border-color: rgba(14, 165, 233, 0.18);
+    background: rgba(14, 165, 233, 0.04);
+  }
+
+  .dbs-stat-n {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cx-t1, #dbeaff);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dbs-stat-l {
+    font-size: 0.75rem;
+    color: var(--cx-t2, #8aa4c8);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .dbs-stat-l i {
+    color: var(--primary, #0ea5e9);
+    font-size: 0.7rem;
+  }
+
+  /* ── Actions ─────────────────────────────────────────────── */
+  .dbs-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .dbs-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .dbs-btn--primary {
+    background: linear-gradient(135deg, var(--primary, #0ea5e9), var(--secondary, #06b6d4));
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(14, 165, 233, 0.25);
+  }
+
+  .dbs-btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(14, 165, 233, 0.4);
+  }
+
+  .dbs-btn--ghost {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--cx-t2, #8aa4c8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dbs-btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--cx-t1, #dbeaff);
+    border-color: rgba(255, 255, 255, 0.18);
+  }
+
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 500px) {
+    .dbs-card {
+      padding: 1.25rem;
+      gap: 1.25rem;
+    }
+
+    .dbs-hero {
       flex-direction: column;
       text-align: center;
     }
+
+    .dbs-check-ring {
+      width: 48px;
+      height: 48px;
+    }
+
+    .dbs-engine-val {
+      max-width: 100%;
+    }
+
+    .dbs-meta-row {
+      flex-direction: column;
+      gap: 0.4rem;
+      align-items: flex-start;
+    }
+
+    .dbs-stats {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .dbs-stat-n {
+      font-size: 1.5rem;
+    }
+
+    .dbs-actions {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
+
+<script>
+  // ── Set last-checked timestamp ───────────────────────────
+  document.getElementById('checkedAt').textContent =
+    new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  // ── Animated count-up for stats ──────────────────────────
+  function countUp(el, target, duration = 900) {
+    if (target === 0) return;
+    const start = performance.now();
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+    function step(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      el.textContent = Math.floor(easeOut(progress) * target).toLocaleString();
+      if (progress < 1) requestAnimationFrame(step);
+      else el.textContent = target.toLocaleString();
+    }
+    requestAnimationFrame(step);
+  }
+
+  document.querySelectorAll('.dbs-stat-n').forEach(el => {
+    const target = parseInt(el.dataset.target, 10) || 0;
+    // Fire when element scrolls into view
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        countUp(el, target);
+        obs.disconnect();
+      }
+    }, { threshold: 0.5 });
+    obs.observe(el);
+  });
+
+  // ── Copy engine version ──────────────────────────────────
+  function copyEngine() {
+    const text = document.getElementById('engineStr').textContent.trim();
+    const icon = document.getElementById('copyIcon');
+    navigator.clipboard.writeText(text).then(() => {
+      icon.classList.replace('fa-copy', 'fa-check');
+      icon.style.color = '#00e87a';
+      setTimeout(() => {
+        icon.classList.replace('fa-check', 'fa-copy');
+        icon.style.color = '';
+      }, 2000);
+    }).catch(() => {
+      if (typeof showToast === 'function') showToast('Could not access clipboard', 'error');
+    });
+  }
+</script>
 {% endblock %}

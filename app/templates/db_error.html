@@ -1,15 +1,354 @@
 {% extends "base.html" %}
 
-{% block title %}Database Test - Error{% endblock %}
+{% block title %}Database Error - CloudX Platform{% endblock %}
+
+{% block breadcrumb %}
+<i class="fas fa-database"></i>
+<i class="fas fa-chevron-right"></i>
+<span>Database Status</span>
+{% endblock %}
 
 {% block content %}
-<h2>❌ Database Connection Failed</h2>
-<div class="status-box error">
-  <strong>Error:</strong> Could not connect to database.
-  <br><strong>Details:</strong> {{ error }}
+<div class="dbs-wrap">
+  <div class="dbs-card dbs-card--err">
+
+    <div class="dbs-top">
+      <span class="dbs-pill dbs-pill--err">
+        <i class="fas fa-circle" style="font-size:0.45rem;vertical-align:middle"></i> Unreachable
+      </span>
+      <a href="/dashboard" class="dbs-back">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
+    </div>
+
+    <div class="dbs-hero">
+      <div class="dbs-icon-ring dbs-icon-ring--err">
+        <i class="fas fa-times" style="font-size:1.5rem;color:#ef4444"></i>
+      </div>
+      <div>
+        <h1 class="dbs-title">Database connection failed</h1>
+        <p class="dbs-sub">Could not reach the PostgreSQL container. Check that the service is running and credentials
+          are correct.</p>
+      </div>
+    </div>
+
+    <div class="dbs-divider"></div>
+
+    <div class="dbs-error-block">
+      <div class="dbs-error-label">
+        <i class="fas fa-terminal"></i> Error output
+      </div>
+      <pre class="dbs-pre">{{ error }}</pre>
+    </div>
+
+    <div class="dbs-checklist">
+      <p class="dbs-section-label">Things to check</p>
+      <ul>
+        <li><i class="fas fa-chevron-right"></i> Is the PostgreSQL container running?</li>
+        <li><i class="fas fa-chevron-right"></i> Are <code>DB_HOST</code> and <code>DB_PORT</code> correct?</li>
+        <li><i class="fas fa-chevron-right"></i> Are the database credentials valid?</li>
+      </ul>
+    </div>
+
+    <div class="dbs-actions">
+      <a href="/dashboard" class="btn btn-primary">
+        <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+      </a>
+      <button onclick="window.location.reload()" class="btn btn-secondary">
+        <i class="fas fa-sync-alt"></i> Retry
+      </button>
+    </div>
+
+  </div>
 </div>
-<p>Make sure the PostgreSQL container is running and properly configured.</p>
-<div class="links">
-  <a href="/">← Back to Home</a>
-</div>
+
+<style>
+  .dbs-wrap {
+    min-height: calc(100vh - var(--header-height) - 4rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .dbs-card {
+    width: 100%;
+    max-width: 580px;
+    background: rgba(15, 23, 42, 0.52);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 18px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    animation: dbsIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .dbs-card--err {
+    border: 1px solid rgba(239, 68, 68, 0.18);
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.4), 0 0 36px rgba(239, 68, 68, 0.07);
+  }
+
+  @keyframes dbsIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dbs-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dbs-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+  }
+
+  .dbs-pill--err {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.22);
+    color: #ef4444;
+  }
+
+  .dbs-back {
+    font-size: 0.8rem;
+    color: var(--cx-t2, #8aa4c8);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color 0.18s;
+  }
+
+  .dbs-back:hover {
+    color: var(--cx-t1, #dbeaff);
+  }
+
+  .dbs-hero {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .dbs-icon-ring--err {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    background: rgba(239, 68, 68, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    animation: errShake 0.5s 0.1s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  @keyframes errShake {
+
+    10%,
+    90% {
+      transform: translateX(-2px);
+    }
+
+    20%,
+    80% {
+      transform: translateX(3px);
+    }
+
+    30%,
+    50%,
+    70% {
+      transform: translateX(-4px);
+    }
+
+    40%,
+    60% {
+      transform: translateX(4px);
+    }
+  }
+
+  .dbs-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--cx-t1, #dbeaff);
+    margin: 0 0 0.3rem;
+  }
+
+  .dbs-sub {
+    font-size: 0.855rem;
+    color: var(--cx-t2, #8aa4c8);
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  .dbs-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  /* error block */
+  .dbs-error-block {
+    border: 1px solid rgba(239, 68, 68, 0.16);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .dbs-error-label {
+    background: rgba(239, 68, 68, 0.08);
+    border-bottom: 1px solid rgba(239, 68, 68, 0.12);
+    padding: 0.55rem 1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .dbs-pre {
+    margin: 0;
+    padding: 1rem;
+    font-family: var(--cx-mono, 'JetBrains Mono', monospace);
+    font-size: 0.8rem;
+    color: #fca5a5;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* checklist */
+  .dbs-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .dbs-section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--cx-t3, #3d5870);
+    margin: 0;
+  }
+
+  .dbs-checklist ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .dbs-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.845rem;
+    color: var(--cx-t2, #8aa4c8);
+    padding: 0.55rem 0.875rem;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+  }
+
+  .dbs-checklist li i {
+    font-size: 0.6rem;
+    color: var(--cx-t3, #3d5870);
+    flex-shrink: 0;
+  }
+
+  .dbs-checklist code {
+    font-family: var(--cx-mono, monospace);
+    font-size: 0.78rem;
+    color: var(--primary, #0ea5e9);
+    background: rgba(14, 165, 233, 0.1);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+  }
+
+  /* actions */
+  .dbs-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .dbs-actions .btn {
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.22);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 22px rgba(14, 165, 233, 0.38);
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.06);
+    color: #8aa4c8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #dbeaff;
+  }
+
+  @media (max-width: 480px) {
+    .dbs-card {
+      padding: 1.5rem;
+    }
+
+    .dbs-hero {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .dbs-actions {
+      flex-direction: column;
+    }
+  }
+</style>
 {% endblock %}

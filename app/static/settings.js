@@ -415,9 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Settings page initialized successfully');
 });
 
-// ==================== Additional CSS for Dark Mode Support ====================
 
-// Inject additional CSS for theme support
 const themeStyles = document.createElement('style');
 themeStyles.textContent = `
   /* Light theme (default) */

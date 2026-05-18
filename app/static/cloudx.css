@@ -56,9 +56,11 @@
 }
 
 .gauge-card {
-  background: var(--bg-card);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-2xl);
   padding: 1.5rem 1rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -189,12 +191,13 @@
 
 .monitor-section {
   position: relative;
-  border-top: 2px solid var(--secondary);
-  border-left: 1px solid var(--border-color);
-  border-right: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-2xl);
   margin-bottom: var(--radius-3xl);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   transition: box-shadow var(--transition-base);
 }
 
@@ -241,7 +244,7 @@
   height: 32px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   color: var(--secondary);
   cursor: pointer;
   display: flex;
@@ -268,12 +271,12 @@
 
 .container-table-wrap {
   overflow-x: auto;
+  background: transparent;
 }
 
 .container-table {
   width: 100%;
-  border-collapse: collapse;
-  background: var(--bg-card);
+  background: transparent;
 }
 
 .container-table th {
@@ -284,8 +287,8 @@
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--gray-300);
-  border-bottom: 1px solid var(--border-color);
+  color: var(--cx-t1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   white-space: nowrap;
 }
 
@@ -293,8 +296,8 @@
   padding: 0.9rem 1.25rem;
   font-family: var(--cx-mono);
   font-size: 0.8rem;
-  color: var(--text-white);
-  border-bottom: 1px solid var(--border-color);
+  color: var(--cx-t2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   vertical-align: middle;
 }
 
@@ -1254,7 +1257,6 @@
   background: var(--text-white);
   font-size: 14px;
   border: 1px solid rgba(0, 204, 255, 0.2);
-  ;
   color: var(--secondary);
   font-family: var(--cx-mono);
   font-size: 0.9rem;
@@ -1267,7 +1269,9 @@
 }
 
 .cx-btn-ghost {
-  background: var(--cx-2);
+  background: var(--tertiary-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border-color);
   color: var(--cx-t2);
 }
@@ -1374,6 +1378,10 @@
   flex-shrink: 0;
 }
 
+.live-status-badge .live-dot {
+  box-shadow: 0 0 8px var(--cx-green), 0 0 16px rgba(0, 232, 122, 0.3);
+}
+
 /* ── Real-time "Live" pill (Resources card) ────────────────────── */
 .realtime-pill {
   display: inline-flex;
@@ -1396,8 +1404,11 @@
   height: 5px;
   border-radius: 50%;
   background: var(--cx-cyan);
-  box-shadow: 0 0 5px var(--cx-cyan);
   animation: cx-blink 1.4s ease-in-out infinite;
+}
+
+#realtimePill .realtime-dot {
+  box-shadow: 0 0 8px var(--ai-cyan), 0 0 14px rgba(0, 204, 255, 0.35);
 }
 
 .ai-suggestions {
@@ -1532,6 +1543,16 @@ kbd {
 .cx-icon-btn[title="Open Terminal"]:hover {
   color: var(--cx-green);
   border-color: rgba(0, 232, 122, 0.3);
+}
+
+.cx-icon-btn[title="Restart"]:hover{
+  color: var(--cx-t1);
+  border-color: var(--text-white);
+}
+
+.cx-icon-btn[title="Logs"]:hover{
+  color: var(--cx-purple);
+  border-color: var(--accent);
 }
 
 .monitor-dash-actions {

@@ -190,9 +190,8 @@
           {% if activity.details %}
           <p class="activity-feed-details">{{ activity.details }}</p>
           {% endif %}
-          <time class="activity-feed-time">{{ activity.created_at.strftime('%I:%M %p') }}</time>
         </div>
-        <div class="activity-feed-status"><span class="status-dot success"></span></div>
+        <time class="activity-feed-time">{{ activity.created_at.strftime('%I:%M %p') }}</time>
       </div>
       {% else %}
       <div class="empty-state-small">
@@ -376,7 +375,8 @@
             },
           },
           tooltip: {
-            mode: 'index', intersect: false, backgroundColor: 'rgba(5,11,20,0.95)',
+            mode: 'index', intersect: false,
+            backgroundColor: 'rgba(6, 11, 18, 0.75)',
             titleColor: '#dbeaff', bodyColor: gray,
             borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
             padding: { top: 10, right: 14, bottom: 10, left: 14 }, cornerRadius: 8,
@@ -390,7 +390,8 @@
             ticks: { color: gray, font: { ...font, size: 11 }, padding: 8 },
           },
           y: {
-            min: 20, max: 100, border: { display: false, dash: [4, 4] },
+            min: 20, max: 100,
+            border: { display: false, dash: [4, 4] },
             grid: { color: 'rgba(255,255,255,0.05)', drawTicks: false },
             ticks: { color: gray, font: { ...font, size: 11 }, padding: 12, stepSize: 20, callback: v => v + '%' },
           },
@@ -438,7 +439,8 @@
             },
           },
           tooltip: {
-            mode: 'index', intersect: false, backgroundColor: 'rgba(5,11,20,0.95)',
+            mode: 'index', intersect: false,
+            backgroundColor: 'rgba(6, 11, 18, 0.75)',
             titleColor: '#dbeaff', bodyColor: gray,
             borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
             padding: { top: 10, right: 14, bottom: 10, left: 14 }, cornerRadius: 8,
@@ -459,7 +461,8 @@
             ticks: { color: gray, font: { ...font, size: 11 }, padding: 8 },
           },
           y: {
-            beginAtZero: true, border: { display: false, dash: [4, 4] },
+            beginAtZero: true,
+            border: { display: false, dash: [4, 4] },
             grid: { color: 'rgba(255,255,255,0.05)', drawTicks: false },
             ticks: { color: gray, font: { ...font, size: 11 }, padding: 12, stepSize: 5 },
           },

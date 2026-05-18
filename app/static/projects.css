@@ -394,9 +394,9 @@
 }
 
 .form-label-wizard {
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--cx-t1);
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -409,9 +409,9 @@
 }
 
 .form-label-wizard .optional {
-  color: var(--text-tertiary);
+  color: var(--cx-t3);
   font-weight: 400;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
 .form-input-wizard {
@@ -484,12 +484,14 @@ textarea.form-input-wizard {
 }
 
 .git-provider-card {
-  padding: 2rem 1.5rem;
-  border: 2px solid var(--border-color);
-  border-radius: 14px;
+  padding: 2rem 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-2xl);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--bg-card);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -257,15 +257,15 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
-  margin-bottom: 1.75rem;
+  margin-bottom: 2rem;
 }
 
 .kpi-card {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  background: var(--tertiary-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl);
   box-shadow:
     0 4px 24px rgba(14, 165, 233, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.06),

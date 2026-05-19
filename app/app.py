@@ -153,9 +153,15 @@ def init_db():
                         status         VARCHAR(50)  DEFAULT 'active',
                         owner_id       INTEGER REFERENCES users(id) ON DELETE CASCADE,
                         tags           TEXT,
+                        env_vars       JSONB        DEFAULT '{}'::jsonb,
                         created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
+                """)
+
+                cursor.execute("""
+                    ALTER TABLE projects
+                        ADD COLUMN IF NOT EXISTS env_vars JSONB DEFAULT '{}'::jsonb
                 """)
 
                 cursor.execute("""
@@ -402,44 +408,61 @@ def api_projects():
         data = request.get_json()
         if not data or 'name' not in data:
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-        
+
+        # ── PHASE 1 CHANGE #2b: Accept `env_vars` dict from the POST payload and
+        # persist it to the new JSONB column. We validate that it is a plain dict
+        # (not a list or scalar) and silently coerce missing/null to an empty dict,
+        # so callers that don't send env_vars at all are unaffected.
+        env_vars = data.get('env_vars') or {}
+        if not isinstance(env_vars, dict):
+            return jsonify({'success': False,
+                            'error': "'env_vars' must be a JSON object (key-value pairs)."}), 400
+
         try:
             with get_db_connection() as conn:
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        """INSERT INTO projects (name, description, repository_url, status, owner_id, tags) 
-                           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
-                        (data.get('name'), data.get('description'), 
-                         data.get('repository_url'), 'active', current_user.id, data.get('tags'))
+                        """INSERT INTO projects
+                               (name, description, repository_url, status, owner_id, tags, env_vars)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                        (
+                            data.get('name'),
+                            data.get('description'),
+                            data.get('repository_url'),
+                            'active',
+                            current_user.id,
+                            data.get('tags'),
+                            json.dumps(env_vars),   # psycopg will pass this as JSONB
+                        )
                     )
                     project_id = cursor.fetchone()[0]
                     conn.commit()
-            
+
             log_activity('project_created', f"Project: {data.get('name')} by User: {current_user.username}")
             return jsonify({'success': True, 'project_id': project_id, 'message': 'Project created successfully'}), 201
         except Exception as e:
             logger.error(f"Project creation error: {e}")
             return jsonify({'success': False, 'error': str(e)}), 400
-    
+
     # GET: only fetch projects belonging to the logged-in user
     try:
         page = request.args.get('page', 1, type=int)
         limit = request.args.get('limit', 10, type=int)
         offset = (page - 1) * limit
-        
+
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
                 cursor.execute("""
-                    SELECT * FROM projects 
+                    SELECT * FROM projects
                     WHERE owner_id = %s
-                    ORDER BY created_at DESC 
+                    ORDER BY created_at DESC
                     LIMIT %s OFFSET %s
                 """, (current_user.id, limit, offset))
                 projects_list = cursor.fetchall()
-                
+
                 cursor.execute("SELECT COUNT(*) as total FROM projects WHERE owner_id = %s", (current_user.id,))
                 total = cursor.fetchone()['total']
-        
+
         return jsonify({
             'data': projects_list,
             'pagination': {
@@ -710,7 +733,7 @@ def _get_gemini_client():
         raise RuntimeError("AI assistant is not configured. Set GEMINI_API_KEY.")
 
     genai.configure(api_key=api_key, transport='rest')
-    
+
     return genai.GenerativeModel(
         model_name=_GEMINI_MODEL,
         system_instruction=_AI_SYSTEM_PROMPT,
@@ -793,7 +816,7 @@ def ai_assist():
 def _get_user_project_ids():
     try:
         with get_db_connection() as conn:
-            with conn.cursor(row_factory=dict_row) as cursor: 
+            with conn.cursor(row_factory=dict_row) as cursor:
                 cursor.execute("SELECT id FROM projects WHERE owner_id = %s", (current_user.id,))
                 return {str(row['id']) for row in cursor.fetchall()}
     except Exception as e:
@@ -804,7 +827,7 @@ def _get_user_project_ids():
 def _container_belongs_to_user(container_name, user_project_ids):
     try:
         name = container_name.lstrip('/')
-        
+
         if name.startswith('cloudx-project-'):
             parts = name.split('-')
             if len(parts) >= 3:
@@ -821,7 +844,7 @@ def list_containers():
     try:
         user_project_ids = _get_user_project_ids()
         client = docker.from_env()
-        
+
         all_containers = client.containers.list(all=True)
 
         container_list = []
@@ -895,54 +918,135 @@ def container_logs(container_id):
 @login_required
 def launch_workspace(project_id):
     """Orchestrator Endpoint - Secured with Tenant Isolation & Persistent Storage"""
-    
+
+    # ── Authorization + project data fetch (combined into one query) ──────────
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
-                cursor.execute("SELECT id FROM projects WHERE id = %s AND owner_id = %s", 
-                               (project_id, current_user.id))
-                if not cursor.fetchone():
-                    return jsonify({'success': False, 'error': 'Unauthorized: You do not own this project.'}), 403
-    except Exception as e:
-         return jsonify({'success': False, 'error': 'Database error during authorization check.'}), 500
+                cursor.execute(
+                    """SELECT id, repository_url, env_vars
+                       FROM projects
+                       WHERE id = %s AND owner_id = %s""",
+                    (project_id, current_user.id)
+                )
+                project = cursor.fetchone()
+                if not project:
+                    return jsonify({'success': False,
+                                    'error': 'Unauthorized: You do not own this project.'}), 403
+    except Exception:
+        return jsonify({'success': False,
+                        'error': 'Database error during authorization check.'}), 500
 
     try:
         client = docker.from_env()
         session_password = secrets.token_hex(4)
-        
+
         container_name = f"cloudx-project-{project_id}-{secrets.token_hex(2)}"
-        volume_name = f"cloudx_data_u{current_user.id}_p{project_id}"
-        
+        volume_name    = f"cloudx_data_u{current_user.id}_p{project_id}"
+
+
+        user_env_vars = project.get('env_vars') or {}
+        if not isinstance(user_env_vars, dict):
+            user_env_vars = {}
+
+        environment = {
+            **user_env_vars,            # user-supplied variables (lower priority)
+            "PASSWORD": session_password,  # system variable always wins
+        }
+
         container = client.containers.run(
             image="cloudx-workspace:latest",
             detach=True,
-            environment={"PASSWORD": session_password},
-            ports={'8080/tcp': None, '22/tcp': None}, 
+            environment=environment,
+            ports={'8080/tcp': None, '22/tcp': None},
             name=container_name,
-            volumes={volume_name: {'bind': '/workspace', 'mode': 'rw'}} 
+            volumes={volume_name: {'bind': '/workspace', 'mode': 'rw'}},
+            # ── PHASE 1 CHANGE #1: Resource quota enforcement ─────────────────
+            mem_limit='512m',
+            nano_cpus=1_000_000_000,   # 1 CPU core (1 × 10^9 nanoseconds / second)
         )
-        
+
+        # Wait for the container to be fully running before we exec into it.
         time.sleep(2)
         container.reload()
-        
+
+        # ── PHASE 1 CHANGE #3: Automated GitHub cloning ──────────────────────
+        # If the project has a repository_url, clone it into /workspace using
+        # container.exec_run(). This approach is chosen over CMD/ENTRYPOINT
+        # override because:
+        #   1. The named volume is already mounted and ready by the time exec_run
+        #      fires, so the clone lands on persistent storage immediately.
+        #   2. It does not require changes to the workspace Docker image.
+        #   3. exec_run is synchronous here (detach=False), so we can capture
+        #      the exit code and surface clone errors before returning to the caller.
+        #
+        # /workspace is cleared first only when it is empty (ls -A check) to
+        # avoid overwriting a user's existing work on subsequent launches.
+        repository_url = (project.get('repository_url') or '').strip()
+        clone_result   = None
+
+        if repository_url:
+            # Check whether /workspace already has content to avoid re-cloning.
+            check_empty = container.exec_run("sh -c '[ -z \"$(ls -A /workspace)\" ]'")
+            workspace_is_empty = (check_empty.exit_code == 0)
+
+            if workspace_is_empty:
+                clone_cmd = f"git clone {repository_url} /workspace"
+                clone_result = container.exec_run(
+                    cmd=["sh", "-c", clone_cmd],
+                    workdir="/",
+                    demux=False,
+                )
+                if clone_result.exit_code == 0:
+                    logger.info(
+                        "Cloned %s into /workspace for project %s",
+                        repository_url, project_id
+                    )
+                    clone_result = {'status': 'cloned', 'repo': repository_url}
+                else:
+                    error_output = clone_result.output.decode('utf-8', errors='ignore').strip()
+                    logger.warning(
+                        "git clone failed for project %s (exit %s): %s",
+                        project_id, clone_result.exit_code, error_output
+                    )
+                    clone_result = {
+                        'status': 'clone_failed',
+                        'repo': repository_url,
+                        'detail': error_output,
+                    }
+            else:
+                logger.info(
+                    "Skipping clone for project %s – /workspace already has content.",
+                    project_id
+                )
+                clone_result = {'status': 'skipped', 'reason': 'workspace_not_empty'}
+
         web_port = container.attrs['NetworkSettings']['Ports']['8080/tcp'][0]['HostPort']
         ssh_port = container.attrs['NetworkSettings']['Ports']['22/tcp'][0]['HostPort']
-        
-        log_activity('workspace_provisioned', f"Launched {container_name} by {current_user.username}")
-        
-        return jsonify({
+
+        log_activity('workspace_provisioned',
+                     f"Launched {container_name} by {current_user.username}")
+
+        response_payload = {
             'success': True,
             'status': 'provisioned',
             'connection': {
-                'web_url': f"http://localhost:{web_port}",
+                'web_url':     f"http://localhost:{web_port}",
                 'ssh_command': f"ssh root@localhost -p {ssh_port}",
-                'password': session_password
-            }
-        })
+                'password':    session_password,
+            },
+        }
+
+        # Include clone metadata when a repo URL was configured.
+        if clone_result is not None:
+            response_payload['repository'] = clone_result
+
+        return jsonify(response_payload)
 
     except Exception as e:
         logger.error(f"Provisioning Failure: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
 
 # ── MISC ROUTES ────────────────────────────────────────────────────────────────
 
@@ -1054,7 +1158,7 @@ def get_dashboard_stats():
     return stats
 
 
-# ── WEBSOCKET EVENTS 
+# ── WEBSOCKET EVENTS
 
 @socketio.on('connect')
 def handle_connect():
@@ -1106,8 +1210,8 @@ def server_error(error):
 
 terminal_sessions = {}
 
-TERMINAL_BUFFER_BYTES    = int(os.getenv("TERMINAL_BUFFER_BYTES",    4096))   
-TERMINAL_FLUSH_INTERVAL  = float(os.getenv("TERMINAL_FLUSH_INTERVAL", 0.05))  
+TERMINAL_BUFFER_BYTES    = int(os.getenv("TERMINAL_BUFFER_BYTES",    4096))
+TERMINAL_FLUSH_INTERVAL  = float(os.getenv("TERMINAL_FLUSH_INTERVAL", 0.05))
 
 
 def _buffered_docker_reader(container_id: str, exec_sock, sid: str):

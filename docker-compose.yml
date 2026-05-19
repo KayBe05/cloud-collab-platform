@@ -97,6 +97,25 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  traefik:
+    image: traefik:v3.3
+    container_name: cloudx-traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=tcp://host.docker.internal:2375"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=cloudx-network"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    networks:
+      - cloudx-network
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   postgres_data:
     driver: local

@@ -409,10 +409,6 @@ def api_projects():
         if not data or 'name' not in data:
             return jsonify({'success': False, 'error': 'Missing required fields'}), 400
 
-        # ── PHASE 1 CHANGE #2b: Accept `env_vars` dict from the POST payload and
-        # persist it to the new JSONB column. We validate that it is a plain dict
-        # (not a list or scalar) and silently coerce missing/null to an empty dict,
-        # so callers that don't send env_vars at all are unaffected.
         env_vars = data.get('env_vars') or {}
         if not isinstance(env_vars, dict):
             return jsonify({'success': False,
@@ -517,7 +513,6 @@ def delete_project(project_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# ── API: DEPLOYMENTS (tenant-isolated) ────────────────────────────────────────
 
 @app.route('/api/deployments', methods=['GET', 'POST'])
 @login_required
@@ -553,7 +548,6 @@ def api_deployments():
             logger.error(f"Deployment creation error: {e}")
             return jsonify({'success': False, 'error': str(e)}), 400
 
-    # GET – only deployments for this user's projects
     try:
         with get_db_connection() as conn:
             with conn.cursor(row_factory=dict_row) as cursor:
@@ -653,7 +647,6 @@ def redeploy():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# ── API: METRICS / ACTIVITIES (tenant-isolated) ────────────────────────────────
 
 @app.route('/api/metrics')
 @login_required
@@ -703,11 +696,9 @@ def api_activities():
         return jsonify({'error': str(e)}), 500
 
 
-# ── API: AI CODE ASSISTANT ─────────────────────────────────────────────────────
 
 _GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-latest")
 
-# System prompt that keeps responses focused and structured
 _AI_SYSTEM_PROMPT = """You are an expert software engineering assistant embedded in CloudX,
 a cloud collaborative IDE. Your role is to help developers understand, debug, and improve code.
 
@@ -753,7 +744,6 @@ def ai_assist():
     if not user_query:
         return jsonify({'success': False, 'error': "'user_query' is required."}), 400
 
-    # Build the prompt sent to Gemini
     prompt_parts = []
     if code_context:
         prompt_parts.append(
@@ -771,7 +761,6 @@ def ai_assist():
     try:
         response = model.generate_content(full_prompt)
 
-        # Extract text safely – Gemini may return multiple candidates/parts
         suggestion = ""
         if response.candidates:
             for part in response.candidates[0].content.parts:
@@ -779,7 +768,6 @@ def ai_assist():
                     suggestion += part.text
         suggestion = suggestion.strip()
 
-        # Usage metadata (present on most Gemini responses)
         usage = {}
         if hasattr(response, 'usage_metadata') and response.usage_metadata:
             usage = {
@@ -803,15 +791,13 @@ def ai_assist():
 
     except Exception as exc:
         logger.error("AI assist – Gemini API error: %s", exc, exc_info=True)
-        # Surface a sanitised error; never leak raw API internals to the client
         return jsonify({
             'success': False,
             'error':   'The AI assistant encountered an error. Please try again.',
-            'detail':  str(exc),   # visible in logs; stripped in production if desired
+            'detail':  str(exc),   
         }), 502
 
 
-# ── API: CONTAINERS (tenant-isolated) ─────────────────────────────────────────
 
 def _get_user_project_ids():
     try:
@@ -950,43 +936,40 @@ def launch_workspace(project_id):
             user_env_vars = {}
 
         environment = {
-            **user_env_vars,            # user-supplied variables (lower priority)
-            "PASSWORD": session_password,  # system variable always wins
+            **user_env_vars,            
+            "PASSWORD": session_password,  
+        }
+
+        router_name  = f"cloudx-proj-{project_id}"
+        service_name = f"cloudx-proj-{project_id}"
+
+        traefik_labels = {
+            "traefik.enable": "true",
+            f"traefik.http.routers.{router_name}.rule":
+                f"Host(`proj{project_id}.cloudx.local`)",
+            f"traefik.http.routers.{router_name}.entrypoints": "web",
+            f"traefik.http.services.{service_name}.loadbalancer.server.port": "8080",
         }
 
         container = client.containers.run(
             image="cloudx-workspace:latest",
             detach=True,
             environment=environment,
-            ports={'8080/tcp': None, '22/tcp': None},
             name=container_name,
+            labels=traefik_labels,
             volumes={volume_name: {'bind': '/workspace', 'mode': 'rw'}},
-            # ── PHASE 1 CHANGE #1: Resource quota enforcement ─────────────────
+            network="cloudx-network",
             mem_limit='512m',
-            nano_cpus=1_000_000_000,   # 1 CPU core (1 × 10^9 nanoseconds / second)
+            nano_cpus=1_000_000_000,  
         )
 
-        # Wait for the container to be fully running before we exec into it.
         time.sleep(2)
         container.reload()
 
-        # ── PHASE 1 CHANGE #3: Automated GitHub cloning ──────────────────────
-        # If the project has a repository_url, clone it into /workspace using
-        # container.exec_run(). This approach is chosen over CMD/ENTRYPOINT
-        # override because:
-        #   1. The named volume is already mounted and ready by the time exec_run
-        #      fires, so the clone lands on persistent storage immediately.
-        #   2. It does not require changes to the workspace Docker image.
-        #   3. exec_run is synchronous here (detach=False), so we can capture
-        #      the exit code and surface clone errors before returning to the caller.
-        #
-        # /workspace is cleared first only when it is empty (ls -A check) to
-        # avoid overwriting a user's existing work on subsequent launches.
         repository_url = (project.get('repository_url') or '').strip()
         clone_result   = None
 
         if repository_url:
-            # Check whether /workspace already has content to avoid re-cloning.
             check_empty = container.exec_run("sh -c '[ -z \"$(ls -A /workspace)\" ]'")
             workspace_is_empty = (check_empty.exit_code == 0)
 
@@ -1021,9 +1004,6 @@ def launch_workspace(project_id):
                 )
                 clone_result = {'status': 'skipped', 'reason': 'workspace_not_empty'}
 
-        web_port = container.attrs['NetworkSettings']['Ports']['8080/tcp'][0]['HostPort']
-        ssh_port = container.attrs['NetworkSettings']['Ports']['22/tcp'][0]['HostPort']
-
         log_activity('workspace_provisioned',
                      f"Launched {container_name} by {current_user.username}")
 
@@ -1031,13 +1011,11 @@ def launch_workspace(project_id):
             'success': True,
             'status': 'provisioned',
             'connection': {
-                'web_url':     f"http://localhost:{web_port}",
-                'ssh_command': f"ssh root@localhost -p {ssh_port}",
+                'web_url':     f"http://proj{project_id}.cloudx.local",
                 'password':    session_password,
             },
         }
 
-        # Include clone metadata when a repo URL was configured.
         if clone_result is not None:
             response_payload['repository'] = clone_result
 
@@ -1048,7 +1026,6 @@ def launch_workspace(project_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# ── MISC ROUTES ────────────────────────────────────────────────────────────────
 
 @app.route('/dbtest')
 @login_required

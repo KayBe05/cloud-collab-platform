@@ -954,11 +954,15 @@ def launch_workspace(project_id):
         container = client.containers.run(
             image="cloudx-workspace:latest",
             detach=True,
-            environment=environment,
+            environment={"PASSWORD": session_password},
             name=container_name,
-            labels=traefik_labels,
             volumes={volume_name: {'bind': '/workspace', 'mode': 'rw'}},
-            network="cloudx-network",
+            network="cloudx_cloudx-network",
+            labels={
+                "traefik.enable": "true",
+                f"traefik.http.routers.cloudx-proj-{project_id}.rule": f"Host(`proj{project_id}.cloudx.local`)",
+                f"traefik.http.services.cloudx-proj-{project_id}.loadbalancer.server.port": "8080"
+            },
             mem_limit='512m',
             nano_cpus=1_000_000_000,  
         )

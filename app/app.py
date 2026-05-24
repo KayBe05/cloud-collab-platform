@@ -1029,6 +1029,133 @@ def launch_workspace(project_id):
         logger.error(f"Provisioning Failure: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ── API: WORKSPACE FILE I/O ───────────────────────────────────────────────────
+
+def _get_project_container(project_id: int):
+    """
+    Return the first running container whose name matches
+    the cloudx-project-<project_id>-* pattern, or None.
+    """
+    client = docker.from_env()
+    for c in client.containers.list(all=True):
+        name = c.name.lstrip('/')
+        if name.startswith(f'cloudx-project-{project_id}-'):
+            return c
+    return None
+
+
+@app.route('/api/workspace/<int:project_id>/files', methods=['GET', 'POST'])
+@login_required
+def workspace_files(project_id):
+    """
+    GET  ?path=relative/path   → read file content from the container's /workspace
+    POST {"path": ..., "content": ...} → write file content into the container
+    """
+    # ── Authorise: caller must own the project ──────────────────────────────
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(
+                    "SELECT id FROM projects WHERE id = %s AND owner_id = %s",
+                    (project_id, current_user.id)
+                )
+                if not cur.fetchone():
+                    return jsonify({'success': False, 'error': 'Project not found'}), 404
+    except Exception as e:
+        logger.error(f"workspace_files auth error: {e}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+
+    # ── Locate running container ─────────────────────────────────────────────
+    container = _get_project_container(project_id)
+    if not container:
+        return jsonify({
+            'success': False,
+            'error': 'No running container found for this project. '
+                     'Launch the workspace first.'
+        }), 404
+
+    # ── GET: read file ───────────────────────────────────────────────────────
+    if request.method == 'GET':
+        rel_path = request.args.get('path', 'main.py').lstrip('/')
+        # Prevent path traversal outside /workspace
+        if '..' in rel_path or rel_path.startswith('/'):
+            return jsonify({'success': False, 'error': 'Invalid path'}), 400
+
+        full_path = f'/workspace/{rel_path}'
+        result = container.exec_run(
+            cmd=['cat', full_path],
+            workdir='/workspace',
+            demux=False,
+        )
+
+        if result.exit_code != 0:
+            error_msg = result.output.decode('utf-8', errors='ignore').strip()
+            # File not found → return empty template rather than hard error
+            return jsonify({
+                'success': True,
+                'content': f'# {rel_path}\n# (new file – start editing here)\n',
+                'path': rel_path,
+                'warning': error_msg,
+            })
+
+        content = result.output.decode('utf-8', errors='replace')
+        log_activity('file_read', f'Project {project_id}: {rel_path}')
+        return jsonify({'success': True, 'content': content, 'path': rel_path})
+
+    # ── POST: write file ─────────────────────────────────────────────────────
+    data = request.get_json(silent=True)
+    if not data or 'path' not in data or 'content' not in data:
+        return jsonify({'success': False, 'error': "Both 'path' and 'content' are required."}), 400
+
+    rel_path = data['path'].lstrip('/')
+    if '..' in rel_path or rel_path.startswith('/'):
+        return jsonify({'success': False, 'error': 'Invalid path'}), 400
+
+    content  = data['content']
+    full_path = f'/workspace/{rel_path}'
+
+    # Ensure parent directory exists
+    parent_dir = full_path.rsplit('/', 1)[0]
+    container.exec_run(cmd=['mkdir', '-p', parent_dir])
+
+    # Write via tee (handles arbitrary content safely without shell escaping)
+    result = container.exec_run(
+        cmd=['tee', full_path],
+        stdin=True,
+        socket=False,
+        demux=False,
+    )
+    # exec_run with stdin=True doesn't pipe directly; use exec_create/start instead
+    client = docker.from_env()
+    exec_inst = client.api.exec_create(
+        container.id,
+        cmd=['tee', full_path],
+        stdin=True,
+        stdout=True,
+        stderr=True,
+    )
+    sock = client.api.exec_start(exec_inst['Id'], detach=False, socket=True)
+    raw = sock._sock if hasattr(sock, '_sock') else sock
+    try:
+        raw.sendall(content.encode('utf-8'))
+        raw.shutdown(1)  # signal EOF on stdin
+    finally:
+        raw.close()
+
+    inspect = client.api.exec_inspect(exec_inst['Id'])
+    exit_code = inspect.get('ExitCode', -1)
+
+    if exit_code != 0:
+        logger.error(f"tee write failed (exit {exit_code}) for {full_path}")
+        return jsonify({'success': False, 'error': f'Write failed (exit {exit_code})'}), 500
+
+    log_activity('file_write', f'Project {project_id}: {rel_path} ({len(content)} bytes)')
+    return jsonify({
+        'success': True,
+        'message': f'{rel_path} saved successfully',
+        'path': rel_path,
+        'bytes': len(content.encode('utf-8')),
+    })
 
 
 @app.route('/dbtest')

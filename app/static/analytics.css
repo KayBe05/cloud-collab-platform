@@ -134,10 +134,10 @@
   position: absolute;
   top: calc(100% + 0.45rem);
   left: 0;
-  min-width: 220px;
+  min-width: 250px;
   background: var(--bg-sidebar);
   border: 1px solid rgba(14, 165, 233, 0.2);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   box-shadow:
     0 16px 48px rgba(0, 0, 0, 0.45),
     0 0 0 1px rgba(255, 255, 255, 0.04) inset,

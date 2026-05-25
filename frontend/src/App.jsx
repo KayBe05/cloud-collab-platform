@@ -24,7 +24,8 @@ import {
   Menu,
 } from "lucide-react";
 
-import Workspace from "./views/Workspace"; 
+import Workspace from "./views/Workspace";
+import Analytics from "./views/Analytics";
 
 const NAV_SECTIONS = [
   {
@@ -404,9 +405,8 @@ function ProjectsPage() {
 function AnalyticsPage() {
   return (
     <AppLayout breadcrumb={["Analytics"]}>
-      <PageShell title="Analytics" icon={BarChart3} color="var(--cx-purple)">
-        <WipCard label="Analytics Charts" />
-      </PageShell>
+      {/* Rendering the new component directly inside the layout wrapper */}
+      <Analytics />
     </AppLayout>
   );
 }

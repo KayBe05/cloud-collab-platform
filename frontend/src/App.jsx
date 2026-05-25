@@ -26,6 +26,8 @@ import {
 
 import Workspace from "./views/Workspace";
 import Analytics from "./views/Analytics";
+import Login from "./views/auth/Login";
+import Signup from "./views/auth/Signup";
 
 const NAV_SECTIONS = [
   {
@@ -438,6 +440,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Auth routes (no sidebar) */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
         {/* Core routes */}
         <Route path="/" element={<DashboardPage />} />
         <Route path="/projects" element={<ProjectsPage />} />

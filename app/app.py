@@ -247,86 +247,86 @@ def workspace():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
-        remember = request.form.get('remember') == 'on'
-
-        if not username or not password:
-            flash('Username and password are required.', 'error')
-            return render_template('login.html')
-
-        user = User.get_by_username(username)
-        if user and user.check_password(password):
-            login_user(user, remember=remember)
-            log_activity('user_login', f"User '{username}' logged in")
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('home'))
-
-        flash('Invalid username or password.', 'error')
-
-    return render_template('login.html')
+    if request.method == 'GET':
+        if current_user.is_authenticated:
+            return redirect(url_for('home'))
+        return render_template('login.html')   # React bundle entry-point
+ 
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Request body must be JSON.'}), 400
+ 
+    username = (data.get('username') or '').strip()
+    password =  data.get('password') or ''
+    remember =  bool(data.get('remember', False))
+ 
+    if not username or not password:
+        return jsonify({'success': False, 'error': 'Username and password are required.'}), 400
+ 
+    user = User.get_by_username(username)
+    if user and user.check_password(password):
+        login_user(user, remember=remember)
+        log_activity('user_login', f"User '{username}' logged in")
+        return jsonify({'success': True, 'redirect': url_for('home')}), 200
+ 
+    return jsonify({'success': False, 'error': 'Invalid username or password.'}), 401
 
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        email    = request.form.get('email', '').strip().lower()
-        password = request.form.get('password', '')
-        confirm  = request.form.get('confirm_password', '')
-
-        errors = []
-        if not username or len(username) < 3:
-            errors.append('Username must be at least 3 characters.')
-        if not email or '@' not in email:
-            errors.append('A valid email is required.')
-        if len(password) < 8:
-            errors.append('Password must be at least 8 characters.')
-        if password != confirm:
-            errors.append('Passwords do not match.')
-
-        if not errors:
-            if User.get_by_username(username):
-                errors.append('Username already taken.')
-            if User.get_by_email(email):
-                errors.append('Email already registered.')
-
-        if errors:
-            for err in errors:
-                flash(err, 'error')
-            return render_template('signup.html',
-                                   form_username=username, form_email=email)
-
-        try:
-            password_hash = generate_password_hash(password)
-            with get_db_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """INSERT INTO users (username, email, password_hash)
-                           VALUES (%s, %s, %s) RETURNING id""",
-                        (username, email, password_hash)
-                    )
-                    new_id = cur.fetchone()[0]
-                    conn.commit()
-
-            user = User.get_by_id(new_id)
-            login_user(user)
-            log_activity('user_signup', f"New user '{username}' registered")
-            flash(f'Welcome to CloudX, {username}!', 'success')
+    if request.method == 'GET':
+        if current_user.is_authenticated:
             return redirect(url_for('home'))
-
-        except Exception as e:
-            logger.error(f"Signup error: {e}")
-            flash('Registration failed. Please try again.', 'error')
-
-    return render_template('signup.html')
+        return render_template('signup.html')  
+ 
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({'success': False, 'error': 'Request body must be JSON.'}), 400
+ 
+    username         = (data.get('username')         or '').strip()
+    email            = (data.get('email')            or '').strip().lower()
+    password         =  data.get('password')         or ''
+    confirm_password =  data.get('confirm_password') or ''
+ 
+    errors = []
+    if not username or len(username) < 3:
+        errors.append('Username must be at least 3 characters.')
+    if not email or '@' not in email:
+        errors.append('A valid email is required.')
+    if len(password) < 8:
+        errors.append('Password must be at least 8 characters.')
+    if password != confirm_password:
+        errors.append('Passwords do not match.')
+ 
+    if not errors:
+        if User.get_by_username(username):
+            errors.append('Username already taken.')
+        if User.get_by_email(email):
+            errors.append('Email already registered.')
+ 
+    if errors:
+        return jsonify({'success': False, 'errors': errors}), 400
+ 
+    try:
+        password_hash = generate_password_hash(password)
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """INSERT INTO users (username, email, password_hash)
+                       VALUES (%s, %s, %s) RETURNING id""",
+                    (username, email, password_hash)
+                )
+                new_id = cur.fetchone()[0]
+                conn.commit()
+ 
+        user = User.get_by_id(new_id)
+        login_user(user)
+        log_activity('user_signup', f"New user '{username}' registered")
+        return jsonify({'success': True, 'redirect': url_for('home')}), 201
+ 
+    except Exception as e:
+        logger.error(f"Signup error: {e}")
+        return jsonify({'success': False, 'error': 'Registration failed. Please try again.'}), 500
 
 
 @app.route('/logout')

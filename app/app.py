@@ -1265,6 +1265,31 @@ def get_dashboard_stats():
 
     return stats
 
+@app.route('/api/dashboard')
+@login_required
+def api_dashboard():
+    """
+    Return dashboard statistics for the currently authenticated user.
+    Calls the existing get_dashboard_stats() helper and serialises the result.
+ 
+    Dates / datetimes inside recent_activities are not JSON-serialisable by
+    default, so we convert them to ISO-8601 strings before returning.
+    """
+    stats = get_dashboard_stats()
+ 
+    # Serialise datetime objects inside recent_activities
+    serialisable_activities = []
+    for row in stats.get('recent_activities', []):
+        # psycopg returns dict-like rows; convert to a plain dict first
+        item = dict(row)
+        for key, val in item.items():
+            if hasattr(val, 'isoformat'):          # datetime / date
+                item[key] = val.isoformat()
+        serialisable_activities.append(item)
+ 
+    stats['recent_activities'] = serialisable_activities
+ 
+    return jsonify(stats)
 
 # ── WEBSOCKET EVENTS
 

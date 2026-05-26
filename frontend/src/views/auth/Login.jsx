@@ -106,7 +106,7 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/login", {
+      const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: form.username.trim(), password: form.password, remember: form.remember }),

@@ -122,7 +122,7 @@ export default function Signup() {
     if (localErrors.length) { setErrors(localErrors); return; }
     setLoading(true);
     try {
-      const res = await fetch("/signup", {
+      const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

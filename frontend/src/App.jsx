@@ -28,6 +28,7 @@ import Workspace from "./views/Workspace";
 import Analytics from "./views/Analytics";
 import Login from "./views/auth/Login";
 import Signup from "./views/auth/Signup";
+import Dashboard from "./views/Dashboard";
 
 const NAV_SECTIONS = [
   {
@@ -363,31 +364,8 @@ function WipCard({ label }) {
 function DashboardPage() {
   return (
     <AppLayout breadcrumb={["Dashboard"]}>
-      <PageShell title="Dashboard" icon={LayoutDashboard}>
-        {/* Quick-stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: "Active Projects", value: "12", color: "var(--primary)", bg: "rgba(14,165,233,0.1)" },
-            { label: "Running Deploys", value: "3", color: "var(--cx-green)", bg: "rgba(0,232,122,0.1)" },
-            { label: "Total Requests", value: "84k", color: "var(--cx-purple)", bg: "rgba(157,111,255,0.1)" },
-            { label: "Error Rate", value: "0.2%", color: "var(--warning)", bg: "rgba(245,158,11,0.1)" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="cx-card rounded-2xl p-5 flex flex-col gap-1.5"
-            >
-              <span className="text-3xl font-bold" style={{ color: s.color, fontFamily: "var(--font-mono)" }}>
-                {s.value}
-              </span>
-              <span className="text-xs" style={{ color: "var(--cx-t2)", fontFamily: "var(--font-mono)" }}>
-                {s.label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <WipCard label="Dashboard Widgets" />
-      </PageShell>
+      {/* Rendering your new Dashboard component inside the Sidebar layout */}
+      <Dashboard />
     </AppLayout>
   );
 }

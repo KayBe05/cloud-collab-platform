@@ -27,7 +27,6 @@ function PasswordStrength({ password }) {
   );
 }
 
-// Step list for hero panel
 const STEPS = [
   { num: "01", title: "Create your account", desc: "Set up credentials and get instant access to your isolated tenant." },
   { num: "02", title: "Provision a workspace", desc: "Launch containers, configure networking, and connect your repos." },
@@ -163,7 +162,8 @@ export default function Signup() {
         .input-field::placeholder { color:#3E5A7A; }
         .input-field:focus { border-color:#0EA5E9; box-shadow:0 0 0 3px rgba(14,165,233,.15); }
         .btn-google { background:rgba(255,255,255,.04); border:1.5px solid #1E3A5F; transition:all .2s; }
-        .btn-google:hover { background:rgba(255,255,255,.08); border-color:#0EA5E9; transform:translateY(-1px); }
+        .btn-google:hover { 
+        background:rgba(255,255,255,.08); border-color:#0EA5E9; transform:translateY(-1px);}
         .toggle-pw-btn { background:none; border:none; color:#3E5A7A; cursor:pointer; transition:color .15s; }
         .toggle-pw-btn:hover { color:#0EA5E9; }
         .step-connector { width:2px;flex:1;min-height:28px;background:linear-gradient(180deg,rgba(14,165,233,.5),rgba(6,182,212,.15));border-radius:2px;margin-top:3px;position:relative; }

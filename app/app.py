@@ -245,99 +245,64 @@ def log_activity(action, details=None, severity='info'):
 def workspace():
     return render_template('workspace.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+# Change from '/login' to '/api/login'
+@app.route('/api/login', methods=['POST'])
 def login():
-    if request.method == 'GET':
-        if current_user.is_authenticated:
-            return redirect(url_for('home'))
-        return render_template('login.html')   # React bundle entry-point
- 
-    data = request.get_json(silent=True)
-    if not data:
-        return jsonify({'success': False, 'error': 'Request body must be JSON.'}), 400
- 
-    username = (data.get('username') or '').strip()
-    password =  data.get('password') or ''
-    remember =  bool(data.get('remember', False))
- 
-    if not username or not password:
-        return jsonify({'success': False, 'error': 'Username and password are required.'}), 400
- 
+    data = request.get_json(silent=True) or {}
+    username = data.get('username', '').strip()
+    password = data.get('password', '')
+
     user = User.get_by_username(username)
     if user and user.check_password(password):
-        login_user(user, remember=remember)
-        log_activity('user_login', f"User '{username}' logged in")
-        return jsonify({'success': True, 'redirect': url_for('home')}), 200
- 
-    return jsonify({'success': False, 'error': 'Invalid username or password.'}), 401
+        login_user(user, remember=True)
+        log_activity('user_login', f"User '{username}' logged in via React")
+        return jsonify({'success': True, 'message': 'Logged in successfully'})
 
+    return jsonify({'success': False, 'error': 'Invalid username or password'}), 401
 
-@app.route('/signup', methods=['GET', 'POST'])
+# Change from '/signup' to '/api/signup'
+@app.route('/api/signup', methods=['POST'])
 def signup():
-    if request.method == 'GET':
-        if current_user.is_authenticated:
-            return redirect(url_for('home'))
-        return render_template('signup.html')  
- 
-    data = request.get_json(silent=True)
-    if not data:
-        return jsonify({'success': False, 'error': 'Request body must be JSON.'}), 400
- 
-    username         = (data.get('username')         or '').strip()
-    email            = (data.get('email')            or '').strip().lower()
-    password         =  data.get('password')         or ''
-    confirm_password =  data.get('confirm_password') or ''
- 
-    errors = []
-    if not username or len(username) < 3:
-        errors.append('Username must be at least 3 characters.')
-    if not email or '@' not in email:
-        errors.append('A valid email is required.')
-    if len(password) < 8:
-        errors.append('Password must be at least 8 characters.')
-    if password != confirm_password:
-        errors.append('Passwords do not match.')
- 
-    if not errors:
-        if User.get_by_username(username):
-            errors.append('Username already taken.')
-        if User.get_by_email(email):
-            errors.append('Email already registered.')
- 
-    if errors:
-        return jsonify({'success': False, 'errors': errors}), 400
- 
+    data = request.get_json(silent=True) or {}
+    username = data.get('username', '').strip()
+    email    = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+
+    if not username or not email or len(password) < 8:
+        return jsonify({'success': False, 'error': 'Invalid data (password must be 8+ chars)'}), 400
+
+    if User.get_by_username(username):
+        return jsonify({'success': False, 'error': 'Username already taken'}), 400
+
+    if User.get_by_email(email):
+        return jsonify({'success': False, 'error': 'Email already registered'}), 400
+
     try:
         password_hash = generate_password_hash(password)
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    """INSERT INTO users (username, email, password_hash)
-                       VALUES (%s, %s, %s) RETURNING id""",
+                    "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
                     (username, email, password_hash)
                 )
                 new_id = cur.fetchone()[0]
                 conn.commit()
- 
+
         user = User.get_by_id(new_id)
         login_user(user)
-        log_activity('user_signup', f"New user '{username}' registered")
-        return jsonify({'success': True, 'redirect': url_for('home')}), 201
- 
+        log_activity('user_signup', f"New user '{username}' registered via React")
+        return jsonify({'success': True, 'message': 'Account created'})
     except Exception as e:
         logger.error(f"Signup error: {e}")
-        return jsonify({'success': False, 'error': 'Registration failed. Please try again.'}), 500
+        return jsonify({'success': False, 'error': 'Database error'}), 500
 
-
-@app.route('/logout')
+# Change from '/logout' to '/api/logout'
+@app.route('/api/logout', methods=['POST', 'GET'])
 @login_required
 def logout():
-    log_activity('user_logout', f"User '{current_user.username}' logged out")
+    log_activity('user_logout', f"User '{current_user.username}' logged out via React")
     logout_user()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('login'))
-
-
+    return jsonify({'success': True, 'message': 'Logged out'})
 
 @app.route('/')
 @login_required
@@ -1269,26 +1234,21 @@ def get_dashboard_stats():
 @login_required
 def api_dashboard():
     """
-    Return dashboard statistics for the currently authenticated user.
-    Calls the existing get_dashboard_stats() helper and serialises the result.
- 
-    Dates / datetimes inside recent_activities are not JSON-serialisable by
-    default, so we convert them to ISO-8601 strings before returning.
+    Dashboard stats endpoint for the React frontend.
+    Returns the result of get_dashboard_stats() as JSON, with all datetime
+    objects serialised to ISO-8601 strings.
     """
     stats = get_dashboard_stats()
- 
-    # Serialise datetime objects inside recent_activities
+
     serialisable_activities = []
     for row in stats.get('recent_activities', []):
-        # psycopg returns dict-like rows; convert to a plain dict first
         item = dict(row)
         for key, val in item.items():
-            if hasattr(val, 'isoformat'):          # datetime / date
+            if hasattr(val, 'isoformat'):
                 item[key] = val.isoformat()
         serialisable_activities.append(item)
- 
+
     stats['recent_activities'] = serialisable_activities
- 
     return jsonify(stats)
 
 # ── WEBSOCKET EVENTS

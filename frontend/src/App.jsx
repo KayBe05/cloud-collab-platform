@@ -26,6 +26,7 @@ import {
 
 import Workspace from "./views/Workspace";
 import Analytics from "./views/Analytics";
+import Projects from "./views/Projects";
 import Login from "./views/auth/Login";
 import Signup from "./views/auth/Signup";
 import Dashboard from "./views/Dashboard";
@@ -330,7 +331,6 @@ function PageShell({ title, icon: Icon, color = "var(--ai-cyan)", children }) {
   );
 }
 
-/** Reusable "under construction" card */
 function WipCard({ label }) {
   return (
     <div
@@ -370,13 +370,11 @@ function DashboardPage() {
   );
 }
 
-/* ── Projects ── */
 function ProjectsPage() {
   return (
     <AppLayout breadcrumb={["Projects"]}>
-      <PageShell title="Projects" icon={FolderKanban}>
-        <WipCard label="Projects Grid" />
-      </PageShell>
+      {}
+      <Projects />
     </AppLayout>
   );
 }
